@@ -1,0 +1,9 @@
+fastapi~=0.121.1
+uvicorn[standard]
+gitpython
+python-dotenv
+requests
+license-expression
+pydantic
+
+app~=0.0.1
