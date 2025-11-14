@@ -36,26 +36,46 @@ def run_scancode(repo_path: str) -> dict:
         raise RuntimeError("ScanCode non ha generato il file JSON")
 
     with open(output_file, "r", encoding="utf-8") as f:
-        raw_data = json.load(f)
+        return json.load(f)
 
-    # 🔥 Pulisce falsi positivi
-    cleaned_data = get_llm_clean_license_results(raw_data)
+def filter_with_llm(scancode_data: dict) -> dict:
+    minimal = build_minimal_json(scancode_data)
+    return ask_llm_to_filter_licenses(minimal)
 
-    return cleaned_data
-
-def get_llm_clean_license_results(scancode_data: dict) -> dict:
+def build_minimal_json(scancode_data: dict) -> dict:
     """
-    Pipeline:
-    1. costruisce JSON semplice
-    2. manda al LLM
-    3. ritorna JSON filtrato
+    Costruisce un JSON minimale per il modello LLM,
+    rimuovendo completamente la sezione 'files'.
+    Mantiene SOLO:
+    - headers
+    - license_detections (con reference_matches → matched_text)
     """
 
-    minimal = build_minimal_scancode_json(scancode_data)
+    minimal = {
+        "headers": scancode_data.get("headers", []),
+        "license_detections": []
+    }
 
-    cleaned_by_llm = ask_llm_to_filter_licenses(minimal)
+    for det in scancode_data.get("license_detections", []):
+        new_det = {
+            "identifier": det.get("identifier"),
+            "license_expression_spdx": det.get("license_expression_spdx"),
+            "reference_matches": []
+        }
 
-    return cleaned_by_llm
+        for rm in det.get("reference_matches", []):
+            new_det["reference_matches"].append({
+                "from_file": rm.get("from_file"),
+                "start_line": rm.get("start_line"),
+                "end_line": rm.get("end_line"),
+                "matched_text": rm.get("matched_text"),
+                "license_spdx": rm.get("license_expression_spdx")
+            })
+
+        minimal["license_detections"].append(new_det)
+
+    return minimal
+
 
 def _call_ollama_gpt(prompt: json) -> str:
     """
@@ -72,74 +92,65 @@ def _call_ollama_gpt(prompt: json) -> str:
     data = resp.json()
     return data.get("response", "")
 
-def build_minimal_scancode_json(data: dict) -> dict:
-    """
-    Produci un JSON minimalista per il LLM:
-    - solo path, spdx, match brevi
-    - nessun campo inutile
-    """
-    minimal = {"files": []}
 
-    for f in data.get("files", []):
-        if f.get("type") != "file":
-            continue
 
-        mf = {
-            "path": f.get("path"),
-            "detected_spdx": f.get("detected_license_expression_spdx"),
-            "matches": []
-        }
-
-        for det in f.get("license_detections", []):
-            for m in det.get("matches", []):
-                mf["matches"].append({
-                    "license_spdx": m.get("license_expression_spdx"),
-                    "from_file": m.get("from_file"),
-                    "start_line": m.get("start_line"),
-                    "end_line": m.get("end_line"),
-                    "matched_length": m.get("matched_length"),
-                    "matched_text": (m.get("matched_text") or "")[:200],  # max 200 caratteri
-                })
-
-        minimal["files"].append(mf)
-
-    return minimal
-
-#TODO: il propt deve analizzare solo il matched_text e bisogna fare attenzione all'putput JSON perchè è diverso dal JSON di scancode
+#TODO: il prompt deve analizzare solo il matched_text e bisogna fare attenzione all'putput JSON perchè è diverso dal JSON di scancode
 def ask_llm_to_filter_licenses(minimal_json: dict) -> dict:
     """
     Manda il JSON ridotto al LLM e ritorna il JSON pulito
     (match filtrati).
+    Analizza SOLO matched_text.
     """
+
     prompt = f"""
 Sei un esperto di licenze open source.
 
-Ti fornisco un JSON con match di licenze trovati da ScanCode.
+Ti fornisco un JSON che contiene vari match rilevati da ScanCode.
+Ogni match ha vari campi, ma tu devi analizzare SOLO:
 
-Devi rimuovere TUTTI i match falsi, cioè:
-- citazioni della licenza dentro testo descrittivo
-- link a licenze (es: https://opensource.org/licenses)
-- riferimenti a "see LICENSE"
-- match ereditati da LICENSE (campo from_file diverso dal path)
-- header non di licenza
-- match con lunghezza troppo corta (inferiore a 20 caratteri)
-- match che NON contengono una reale dichiarazione di licenza
+    matched_text
 
-Mantieni SOLO:
-- SPDX tag reali
-- header di licenza
-- blocchi di testo copiati da licenza reale
-- vera licenza nel file
+I campi:
+- license_spdx
+- start_line
+- end_line
+- path
+servono solo come metadati e NON influenzano la decisione.
 
-RISPONDI con SOLO un JSON nel formato:
+────────────────────────────────────────
+CRITERIO DI FILTRO (usa SOLO matched_text)
+────────────────────────────────────────
+
+SCARTA il match se matched_text è:
+
+❌ un riferimento (es. "see LICENSE", "Apache License link")
+❌ un link a licenze (es. https://opensource.org/licenses/…)
+❌ una descrizione della licenza (non il testo reale)
+❌ un frammento di documentazione
+❌ una citazione in un changelog, tutorial, README, docstring
+❌ un semplice nome della licenza senza header vero
+❌ un match ereditato da altri file (IGNORA completamente il campo from_file)
+
+TIENI il match SOLO se matched_text è:
+
+✅ un vero blocco di licenza copiato (>= 20 caratteri e contiene testo formale)
+✅ un header di licenza (MIT header, Apache header, BSD header, ecc.)
+✅ un testo di licenza ufficiale lungo e con formule legali
+✅ uno SPDX tag VERO (stringa esatta: "SPDX-License-Identifier: …")
+
+────────────────────────────────────────
+FORMATO RISPOSTA **OBBLIGATORIO**
+────────────────────────────────────────
+
+Rispondi SOLO con un JSON:
 
 {{
   "files": [
     {{
-      "path": "...",
+      "path": "<path>",
       "matches": [
         {{
-          "license_spdx": "...",
+          "license_spdx": "<SPDX>",
           "start_line": 0,
           "end_line": 0
         }}
@@ -147,6 +158,11 @@ RISPONDI con SOLO un JSON nel formato:
     }}
   ]
 }}
+
+- usa solo i match che hai deciso di TENERE
+- se un file non ha match validi → NON includerlo nella risposta
+
+────────────────────────────────────────
 
 Ecco il JSON da analizzare:
 
@@ -159,6 +175,7 @@ Ecco il JSON da analizzare:
         return json.loads(llm_response)
     except json.JSONDecodeError:
         raise RuntimeError("Il modello ha restituito una risposta non valida")
+
 
 
 def detect_main_license_scancode(data: dict) -> str:
@@ -224,50 +241,31 @@ def detect_main_license_scancode(data: dict) -> str:
     return "UNKNOWN"
 
 
-def extract_file_licenses_scancode(data: dict) -> Dict[str, str]:
+def extract_file_licenses_from_llm(llm_data: dict) -> Dict[str, str]:
     """
-    Estrae per OGNI file la licenza (o espressione di licenza) in formato SPDX.
-
-    Restituisce:
-        { "path/del/file": "Apache-2.0" }
-        { "path/del/file2": "LGPL-2.0-or-later AND MIT" }
+    Estrae la licenza per ogni file a partire dal JSON filtrato dall’LLM.
+    llm_data ha un formato diverso dal JSON ScanCode originale.
     """
 
-    results: Dict[str, str] = {}
+    results = {}
 
-    for entry in data.get("files", []):
-        file_path = entry.get("path")
-        if not file_path or entry.get("type") != "file":
+    for f in llm_data.get("files", []):
+        path = f.get("path")
+        matches = f.get("matches", [])
+
+        if not matches:
             continue
 
-        # 1) Campo diretto più affidabile
-        spdx = entry.get("detected_license_expression_spdx")
-        if spdx:
-            results[file_path] = spdx
+        # Se ci sono più match, li combiniamo in OR (come fa ScanCode)
+        unique_spdx = list({m.get("license_spdx") for m in matches if m.get("license_spdx")})
+
+        if not unique_spdx:
             continue
 
-        # 2) Campo generico
-        expr = entry.get("detected_license_expression")
-        if expr:
-            results[file_path] = expr.upper()
-            continue
-
-        # 3) Lista detection dettagliate
-        detections = entry.get("license_detections", [])
-        if detections:
-            first = detections[0]
-            det_spdx = first.get("license_expression_spdx")
-            if det_spdx:
-                results[file_path] = det_spdx
-                continue
-
-        # 4) Campo "licenses"
-        licenses = entry.get("licenses", [])
-        if licenses:
-            lic = licenses[0]
-            spdx_key = lic.get("spdx_license_key")
-            if spdx_key:
-                results[file_path] = spdx_key
-                continue
+        if len(unique_spdx) == 1:
+            results[path] = unique_spdx[0]
+        else:
+            results[path] = " OR ".join(unique_spdx)
 
     return results
+

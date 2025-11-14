@@ -4,7 +4,7 @@ from app.services.github_client import clone_repo
 from app.services.scancode_service import (
     run_scancode,
     detect_main_license_scancode,
-    extract_file_licenses_scancode,
+    extract_file_licenses_from_llm, filter_with_llm,
 )
 from app.services.compatibility import check_compatibility
 from app.services.llm_helper import enrich_with_llm_suggestions
@@ -26,14 +26,17 @@ def analyze_repository(payload: AnalyzeRequest):
 
     repo_path = clone_result.repo_path
 
-    # 2) ScanCode su tutto il progetto
-    scan_data = run_scancode(repo_path)
+    # 2) Esegui ScanCode
+    scan_raw = run_scancode(repo_path)
 
-    # 3) Rileva licenza principale
-    main_license = detect_main_license_scancode(scan_data)
+    # 3) MAIN LICENSE
+    main_license = detect_main_license_scancode(scan_raw)
 
-    # 4) Estrai licenze per singolo file
-    file_licenses = extract_file_licenses_scancode(scan_data)
+    # JSON filtrato dall’LLM
+    llm_clean = filter_with_llm(scan_raw)
+
+    # 4) LICENZE PER FILE (da LLM)
+    file_licenses = extract_file_licenses_from_llm(llm_clean)
 
     # 5) Verifica compatibilità
     compatibility = check_compatibility(main_license, file_licenses)
