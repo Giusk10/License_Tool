@@ -8,8 +8,8 @@ class AnalyzeRequest(BaseModel):
 
 # ----- ISSUE (nuovo formato compatibile con i tuoi dict) -----
 class LicenseIssue(BaseModel):
-    file: str
-    license: str
+    file_path: str
+    detected_license: str
     compatible: bool
     reason: Optional[str] = None
     suggestion: Optional[str] = None

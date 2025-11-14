@@ -1,12 +1,12 @@
 import requests
-from typing import List
+from typing import List, Dict
 from app.core.config import OLLAMA_URL, OLLAMA_MODEL
-from app.models.schemas import LicenseIssue
+
 
 def _call_ollama(prompt: str) -> str:
     """
     Chiamata semplice a Ollama (API locale).
-    Si aspetta compatibilità con endpoint /api/generate.
+    (Non usata direttamente in questa versione, ma pronta per usi futuri.)
     """
     payload = {
         "model": OLLAMA_MODEL,
@@ -16,28 +16,29 @@ def _call_ollama(prompt: str) -> str:
     resp = requests.post(OLLAMA_URL, json=payload, timeout=120)
     resp.raise_for_status()
     data = resp.json()
-    # formato tipico: {"response": "..."}
     return data.get("response", "")
 
-def enrich_with_llm_suggestions(issues):
+
+def enrich_with_llm_suggestions(issues: List[Dict]) -> List[Dict]:
+    """
+    Arricchisce ogni issue con un campo 'suggestion'.
+    Per ora usiamo una frase statica, ma puoi sostituirla con _call_ollama(...)
+    """
+
     enriched = []
 
     for issue in issues:
-        # issue è un dict → usare issue["campo"]
-        compatible = issue["compatible"]
-        reason = issue["reason"]
-        file_path = issue["file"]
-        license_id = issue["license"]
-
-        # qui fai la tua logica LLM
-        suggestion = f"Verifica la licenza {license_id} nel file {file_path}."
-
         enriched.append({
-            "file": file_path,
-            "license": license_id,
-            "compatible": compatible,
-            "reason": reason,
-            "suggestion": suggestion
+            "file_path": issue["file_path"],
+            "detected_license": issue["detected_license"],
+            "compatible": issue["compatible"],
+            "reason": issue["reason"],
+            "suggestion": (
+                f"Verifica la licenza {issue['detected_license']} nel file "
+                f"{issue['file_path']} e assicurati che sia coerente con la policy del progetto."
+            ),
+            # futuro: se rigeneri codice con LLM, salva qui il path
+            "regenerated_code_path": issue.get("regenerated_code_path"),
         })
 
     return enriched
