@@ -321,7 +321,7 @@ def extract_file_licenses_from_llm(llm_data: dict) -> Dict[str, str]:
         if not matches:
             continue
 
-        # Se ci sono più match, li combiniamo in OR (come fa ScanCode)
+        # Se ci sono più match, li combiniamo in OR (come fa il tool ScanCode)
         unique_spdx = list({m.get("license_spdx") for m in matches if m.get("license_spdx")})
 
         if not unique_spdx:
