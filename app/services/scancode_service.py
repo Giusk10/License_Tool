@@ -141,22 +141,26 @@ def build_minimal_json(scancode_data: dict) -> dict:
 
     return minimal
 
-"""
-def _call_ollama_gpt(prompt: json) -> str:
-    
-    #Chiamata semplice a Ollama (API locale).
-    #(Non usata direttamente in questa versione, ma pronta per usi futuri.)
-    
+
+import requests
+
+OLLAMA_HOST = "http://localhost:11434"
+MODEL_NAME = "gpt-oss:120b-cloud"
+
+def _call_ollama_gpt(prompt: str) -> str:
+    """
+    Chiamata semplice a Ollama (API locale).
+    (Non usata direttamente in questa versione, ma pronta per usi futuri.)
+    """
     payload = {
-        "model": "gpt-oss:120b-cloud",
+        "model": MODEL_NAME,
         "prompt": prompt,
-        "stream": False,
+        "stream": False
     }
-    resp = requests.post("http://localhost:11434/api/generate", json=payload, timeout=120)
+    resp = requests.post(f"{OLLAMA_HOST}/api/generate", json=payload, timeout=120)
     resp.raise_for_status()
     data = resp.json()
     return data.get("response", "")
-"""
 
 
 def ask_llm_to_filter_licenses(minimal_json: dict) -> dict:
@@ -334,9 +338,9 @@ def extract_file_licenses_from_llm(llm_data: dict) -> Dict[str, str]:
 
     return results
 
-# FORSE PER FAR ANDARE???
+"""
+#TUTTO IL PROCESSO DI AVVIO E PULL (SCARICA COSE) DEL MODELLO
 import time
-# aggiungere queste funzioni nel file `app/services/scancode_service.py`
 
 OLLAMA_HOST = "http://localhost:11434"
 MODEL_NAME = "gpt-oss:120b-cloud"
@@ -350,60 +354,62 @@ def _is_ollama_running(timeout: float = 2.0) -> bool:
 
 def _start_ollama(wait_seconds: float = 10.0) -> bool:
     """
-    Avvia `ollama serve` in background e attende che l'API risponda.
-    """
-    try:
-        subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        return False
-
-    # attende con retry
-    deadline = time.time() + wait_seconds
-    while time.time() < deadline:
-        if _is_ollama_running(1.0):
-            return True
-        time.sleep(0.5)
+#Avvia `ollama serve` in background e attende che l'API risponda.
+"""
+try:
+    subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+except Exception:
     return False
 
+# attende con retry
+deadline = time.time() + wait_seconds
+while time.time() < deadline:
+    if _is_ollama_running(1.0):
+        return True
+    time.sleep(0.5)
+return False
+
 def _is_model_installed() -> bool:
-    try:
-        res = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=3).json()
-        models = [m.get("name") for m in res.get("models", []) if m.get("name")]
-        return MODEL_NAME in models
-    except Exception:
-        return False
+try:
+    res = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=3).json()
+    models = [m.get("name") for m in res.get("models", []) if m.get("name")]
+    return MODEL_NAME in models
+except Exception:
+    return False
 
 def _pull_model(timeout: int = 600) -> None:
-    """
-    Esegue `ollama pull MODEL_NAME` e aspetta che finisca.
-    """
-    p = subprocess.Popen(["ollama", "pull", MODEL_NAME])
-    p.wait(timeout=timeout)
+"""
+#Esegue `ollama pull MODEL_NAME` e aspetta che finisca.
+"""
+p = subprocess.Popen(["ollama", "pull", MODEL_NAME])
+p.wait(timeout=timeout)
 
 def ensure_ollama_ready(start_if_needed: bool = True, pull_if_needed: bool = True) -> None:
-    """
-    Garantisce che Ollama sia in esecuzione e che il modello sia presente.
-    Lancia RuntimeError se non è possibile rendere l'ambiente pronto.
-    """
-    if not _is_ollama_running():
-        if not start_if_needed or not _start_ollama():
-            raise RuntimeError("Ollama non è in esecuzione e non è stato possibile avviarlo.")
-    if not _is_model_installed():
-        if not pull_if_needed:
-            raise RuntimeError(f"Modello {MODEL_NAME} non installato.")
-        _pull_model()
+"""
+#Garantisce che Ollama sia in esecuzione e che il modello sia presente.
+#Lancia RuntimeError se non è possibile rendere l'ambiente pronto.
+"""
+if not _is_ollama_running():
+    if not start_if_needed or not _start_ollama():
+        raise RuntimeError("Ollama non è in esecuzione e non è stato possibile avviarlo.")
+if not _is_model_installed():
+    if not pull_if_needed:
+        raise RuntimeError(f"Modello {MODEL_NAME} non installato.")
+    _pull_model()
 
 def _call_ollama_gpt(prompt: str) -> str:
-    """
-    Chiamata a Ollama che assicura prima che il server e il modello siano pronti.
-    """
-    ensure_ollama_ready()
-    payload = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "stream": False,
-    }
-    resp = requests.post(f"{OLLAMA_HOST}/api/generate", json=payload, timeout=120)
-    resp.raise_for_status()
-    data = resp.json()
-    return data.get("response", "")
+"""
+#Chiamata a Ollama che assicura prima che il server e il modello siano pronti.
+"""
+ensure_ollama_ready()
+payload = {
+    "model": MODEL_NAME,
+    "prompt": prompt,
+    "stream": False,
+}
+resp = requests.post(f"{OLLAMA_HOST}/api/generate", json=payload, timeout=120)
+resp.raise_for_status()
+data = resp.json()
+return data.get("response", "")
+
+"""
