@@ -2,7 +2,7 @@ import os
 from git import Repo, GitCommandError
 from app.models.schemas import CloneResult
 
-CLONE_BASE_DIR = "/Users/gius03/pythonApp"
+CLONE_BASE_DIR = r"D:\tools\PyApp"
 
 def clone_repo(owner: str, repo: str) -> CloneResult:
     os.makedirs(CLONE_BASE_DIR, exist_ok=True)
