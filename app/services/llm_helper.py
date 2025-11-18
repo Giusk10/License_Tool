@@ -1,6 +1,6 @@
 import requests
 from typing import List, Dict
-from app.core.config import OLLAMA_URL, OLLAMA_MODEL
+from app.core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL
 
 
 def _call_ollama(prompt: str) -> str:
@@ -9,7 +9,7 @@ def _call_ollama(prompt: str) -> str:
     (Non usata direttamente in questa versione, ma pronta per usi futuri.)
     """
     payload = {
-        "model": OLLAMA_MODEL,
+        "model": OLLAMA_GENERAL_MODEL,
         "prompt": prompt,
         "stream": False,
     }

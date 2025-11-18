@@ -1,5 +1,4 @@
 from typing import Optional
-from app.core.config import OLLAMA_MODEL
 from app.services.llm_helper import _call_ollama  # se vuoi rendere pubblico, spostalo
 
 def regenerate_code(description: str, language: str = "python") -> Optional[str]:

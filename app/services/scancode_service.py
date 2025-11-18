@@ -4,9 +4,8 @@ import subprocess
 from typing import Dict
 import requests
 from copy import deepcopy
+from app.core.config import SCANCODE_BIN, OLLAMA_URL, OUTPUT_BASE_DIR, OLLAMA_GENERAL_MODEL
 
-# Percorso al binario di ScanCode
-SCANCODE_BIN = "/Users/gius03/tools/scancode-toolkit-v32.4.1/scancode"
 
 #  ------------ FUNZIONE PRINCIPALE PER ESEGUIRE SCANCODE -----------------
 
@@ -15,11 +14,10 @@ def run_scancode(repo_path: str) -> dict:
     Esegue ScanCode su una repo e ritorna il JSON già parsato e PULITO.
     """
 
-    output_dir = "/Users/gius03/pythonApp/json"
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(OUTPUT_BASE_DIR, exist_ok=True)
 
     repo_name = os.path.basename(os.path.normpath(repo_path))
-    output_file = os.path.join(output_dir, f"{repo_name}_scancode_output.json")
+    output_file = os.path.join(OUTPUT_BASE_DIR, f"{repo_name}_scancode_output.json")
 
     cmd = [
         SCANCODE_BIN,
@@ -152,11 +150,11 @@ def _call_ollama_gpt(prompt: json) -> str:
     (Non usata direttamente in questa versione, ma pronta per usi futuri.)
     """
     payload = {
-        "model": "gpt-oss:120b-cloud",
+        "model": OLLAMA_GENERAL_MODEL,
         "prompt": prompt,
         "stream": False,
     }
-    resp = requests.post("http://localhost:11434/api/generate", json=payload, timeout=120)
+    resp = requests.post(OLLAMA_URL, json=payload, timeout=120)
     resp.raise_for_status()
     data = resp.json()
     return data.get("response", "")
