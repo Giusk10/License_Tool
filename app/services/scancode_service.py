@@ -172,35 +172,51 @@ Sei un esperto di licenze open source.
 Ti fornisco un JSON che contiene vari match rilevati da ScanCode.
 Ogni match ha vari campi, ma tu devi analizzare SOLO:
 
-    matched_text
+    matched_text  (per capire se è una licenza)
+    license_spdx  (per validità del nome della licenza)
 
-I campi:
-- license_spdx
+Gli altri campi:
 - start_line
 - end_line
 - path
-servono solo come metadati e NON influenzano la decisione.
+sono solo metadati e NON influenzano la decisione logica.
 
 ────────────────────────────────────────
-CRITERIO DI FILTRO (usa SOLO matched_text)
+CRITERIO DI FILTRO (usa matched_text + license_spdx)
 ────────────────────────────────────────
 
 SCARTA il match se matched_text è:
 
 ❌ un riferimento (es. "see LICENSE", "Apache License link")
-❌ un link a licenze (es. https://opensource.org/licenses/…)
+❌ un link a licenze (https://opensource.org/licenses/…)
 ❌ una descrizione della licenza (non il testo reale)
-❌ un frammento di documentazione
-❌ una citazione in un changelog, tutorial, README, docstring
-❌ un semplice nome della licenza senza header vero
-❌ un match ereditato da altri file (IGNORA completamente il campo from_file)
+❌ un frammento di documentazione / commento generico
+❌ una citazione in changelog, tutorial, README, docstring
+❌ un semplice nome della licenza senza header/testo
+❌ un match ereditato da altri file (IGNORA from_file)
+❌ testo troppo breve o non legal-formal (meno di ~20 caratteri)
 
 TIENI il match SOLO se matched_text è:
 
-✅ un vero blocco di licenza copiato (>= 20 caratteri e contiene testo formale)
-✅ un header di licenza (MIT header, Apache header, BSD header, ecc.)
-✅ un testo di licenza ufficiale lungo e con formule legali
-✅ uno SPDX tag VERO (stringa esatta: "SPDX-License-Identifier: …")
+✅ un testo reale di licenza (MIT, GPL, Apache, BSD, MPL, etc.)
+✅ un header di licenza usato nei file sorgente
+✅ un testo formale di licenza >= 20 caratteri
+✓ uno SPDX tag valido (es. “SPDX-License-Identifier: Apache-2.0”)
+
+────────────────────────────────────────
+VALIDAZIONE DI license_spdx (nuova regola)
+────────────────────────────────────────
+
+1. Se `license_spdx` è il nome di una licenza *valida* (SPDX ufficiale):
+   → tienilo così com'è.
+
+2. Se `license_spdx` NON è valido:
+   → analizza *solo* il `matched_text` e prova a riconoscere una licenza reale.
+      - se il testo contiene una licenza riconoscibile
+        (es. inizia con “Apache License Version 2.0”, “MIT License”, “GNU General Public License”, ecc.)
+        → SOSTITUISCI license_spdx con l’identificatore SPDX corretto.
+      - se dal testo NON si riesce a identificare alcuna licenza valida
+        → SCARTA completamente il match.
 
 ────────────────────────────────────────
 FORMATO RISPOSTA **OBBLIGATORIO**
@@ -223,8 +239,9 @@ Rispondi SOLO con un JSON:
   ]
 }}
 
-- usa solo i match che hai deciso di TENERE
-- se un file non ha match validi → NON includerlo nella risposta
+- includi solo i file che hanno almeno un match valido
+- per ogni match tieni il license_spdx (eventualmente corretto)
+- non inserire nulla che non rispetta i criteri sopra
 
 ────────────────────────────────────────
 
@@ -240,71 +257,89 @@ Ecco il JSON da analizzare:
     except json.JSONDecodeError:
         raise RuntimeError("Il modello ha restituito una risposta non valida")
 
-
-
-
 def detect_main_license_scancode(data: dict) -> str:
     """
     Individua la licenza principale del progetto dai risultati di ScanCode.
 
     Strategia:
-    - cerca prima file di licenza tipici (LICENSE, COPYING, ecc.) nella root
-    - poi in sottocartelle
-    - per ogni file candidato:
-      - usa `detected_license_expression_spdx`
-      - altrimenti `license_detections[*].license_expression_spdx`
-      - altrimenti `licenses[*].spdx_license_key`
+    - privilegia file LICENSE con licenze valide
+    - usa COPYING come fallback se LICENSE non c'è o non contiene una licenza
+    - ignora NOTICE/COPYRIGHT
+    - come ultima risorsa considera altri percorsi che menzionano license/copying
     """
 
-    LICENSE_BASENAMES = (
-        "license",
-        "license.txt",
-        "license.md",
-        "copying",
-        "copying.txt",
-    )
-
-    candidates = []
+    license_candidates = []
+    copying_candidates = []
+    other_candidates = []
 
     for entry in data.get("files", []):
-        path = entry.get("path", "") or ""
+        path = entry.get("path") or ""
+        if not path:
+            continue
+
         lower = path.lower()
         basename = os.path.basename(lower)
 
-        # file chiaramente di licenza
-        if basename in LICENSE_BASENAMES or "license" in lower or "copying" in lower:
-            candidates.append(entry)
+        if basename.startswith("notice") or basename.startswith("copyright"):
+            continue
 
-    if not candidates:
-        return "UNKNOWN"
+        if basename.startswith("license"):
+            license_candidates.append(entry)
+        elif basename.startswith("copying"):
+            copying_candidates.append(entry)
+        elif "license" in lower or "copying" in lower:
+            other_candidates.append(entry)
 
-    # Ordina: prima quelli più vicini alla root (meno "/")
-    candidates.sort(key=lambda e: (e.get("path", "") or "").count("/"))
+    main_spdx = _pick_best_spdx(license_candidates)
+    if main_spdx:
+        return main_spdx
 
-    for entry in candidates:
-        # 1) campo diretto SPDX
-        spdx = entry.get("detected_license_expression_spdx")
-        if spdx:
-            return spdx
+    main_spdx = _pick_best_spdx(copying_candidates)
+    if main_spdx:
+        return main_spdx
 
-        # 2) license_detections
-        detections = entry.get("license_detections", [])
-        if detections:
-            first = detections[0]
-            det_spdx = first.get("license_expression_spdx")
-            if det_spdx:
-                return det_spdx
-
-        # 3) licenses[*].spdx_license_key
-        licenses = entry.get("licenses", [])
-        if licenses:
-            first_lic = licenses[0]
-            spdx_key = first_lic.get("spdx_license_key")
-            if spdx_key:
-                return spdx_key
+    main_spdx = _pick_best_spdx(other_candidates)
+    if main_spdx:
+        return main_spdx
 
     return "UNKNOWN"
 
+def _extract_first_valid_spdx(entry: dict):
+    # Ritorna il primo SPDX valido trovato nell'entry ScanCode
+    if not isinstance(entry, dict):
+        return None
+
+    def _is_valid(value: str | None) -> bool:
+        return bool(value) and value != "UNKNOWN"
+
+    spdx = entry.get("detected_license_expression_spdx")
+    if _is_valid(spdx):
+        return spdx
+
+    for detection in entry.get("license_detections", []) or []:
+        det_spdx = detection.get("license_expression_spdx")
+        if _is_valid(det_spdx):
+            return det_spdx
+
+    for lic in entry.get("licenses", []) or []:
+        spdx_key = lic.get("spdx_license_key")
+        if _is_valid(spdx_key):
+            return spdx_key
+
+    return None
+
+
+def _pick_best_spdx(entries: list[dict]) -> str | None:
+    # Ordina i file più vicini alla root e ritorna la prima licenza valida
+    if not entries:
+        return None
+
+    sorted_entries = sorted(entries, key=lambda e: (e.get("path", "") or "").count("/"))
+    for entry in sorted_entries:
+        spdx = _extract_first_valid_spdx(entry)
+        if spdx:
+            return spdx
+    return None
 
 def extract_file_licenses_from_llm(llm_data: dict) -> Dict[str, str]:
     """
