@@ -8,6 +8,8 @@ from copy import deepcopy
 # Percorso al binario di ScanCode
 SCANCODE_BIN = "/Users/gius03/tools/scancode-toolkit-v32.4.1/scancode"
 
+#  ------------ FUNZIONE PRINCIPALE PER ESEGUIRE SCANCODE -----------------
+
 def run_scancode(repo_path: str) -> dict:
     """
     Esegue ScanCode su una repo e ritorna il JSON già parsato e PULITO.
@@ -38,6 +40,8 @@ def run_scancode(repo_path: str) -> dict:
 
     with open(output_file, "r", encoding="utf-8") as f:
         return json.load(f)
+
+#  ------------ FUNZIONI PER FILTRARE I RISULTATI CON LLM -----------------
 
 def filter_with_llm(scancode_data: dict) -> dict:
     # Trova la licenza principale dal report di ScanCode
@@ -257,6 +261,10 @@ Ecco il JSON da analizzare:
     except json.JSONDecodeError:
         raise RuntimeError("Il modello ha restituito una risposta non valida")
 
+
+
+#  ------------ FUNZIONI PER RILEVARE LA LICENZA PRINCIPALE DAL JSON SCANCODE -----------------
+
 def detect_main_license_scancode(data: dict) -> str:
     """
     Individua la licenza principale del progetto dai risultati di ScanCode.
@@ -340,6 +348,8 @@ def _pick_best_spdx(entries: list[dict]) -> str | None:
         if spdx:
             return spdx
     return None
+
+#  ------------ FUNZIONI PER ESTRAZIONE RISULTATI DAL JSON LLM FILTRATO -----------------
 
 def extract_file_licenses_from_llm(llm_data: dict) -> Dict[str, str]:
     """
