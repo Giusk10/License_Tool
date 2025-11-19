@@ -11,7 +11,8 @@ from app.core.config import SCANCODE_BIN, OLLAMA_URL, OUTPUT_BASE_DIR, OLLAMA_GE
 
 def run_scancode(repo_path: str) -> dict:
     """
-    Esegue ScanCode su una repo e ritorna il JSON già parsato e PULITO.
+    Esegue ScanCode, mostra il progresso in tempo reale nel terminale
+    e ritorna il JSON parsato.
     """
 
     os.makedirs(OUTPUT_BASE_DIR, exist_ok=True)
@@ -28,10 +29,18 @@ def run_scancode(repo_path: str) -> dict:
         repo_path,
     ]
 
-    try:
-        subprocess.run(cmd, check=True)
-    except Exception as e:
-        raise RuntimeError(f"Errore avvio ScanCode: {e}")
+    # ⬇ Stampa in tempo reale (NO capture_output)
+    process = subprocess.Popen(cmd)
+
+    # Attende la fine ed ottiene il return code
+    returncode = process.wait()
+
+    # Gestione errori secondo le regole reali di ScanCode
+    if returncode > 1:
+        raise RuntimeError(f"Errore ScanCode (exit {returncode})")
+
+    if returncode == 1:
+        print("⚠ ScanCode ha completato con errori non fatali (exit 1).")
 
     if not os.path.exists(output_file):
         raise RuntimeError("ScanCode non ha generato il file JSON")
@@ -154,8 +163,9 @@ def _call_ollama_gpt(prompt: json) -> str:
         "prompt": prompt,
         "stream": False,
     }
-    resp = requests.post(OLLAMA_URL, json=payload, timeout=120)
+    resp = requests.post(OLLAMA_URL, json=payload, timeout=240)
     resp.raise_for_status()
+    print(resp.text)
     data = resp.json()
     return data.get("response", "")
 
