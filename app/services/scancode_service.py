@@ -5,6 +5,7 @@ from typing import Dict
 import requests
 from copy import deepcopy
 from app.core.config import SCANCODE_BIN, OLLAMA_URL, OUTPUT_BASE_DIR, OLLAMA_GENERAL_MODEL
+from app.services.llm_helper import _call_ollama_gpt
 
 
 #  ------------ FUNZIONE PRINCIPALE PER ESEGUIRE SCANCODE -----------------
@@ -151,24 +152,6 @@ def build_minimal_json(scancode_data: dict) -> dict:
         minimal["license_detections"].append(new_det)
 
     return minimal
-
-
-def _call_ollama_gpt(prompt: json) -> str:
-    """
-    Chiamata semplice a Ollama (API locale).
-    (Non usata direttamente in questa versione, ma pronta per usi futuri.)
-    """
-    payload = {
-        "model": OLLAMA_GENERAL_MODEL,
-        "prompt": prompt,
-        "stream": False,
-    }
-    resp = requests.post(OLLAMA_URL, json=payload, timeout=240)
-    resp.raise_for_status()
-    print(resp.text)
-    data = resp.json()
-    return data.get("response", "")
-
 
 
 def ask_llm_to_filter_licenses(minimal_json: dict) -> dict:
