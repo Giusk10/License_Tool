@@ -36,11 +36,13 @@ def _call_ollama_gpt(prompt: json) -> str:
     return data.get("response", "")
 
 
-def enrich_with_llm_suggestions(issues: List[Dict]) -> List[Dict]:
+def enrich_with_llm_suggestions(issues: List[Dict], regenerated_map: Dict[str, str] = None) -> List[Dict]:
     """
     Arricchisce ogni issue con un campo 'suggestion'.
-    Per ora usiamo una frase statica, ma puoi sostituirla con _call_ollama(...)
+    Se presente in regenerated_map, popola 'regenerated_code_path' con il codice.
     """
+    if regenerated_map is None:
+        regenerated_map = {}
 
     enriched = []
 
@@ -54,8 +56,8 @@ def enrich_with_llm_suggestions(issues: List[Dict]) -> List[Dict]:
                 f"Verifica la licenza {issue['detected_license']} nel file "
                 f"{issue['file_path']} e assicurati che sia coerente con la policy del progetto."
             ),
-            # futuro: se rigeneri codice con LLM, salva qui il path
-            "regenerated_code_path": issue.get("regenerated_code_path"),
+            # Se il file è stato rigenerato, inseriamo il codice qui
+            "regenerated_code_path": regenerated_map.get(issue["file_path"]),
         })
 
     return enriched

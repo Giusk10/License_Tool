@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="Implement OAuth authentication flow for GitHub in analysis API and refactor repository cloning logic" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <excluded-from-favorite>
+      <branch-storage>
+        <map>
+          <entry type="LOCAL">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$" source="main" />
+              </list>
+            </value>
+          </entry>
+          <entry type="REMOTE">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$" source="origin/main" />
+              </list>
+            </value>
+          </entry>
+        </map>
+      </branch-storage>
+    </excluded-from-favorite>
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="Version_5" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Giusk10&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Giusk10/License_Tool.git&quot;,
+    &quot;accountId&quot;: &quot;4cc6ef95-7a41-4b08-9d24-d772378c9a5e&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="35QFvsAvBjKgP91DHDpdyvLglyT" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/gius03/Progetti/License Checker/app/api&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15234375&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.github.copilot.settings.customization.CustomizationConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;GitStage.ChangesTree.GroupingKeys&quot;: [
+      &quot;directory&quot;,
+      &quot;module&quot;,
+      &quot;repository&quot;
+    ]
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/app/api" />
+      <recent name="$PROJECT_DIR$/app/models" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/app/services/compatibility" />
+      <recent name="$PROJECT_DIR$/app/services" />
+      <recent name="$PROJECT_DIR$/app" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="License Checker" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="License Checker" />
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="PyBehaveRunConfigurationType" factoryName="Behave">
+      <module name="License Checker" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="ADDITIONAL_ARGS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <module name="License Checker" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="Python.FlaskServer">
+      <module name="License Checker" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="Tox" factoryName="Tox">
+      <module name="License Checker" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Autodetect">
+      <module name="License Checker" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Doctests">
+      <module name="License Checker" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.29188.11" />
+        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-IU-251.29188.11" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="" />
+      <created>1763034623153</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1763034623153</updated>
+      <workItem from="1763034624316" duration="720000" />
+      <workItem from="1763040447016" duration="3613000" />
+      <workItem from="1763044723144" duration="456000" />
+      <workItem from="1763045187806" duration="1437000" />
+      <workItem from="1763046631711" duration="3627000" />
+      <workItem from="1763051433353" duration="4374000" />
+      <workItem from="1763055895171" duration="761000" />
+      <workItem from="1763058390200" duration="1967000" />
+      <workItem from="1763107781477" duration="7801000" />
+      <workItem from="1763117130064" duration="3984000" />
+      <workItem from="1763133539129" duration="6332000" />
+      <workItem from="1763193179119" duration="2605000" />
+      <workItem from="1763195795841" duration="1749000" />
+      <workItem from="1763289431296" duration="2034000" />
+      <workItem from="1763369307408" duration="1876000" />
+      <workItem from="1763371196973" duration="301000" />
+      <workItem from="1763371506214" duration="10893000" />
+      <workItem from="1763391457759" duration="124000" />
+      <workItem from="1763391638479" duration="5886000" />
+      <workItem from="1763452836249" duration="8340000" />
+      <workItem from="1763482058402" duration="4546000" />
+      <workItem from="1763539647056" duration="10144000" />
+      <workItem from="1763630463926" duration="6934000" />
+      <workItem from="1763713459153" duration="6609000" />
+      <workItem from="1763735851944" duration="387000" />
+      <workItem from="1763736267370" duration="39000" />
+      <workItem from="1763736308172" duration="86000" />
+    </task>
+    <task id="LOCAL-00001" summary="Add license compatibility checker with analysis and reporting features">
+      <option name="closed" value="true" />
+      <created>1763060846721</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1763060846721</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Refactor license analysis and compatibility checking logic">
+      <option name="closed" value="true" />
+      <created>1763112203500</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1763112203500</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Enhance ScanCode processing with LLM-based license filtering and JSON cleanup">
+      <option name="closed" value="true" />
+      <created>1763121784966</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1763121784966</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Refactor license extraction to utilize LLM filtering and improve JSON handling">
+      <option name="closed" value="true" />
+      <created>1763139232626</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1763139232626</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Enhance LLM filtering by removing main license references from ScanCode JSON">
+      <option name="closed" value="true" />
+      <created>1763194058580</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1763194058580</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Clear GITHUB_TOKEN in .env for security reasons">
+      <option name="closed" value="true" />
+      <created>1763195628131</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1763195628131</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Update GITHUB_TOKEN in .env for access configuration">
+      <option name="closed" value="true" />
+      <created>1763195721938</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1763195721938</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Clarify comment in scancode_service.py regarding license matching logic">
+      <option name="closed" value="true" />
+      <created>1763196018333</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1763196018333</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Implement extended OSADL license compatibility matrix and enhance SPDX expression parsing">
+      <option name="closed" value="true" />
+      <created>1763370738574</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1763370738574</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Refactor compatibility matrix loading to use professional matrix and improve SPDX expression handling">
+      <option name="closed" value="true" />
+      <created>1763398558320</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1763398558320</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Enhance license matching logic in scancode_service.py to include license_spdx validation and improve filtering criteria">
+      <option name="closed" value="true" />
+      <created>1763458036618</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1763458036618</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Add comments to scancode_service.py for improved code clarity and organization">
+      <option name="closed" value="true" />
+      <created>1763464800057</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1763464800057</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Refactor configuration management in multiple files to use environment variables for GitHub token, ScanCode binary, and output directories">
+      <option name="closed" value="true" />
+      <created>1763483981091</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1763483981091</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Update OLLAMA model environment variable and enhance ScanCode execution feedback">
+      <option name="closed" value="true" />
+      <created>1763539776397</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1763539776397</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Add compatibility evaluation package with SPDX parsing and matrix support">
+      <option name="closed" value="true" />
+      <created>1763633710615</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1763633710616</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Implement OAuth authentication flow for GitHub in analysis API and refactor repository cloning logic">
+      <option name="closed" value="true" />
+      <created>1763637886082</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1763637886082</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="CUSTOM_BOOLEAN_PROPERTIES">
+                <map>
+                  <entry key="Show.Git.Branches" value="false" />
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Add license compatibility checker with analysis and reporting features" />
+    <MESSAGE value="Refactor license analysis and compatibility checking logic" />
+    <MESSAGE value="Enhance ScanCode processing with LLM-based license filtering and JSON cleanup" />
+    <MESSAGE value="Refactor license extraction to utilize LLM filtering and improve JSON handling" />
+    <MESSAGE value="Enhance LLM filtering by removing main license references from ScanCode JSON" />
+    <MESSAGE value="Clear GITHUB_TOKEN in .env for security reasons" />
+    <MESSAGE value="Update GITHUB_TOKEN in .env for access configuration" />
+    <MESSAGE value="Clarify comment in scancode_service.py regarding license matching logic" />
+    <MESSAGE value="Implement extended OSADL license compatibility matrix and enhance SPDX expression parsing" />
+    <MESSAGE value="Refactor compatibility matrix loading to use professional matrix and improve SPDX expression handling" />
+    <MESSAGE value="Enhance license matching logic in scancode_service.py to include license_spdx validation and improve filtering criteria" />
+    <MESSAGE value="Add comments to scancode_service.py for improved code clarity and organization" />
+    <MESSAGE value="Refactor configuration management in multiple files to use environment variables for GitHub token, ScanCode binary, and output directories" />
+    <MESSAGE value="Update OLLAMA model environment variable and enhance ScanCode execution feedback" />
+    <MESSAGE value="Add compatibility evaluation package with SPDX parsing and matrix support" />
+    <MESSAGE value="Implement OAuth authentication flow for GitHub in analysis API and refactor repository cloning logic" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implement OAuth authentication flow for GitHub in analysis API and refactor repository cloning logic" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>
