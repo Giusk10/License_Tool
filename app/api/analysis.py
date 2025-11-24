@@ -82,13 +82,19 @@ async def auth_callback(code: str, state: str):
 # 3. REGENERATE: Endpoint per lanciare la rigenerazione
 # ------------------------------------------------------------------
 @router.post("/regenerate", response_model=AnalyzeResponse)
-def regenerate_analysis(owner: str = Body(...), repo: str = Body(...)):
+def regenerate_analysis(previous_analysis: AnalyzeResponse = Body(...)):
     """
     Lancia la rigenerazione su una repo già clonata.
-    Richiede che '/callback' (o comunque la scansione iniziale) sia stata eseguita prima.
+    Riceve il risultato della scansione precedente (AnalyzeResponse) per evitare di rifarla.
     """
     try:
-        result = perform_regeneration(owner=owner, repo=repo)
+        # Estraiamo owner e repo dalla stringa "owner/repo"
+        if "/" not in previous_analysis.repository:
+             raise ValueError("Formato repository non valido. Atteso 'owner/repo'")
+        
+        owner, repo = previous_analysis.repository.split("/", 1)
+
+        result = perform_regeneration(owner=owner, repo=repo, previous_analysis=previous_analysis)
         return result
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))

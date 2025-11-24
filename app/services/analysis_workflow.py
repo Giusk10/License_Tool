@@ -32,9 +32,11 @@ def perform_initial_scan(owner: str, repo: str, oauth_token: str) -> AnalyzeResp
     # 4) Filtro LLM
     llm_clean = filter_with_llm(scan_raw)
     file_licenses = extract_file_licenses_from_llm(llm_clean)
+    print(file_licenses)
 
     # 5) Compatibilità (Prima Passata)
     compatibility = check_compatibility(main_license, file_licenses)
+    print(compatibility)
 
     # 6) Suggerimenti AI (senza rigenerazione per ora)
     # Passiamo una mappa vuota perché non abbiamo ancora rigenerato nulla
@@ -64,9 +66,10 @@ def perform_initial_scan(owner: str, repo: str, oauth_token: str) -> AnalyzeResp
     )
 
 
-def perform_regeneration(owner: str, repo: str) -> AnalyzeResponse:
+def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeResponse) -> AnalyzeResponse:
     """
     Esegue la logica di rigenerazione su una repo GIÀ clonata.
+    Usa 'previous_analysis' per sapere quali file sono incompatibili, SENZA rifare la scansione iniziale.
     """
     # Ricostruiamo il path (assumendo che la repo sia lì)
     repo_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
@@ -74,20 +77,20 @@ def perform_regeneration(owner: str, repo: str) -> AnalyzeResponse:
     if not os.path.exists(repo_path):
         raise ValueError(f"Repository non trovata in {repo_path}. Esegui prima la scansione iniziale.")
 
-    # Rieseguiamo una scansione rapida per avere lo stato attuale (potrebbe essere ridondante ma sicuro)
-    scan_raw = run_scancode(repo_path)
-    main_license = detect_main_license_scancode(scan_raw)
-    llm_clean = filter_with_llm(scan_raw)
-    file_licenses = extract_file_licenses_from_llm(llm_clean)
-    compatibility = check_compatibility(main_license, file_licenses)
-
+    # Recuperiamo i dati dalla scansione precedente passata dal frontend
+    main_license = previous_analysis.main_license
+    # previous_analysis.issues è una lista di oggetti LicenseIssue (Pydantic)
+    # La logica sotto si aspetta spesso dei dict o oggetti accessibili.
+    # Se 'issues' sono oggetti Pydantic, possiamo accedervi con .attribute
+    
     # --- LOGICA DI RIGENERAZIONE ---
     regenerated_files_map = {}  # file_path -> new_code_content
     files_to_regenerate = []
 
-    for issue in compatibility["issues"]:
-        if not issue["compatible"]:
-            fpath = issue["file_path"]
+    for issue in previous_analysis.issues:
+        # issue è un oggetto LicenseIssue
+        if not issue.compatible:
+            fpath = issue.file_path
             # Esempio filtro estensioni
             if not fpath.lower().endswith(('.txt', '.md', 'license', 'copying', '.rst')):
                 files_to_regenerate.append(issue)
@@ -97,7 +100,7 @@ def perform_regeneration(owner: str, repo: str) -> AnalyzeResponse:
         from app.services.code_generator import regenerate_code
 
         for issue in files_to_regenerate:
-            fpath = issue["file_path"]
+            fpath = issue.file_path
             
             # Tentativo di correzione path
             repo_name = os.path.basename(os.path.normpath(repo_path))
@@ -115,7 +118,7 @@ def perform_regeneration(owner: str, repo: str) -> AnalyzeResponse:
                     new_code = regenerate_code(
                         code_content=original_content,
                         main_license=main_license,
-                        detected_license=issue["detected_license"]
+                        detected_license=issue.detected_license
                     )
 
                     if new_code:
@@ -136,9 +139,25 @@ def perform_regeneration(owner: str, repo: str) -> AnalyzeResponse:
             llm_clean = filter_with_llm(scan_raw)
             file_licenses = extract_file_licenses_from_llm(llm_clean)
             compatibility = check_compatibility(main_license, file_licenses)
+            
+            # Aggiorniamo la lista di issues con i nuovi risultati
+            # check_compatibility ritorna un dict con "issues": [dict, dict...]
+            current_issues_dicts = compatibility["issues"]
+        else:
+            # Se non abbiamo rigenerato nulla (es. errore o nessun file adatto),
+            # potremmo voler restituire le issue originali o rifare scan?
+            # Per coerenza, se non cambia nulla, teniamo quelle di prima ma convertite in dict se serve
+            # Ma qui sotto ci aspettiamo di dover chiamare enrich_with_llm_suggestions che vuole LISTA DI DICT
+            # Quindi convertiamo i Pydantic in dict
+            current_issues_dicts = [i.dict() for i in previous_analysis.issues]
+
+    else:
+        # Nessun file da rigenerare
+        current_issues_dicts = [i.dict() for i in previous_analysis.issues]
 
     # 6) Suggerimenti AI (con mappa rigenerati)
-    enriched_issues = enrich_with_llm_suggestions(compatibility["issues"], regenerated_files_map)
+    # enrich_with_llm_suggestions si aspetta una lista di DICT
+    enriched_issues = enrich_with_llm_suggestions(current_issues_dicts, regenerated_files_map)
 
     # 7) Mapping Pydantic
     license_issue_models = [

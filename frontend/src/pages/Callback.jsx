@@ -76,10 +76,7 @@ const Callback = () => {
                     const [owner, repo] = state.split(':');
 
                     try {
-                        const regenResponse = await axios.post(`http://localhost:8000/api/regenerate`, {
-                            owner,
-                            repo
-                        });
+                        const regenResponse = await axios.post(`http://localhost:8000/api/regenerate`, data);
                         setRegeneratedData(regenResponse.data);
                     } catch (regenErr) {
                         console.error("Regeneration failed:", regenErr);
