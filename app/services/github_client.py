@@ -10,14 +10,11 @@ def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
 
     target_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
 
-    # PULIZIA: Fondamentale per OAuth (utenti diversi potrebbero clonare la stessa repo)
-    if os.path.exists(target_path):
-        try:
-            shutil.rmtree(target_path)
-        except OSError:
-            pass # O gestisci l'errore
-
     try:
+        # PULIZIA: Fondamentale per OAuth (utenti diversi potrebbero clonare la stessa repo)
+        if os.path.exists(target_path):
+            shutil.rmtree(target_path)
+
         # Sintassi OAuth corretta
         auth_url = f"https://x-access-token:{oauth_token}@github.com/{owner}/{repo}.git"
 
@@ -28,3 +25,5 @@ def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
         # Maschera il token per sicurezza nei log
         safe_error = str(e).replace(oauth_token, "***")
         return CloneResult(success=False, error=safe_error)
+    except OSError as e:
+        return CloneResult(success=False, error=f"Errore filesystem: {e}")
