@@ -64,6 +64,13 @@ def filter_with_llm(scancode_data: dict) -> dict:
 
     minimal = build_minimal_json(data_to_filter)
     
+    # Salva il JSON minimale su disco per debug o ispezione
+    output_dir = "/Users/gius03/pythonApp"  # Consider making this path configurable or use a temporary directory
+    os.makedirs(output_dir, exist_ok=True)
+    minimal_json_path = os.path.join(output_dir, "minimal_output.json")
+    with open(minimal_json_path, "w", encoding="utf-8") as f:
+        json.dump(minimal, f, indent=2)
+    
     return ask_llm_to_filter_licenses(minimal)
 
 
