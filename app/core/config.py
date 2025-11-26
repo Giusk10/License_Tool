@@ -12,7 +12,8 @@ CALLBACK_URL = os.getenv("CALLBACK_URL", "http://localhost:8000/api/callback") #
 OLLAMA_URL = os.getenv("OLLAMA_URL")
 OLLAMA_CODING_MODEL = os.getenv("OLLAMA_CODING_MODEL")
 OLLAMA_GENERAL_MODEL = os.getenv("OLLAMA_GENERAL_MODEL")
-OLLAMA_HOST = os.getenv("OLLAMA_HOST")
+OLLAMA_HOST_VERSION = os.getenv("OLLAMA_HOST_VERSION")
+OLLAMA_HOST_TAGS = os.getenv("OLLAMA_HOST_TAGS")
 
 # directories and scancode
 SCANCODE_BIN = os.getenv("SCANCODE_BIN")
