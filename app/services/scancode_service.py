@@ -13,7 +13,7 @@ def run_scancode(repo_path: str) -> dict:
     Esegue ScanCode su una repo e ritorna il JSON già parsato e PULITO.
     """
 
-    output_dir = r"C:\Users\lucia\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\pythonApp\json"
+    output_dir = r"C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\pythonApp\json"
     os.makedirs(output_dir, exist_ok=True)
 
     repo_name = os.path.basename(os.path.normpath(repo_path))

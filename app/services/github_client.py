@@ -2,7 +2,7 @@ import os
 from git import Repo, GitCommandError
 from app.models.schemas import CloneResult
 
-CLONE_BASE_DIR = r"C:\Users\lucia\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\pythonApp"
+CLONE_BASE_DIR = r"C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\pythonApp"
 
 def clone_repo(owner: str, repo: str) -> CloneResult:
     os.makedirs(CLONE_BASE_DIR, exist_ok=True)
