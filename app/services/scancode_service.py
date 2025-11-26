@@ -63,13 +63,25 @@ def filter_with_llm(scancode_data: dict) -> dict:
         data_to_filter = _remove_main_license_from_scancode(data_to_filter, main_spdx)
 
     minimal = build_minimal_json(data_to_filter)
-    
+
     # Salva il JSON minimale su disco per debug o ispezione
-    output_dir = "/Users/gius03/pythonApp"  # Consider making this path configurable or use a temporary directory
+    
+    output_dir = "/Users/gius03/pythonApp/minimal_json"
     os.makedirs(output_dir, exist_ok=True)
-    minimal_json_path = os.path.join(output_dir, "minimal_output.json")
+
+    base_filename = "minimal_output.json"
+    minimal_json_path = os.path.join(output_dir, base_filename)
+    counter = 0
+
+    while os.path.exists(minimal_json_path):
+        counter += 1
+        minimal_json_path = os.path.join(output_dir, f"minimal_output_{counter}.json")
+
+    print(f"Inizio scrittura su disco: {os.path.basename(minimal_json_path)}...")
     with open(minimal_json_path, "w", encoding="utf-8") as f:
-        json.dump(minimal, f, indent=2)
+        json.dump(minimal, f, indent=None, ensure_ascii=False)
+    
+    print("Scrittura completata.")
     
     return ask_llm_to_filter_licenses(minimal)
 
