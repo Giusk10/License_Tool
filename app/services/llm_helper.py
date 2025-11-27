@@ -3,7 +3,7 @@ import requests
 import subprocess
 import time
 from typing import List, Dict
-from ..core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_HOST_TAGS, OLLAMA_CODING_MODEL
+from app.core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_CODING_MODEL
 
 def _is_ollama_running(timeout: float = 2.0) -> bool:
     try:
@@ -31,7 +31,7 @@ def _start_ollama(wait_seconds: float = 10.0) -> bool:
 
 def _is_model_installed(model_name: str) -> bool:
     try:
-        res = requests.get(f"{OLLAMA_HOST_TAGS}/api/tags", timeout=3).json()
+        res = requests.get(f"{OLLAMA_HOST_TAGS}", timeout=3).json()
         models = [m.get("name") for m in res.get("models", []) if m.get("name")]
         return model_name in models
     except Exception:

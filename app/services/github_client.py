@@ -2,8 +2,8 @@ import os
 import stat
 import shutil
 from git import Repo, GitCommandError
-from ..models.schemas import CloneResult
-from ..core.config import CLONE_BASE_DIR
+from app.models.schemas import CloneResult
+from app.core.config import CLONE_BASE_DIR
 
 def handle_remove_readonly(func, path, exc):
     """Forza la rimozione su Windows togliendo il flag ReadOnly."""
