@@ -4,7 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="Implement OAuth authentication flow for GitHub in analysis API and refactor repository cloning logic" />
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="Implement OAuth authentication flow for GitHub in analysis API and refactor repository cloning logic">
+      <change beforePath="$PROJECT_DIR$/app/api/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/analysis_workflow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/analysis_workflow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/code_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/code_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/github_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/github_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/llm_helper.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/llm_helper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/report_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/report_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/scancode_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/scancode_service.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -65,32 +74,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/gius03/Progetti/License Checker/app/api&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15234375&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.github.copilot.settings.customization.CustomizationConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Users/gius03/Progetti/License Checker/app/api",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.15234375",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "com.github.copilot.settings.customization.CustomizationConfigurable",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;GitStage.ChangesTree.GroupingKeys&quot;: [
-      &quot;directory&quot;,
-      &quot;module&quot;,
-      &quot;repository&quot;
+  "keyToStringList": {
+    "GitStage.ChangesTree.GroupingKeys": [
+      "directory",
+      "module",
+      "repository"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/app/api" />
@@ -258,6 +268,7 @@
       <workItem from="1763735851944" duration="387000" />
       <workItem from="1763736267370" duration="39000" />
       <workItem from="1763736308172" duration="86000" />
+      <workItem from="1764232051771" duration="830000" />
     </task>
     <task id="LOCAL-00001" summary="Add license compatibility checker with analysis and reporting features">
       <option name="closed" value="true" />

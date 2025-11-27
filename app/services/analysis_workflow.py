@@ -1,15 +1,16 @@
 # Questo file contiene la TUA logica di business pura, senza FastAPI
-from app.models.schemas import AnalyzeResponse, LicenseIssue
-from app.services.github_client import clone_repo
-from app.services.scancode_service import (
+from ..models.schemas import AnalyzeResponse, LicenseIssue
+from ..services.github_client import clone_repo
+from ..services.scancode_service import (
     run_scancode,
     detect_main_license_scancode,
     extract_file_licenses_from_llm, filter_with_llm,
 )
-from app.services.compatibility import check_compatibility
-from app.services.llm_helper import enrich_with_llm_suggestions
-from app.services.report_service import generate_report
-from app.core.config import CLONE_BASE_DIR
+from ..services.compatibility.checker import check_compatibility
+from ..services.llm_helper import enrich_with_llm_suggestions
+from ..services.report_service import generate_report
+from ..core.config import CLONE_BASE_DIR
+from ..services.code_generator import regenerate_code
 import os
 
 def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
@@ -112,7 +113,7 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
 
     if files_to_regenerate:
         print(f"Trovati {len(files_to_regenerate)} file incompatibili da rigenerare...")
-        from app.services.code_generator import regenerate_code
+
 
         for issue in files_to_regenerate:
             fpath = issue.file_path

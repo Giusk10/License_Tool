@@ -3,7 +3,7 @@ import requests
 import subprocess
 import time
 from typing import List, Dict
-from app.core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_HOST_TAGS, OLLAMA_CODING_MODEL
+from ..core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_HOST_TAGS, OLLAMA_CODING_MODEL
 
 def _is_ollama_running(timeout: float = 2.0) -> bool:
     try:

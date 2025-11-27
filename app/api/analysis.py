@@ -1,11 +1,11 @@
 # app/api/analysis.py
 import httpx
 from fastapi import APIRouter, HTTPException, Body
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 
-from app.core.config import GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, CALLBACK_URL
-from app.services.analysis_workflow import perform_cloning, perform_initial_scan, perform_regeneration
-from app.models.schemas import AnalyzeResponse, CloneResult
+from ..core.config import GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, CALLBACK_URL
+from ..services.analysis_workflow import perform_cloning, perform_initial_scan, perform_regeneration
+from ..models.schemas import AnalyzeResponse
 
 router = APIRouter()
 

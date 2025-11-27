@@ -1,6 +1,6 @@
 import os
 from typing import List
-from app.models.schemas import LicenseIssue
+from ..models.schemas import LicenseIssue
 
 
 def generate_report(repo_path: str, main_license: str, issues: List[LicenseIssue]) -> str:
