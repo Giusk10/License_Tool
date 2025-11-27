@@ -6,7 +6,6 @@ import {
     XCircle,
     AlertTriangle,
     ArrowLeft,
-    Loader2,
     GitBranch,
     Search,
     Scale,
@@ -124,13 +123,21 @@ const Callback = () => {
         }
     };
 
+
     // --- RENDER HELPERS ---
 
     if (status === 'loading') {
         return (
             <div className="container">
                 <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
-                    <Loader2 size={48} className="loading-spinner" color="#646cff" style={{ marginBottom: '1rem' }} />
+                    <div
+                        className="spin"
+                        style={{
+                            width: 48,
+                            height: 48,
+                            marginBottom: '1rem'
+                        }}
+                    />
                     <h2>Cloning Repository...</h2>
                     <p>Please wait while we fetch the repository from GitHub.</p>
                 </div>
@@ -191,7 +198,7 @@ const Callback = () => {
                                         border: isActive ? '1px solid #646cff' : 'none'
                                     }}>
                                         {isCompleted ? <CheckCircle size={18} color="#fff" /> :
-                                            isActive ? <Loader2 size={18} className="loading-spinner" /> :
+                                            isActive ? <div className="spin" style={{ width: 18, height: 18 }} /> :
                                                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }} />}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -243,7 +250,7 @@ const Callback = () => {
                         borderColor: '#646cff',
                         display: 'flex', alignItems: 'center', gap: '1rem'
                     }}>
-                        <Loader2 size={24} className="loading-spinner" color="#646cff" />
+                        <div className="spin" style={{ width: 24, height: 24 }} />
                         <div>
                             <h4 style={{ margin: 0, color: '#646cff' }}>Regenerating Code...</h4>
                             <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>
