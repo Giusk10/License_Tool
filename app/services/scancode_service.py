@@ -1,12 +1,10 @@
 import os
 import json
 import subprocess
-from typing import Dict
-import requests
+from typing import List, Dict, Any, Optional, Tuple
 from copy import deepcopy
 from app.core.config import SCANCODE_BIN, OLLAMA_URL, OUTPUT_BASE_DIR, OLLAMA_GENERAL_MODEL
 from app.services.llm_helper import _call_ollama_gpt
-
 
 #  ------------ FUNZIONE PRINCIPALE PER ESEGUIRE SCANCODE -----------------
 
@@ -46,79 +44,44 @@ def run_scancode(repo_path: str) -> dict:
     if not os.path.exists(output_file):
         raise RuntimeError("ScanCode non ha generato il file JSON")
 
+    # 1. Carica il JSON generato
     with open(output_file, "r", encoding="utf-8") as f:
-        return json.load(f)
+        scancode_data = json.load(f)
+
+    # ⬇ Rimuovi la chiave "license_detections" dal JSON di primo livello
+    scancode_data.pop("license_detections", None)
+
+    # 2. Sovrascrivi il file JSON con i dati modificati
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(scancode_data, f, indent=4, ensure_ascii=False)
+
+    # 3. Ritorna i dati modificati
+    return scancode_data
 
 #  ------------ FUNZIONI PER FILTRARE I RISULTATI CON LLM -----------------
 
-def filter_with_llm(scancode_data: dict) -> dict:
-    # Trova la licenza principale dal report di ScanCode
-    main_spdx = detect_main_license_scancode(scancode_data)
-
-    # Lavora su una copia per non modificare l'originale
-    data_to_filter = deepcopy(scancode_data)
-
-    # Se abbiamo una main license valida, rimuovila dal JSON che mandiamo all'LLM
-    if main_spdx and main_spdx != "UNKNOWN":
-        data_to_filter = _remove_main_license_from_scancode(data_to_filter, main_spdx)
-
-    minimal = build_minimal_json(data_to_filter)
-    
-    return ask_llm_to_filter_licenses(minimal)
-
-
-def _remove_main_license_from_scancode(data: dict, main_spdx: str) -> dict:
+def remove_main_license(main_spdx, path, scancode_data) -> dict:
     """
-    Rimuove riferimenti alla licenza principale (main_spdx) dal JSON di ScanCode.
-
-    Operazioni eseguite:
-    - Filtra la top-level `license_detections` eliminando entry con `license_expression_spdx == main_spdx`.
-    - Per ogni entry in `files`:
-      - rimuove `detected_license_expression_spdx` se coincide con main_spdx
-      - filtra `license_detections` interni con `license_expression_spdx == main_spdx`
-      - filtra `licenses` dove `spdx_license_key == main_spdx`
-
-    Restituisce una copia modificata di `data`.
+    Rimuove la licenza principale dal JSON di ScanCode,
+    per evitare che il LLM le consideri.
     """
+    for file_entry in scancode_data.get("files", []):
+        for det in file_entry.get("matches", []):
+            if file_entry.get("path") == path and det.get("license_spdx") == main_spdx:
+                scancode_data["files"].remove(file_entry)
 
-    # Protezione: se non ci sono dati, ritorna com'è
-    if not isinstance(data, dict):
-        return data
+    return scancode_data
 
-    # Filtra top-level license_detections
-    if "license_detections" in data and isinstance(data["license_detections"], list):
-        data["license_detections"] = [
-            d for d in data["license_detections"]
-            if (d.get("license_expression_spdx") or d.get("license_expression_spdx") is not None) and d.get("license_expression_spdx") != main_spdx
-        ]
+def filter_with_llm(scancode_data: dict, main_spdx: str, path: str) -> dict:
+    """
+    Filtra i risultati di ScanCode usando un LLM per rimuovere
+    i falsi positivi basati sul testo della licenza rilevata.
+    """
+    minimal = build_minimal_json(scancode_data)
+    #print(json.dumps(minimal, indent=4))
+    scan_clean = remove_main_license(main_spdx, path, minimal)
 
-    # Processa le singole file entries
-    files = data.get("files")
-    if isinstance(files, list):
-        for entry in files:
-            if not isinstance(entry, dict):
-                continue
-
-            # rimuovi campo detected_license_expression_spdx se è la main
-            if entry.get("detected_license_expression_spdx") == main_spdx:
-                entry.pop("detected_license_expression_spdx", None)
-
-            # filtra license_detections nella singola file
-            if "license_detections" in entry and isinstance(entry["license_detections"], list):
-                entry["license_detections"] = [
-                    d for d in entry["license_detections"]
-                    if d.get("license_expression_spdx") != main_spdx
-                ]
-
-            # filtra la sezione licenses
-            if "licenses" in entry and isinstance(entry["licenses"], list):
-                entry["licenses"] = [
-                    l for l in entry["licenses"]
-                    if l.get("spdx_license_key") != main_spdx
-                ]
-
-    return data
-
+    return ask_llm_to_filter_licenses(scan_clean)
 
 def build_minimal_json(scancode_data: dict) -> dict:
     """
@@ -138,26 +101,27 @@ def build_minimal_json(scancode_data: dict) -> dict:
         
         # ScanCode file-level detections
         for det in file_entry.get("license_detections", []):
-            spdx = det.get("license_expression_spdx")
             
             # 'matches' contiene i dettagli (start_line, end_line, matched_text)
             for match in det.get("matches", []):
-                file_matches.append({
-                    "license_spdx": spdx,
-                    "matched_text": match.get("matched_text"),
-                    "start_line": match.get("start_line"),
-                    "end_line": match.get("end_line"),
-                    "score": match.get("score")
-                })
+
+                if match.get("from_file") == path:
+
+                    file_matches.append({
+                        "license_spdx": match.get("license_expression_spdx"),
+                        "matched_text": match.get("matched_text"),
+                    })
+
+        score = file_entry.get("percentage_of_license_text")
 
         if file_matches:
             minimal["files"].append({
                 "path": path,
-                "matches": file_matches
+                "matches": file_matches,
+                "score": score
             })
 
     return minimal
-
 
 def ask_llm_to_filter_licenses(minimal_json: dict) -> dict:
     """
@@ -176,7 +140,7 @@ ANALIZZA SOLO:
     matched_text  (per capire se è una licenza)
     license_spdx  (per validità del nome della licenza)
 
-Gli altri campi (start_line, end_line, path) sono metadati.
+Gli altri campi (path, score) sono metadati.
 
 ────────────────────────────────────────
 CRITERIO DI FILTRO (usa matched_text + license_spdx)
@@ -227,11 +191,10 @@ Rispondi SOLO con un JSON:
       "path": "<path>",
       "matches": [
         {{
-          "license_spdx": "<SPDX>",
-          "start_line": 0,
-          "end_line": 0
+          "license_spdx": "<SPDX>"
         }}
       ]
+      "score": <score>
     }}
   ]
 }}
@@ -254,19 +217,78 @@ Ecco il JSON da analizzare:
     except json.JSONDecodeError:
         raise RuntimeError("Il modello ha restituito una risposta non valida")
 
-
-
 #  ------------ FUNZIONI PER RILEVARE LA LICENZA PRINCIPALE DAL JSON SCANCODE -----------------
 
-def detect_main_license_scancode(data: dict) -> str:
+def _is_valid(value: Optional[str]) -> bool:
+    """Verifica se una stringa è un SPDX valido e non None/vuota/UNKNOWN."""
+    return bool(value) and value != "UNKNOWN"
+
+def _extract_first_valid_spdx(entry: Dict[str, Any]) -> Optional[Tuple[str, str]]:
+    """
+    Ritorna il primo SPDX valido trovato nell'entry ScanCode,
+    cercando nell'espressione rilevata, nelle license_detections e infine nelle licenses.
+
+    Ritorna: (spdx_expression, path) o None.
+    """
+    if not isinstance(entry, dict):
+        return None
+
+    path = entry.get("path") or ""
+
+    # 1. Controlla l'espressione di licenza principale
+    spdx = entry.get("detected_license_expression_spdx")
+    if _is_valid(spdx):
+        return spdx, path
+
+    # 2. Controlla le singole detections
+    # Sebbene l'output root 'license_detections' possa essere rimosso,
+    # questa chiave è ancora presente all'interno di ogni oggetto 'files'.
+    for detection in entry.get("license_detections", []) or []:
+        det_spdx = detection.get("license_expression_spdx")
+        if _is_valid(det_spdx):
+            return det_spdx, path
+
+    # 3. Controlla le chiavi SPDX nelle licenze dettagliate
+    for lic in entry.get("licenses", []) or []:
+        spdx_key = lic.get("spdx_license_key")
+        if _is_valid(spdx_key):
+            return spdx_key, path
+
+    return None
+
+def _pick_best_spdx(entries: List[Dict[str, Any]]) -> Optional[Tuple[str, str]]:
+    """
+    Ordina i file più vicini alla root (minore profondità del path) e
+    ritorna la prima licenza SPDX valida trovata.
+
+    Ritorna: (spdx_expression, path) o None.
+    """
+    if not entries:
+        return None
+
+    # Ordina: usa la profondità del path (conteggio degli "/") come chiave
+    # Più basso è il conteggio, più vicino è alla root.
+    sorted_entries = sorted(entries, key=lambda e: (e.get("path", "") or "").count("/"))
+
+    for entry in sorted_entries:
+        res = _extract_first_valid_spdx(entry)
+        if res:
+            # res è già una tupla (spdx, path)
+            return res
+
+    return None
+
+def detect_main_license_scancode(data: dict) -> Optional[Tuple[str, str]] | str:
     """
     Individua la licenza principale del progetto dai risultati di ScanCode.
 
     Strategia:
-    - privilegia file LICENSE con licenze valide
-    - usa COPYING come fallback se LICENSE non c'è o non contiene una licenza
-    - ignora NOTICE/COPYRIGHT
-    - come ultima risorsa considera altri percorsi che menzionano license/copying
+    1. Cerca nei candidati di licenza più probabili (es. file LICENSE/license).
+    2. Usa COPYING come fallback.
+    3. Come ultima risorsa considera gli altri percorsi rilevanti.
+
+    Ritorna: (spdx_expression, path) o "UNKNOWN" (che non è una tupla, quindi
+             il tipo di ritorno è leggermente semplificato qui per un caso speciale).
     """
 
     license_candidates = []
@@ -281,66 +303,35 @@ def detect_main_license_scancode(data: dict) -> str:
         lower = path.lower()
         basename = os.path.basename(lower)
 
+        # Ignora NOTICE/COPYRIGHT
         if basename.startswith("notice") or basename.startswith("copyright"):
             continue
 
+        # Classificazione dei candidati
         if basename.startswith("license"):
             license_candidates.append(entry)
         elif basename.startswith("copying"):
             copying_candidates.append(entry)
+        # Se non è già un candidato primario e contiene 'license' o 'copying'
         elif "license" in lower or "copying" in lower:
             other_candidates.append(entry)
 
-    main_spdx = _pick_best_spdx(license_candidates)
-    if main_spdx:
-        return main_spdx
+    # 1. Tenta la prima scelta: file LICENSE
+    result = _pick_best_spdx(license_candidates)
+    if result:
+        return result
 
-    main_spdx = _pick_best_spdx(copying_candidates)
-    if main_spdx:
-        return main_spdx
+    # 2. Tenta il fallback: file COPYING
+    result = _pick_best_spdx(copying_candidates)
+    if result:
+        return result
 
-    main_spdx = _pick_best_spdx(other_candidates)
-    if main_spdx:
-        return main_spdx
+    # 3. Tenta l'ultima risorsa: altri percorsi rilevanti
+    result = _pick_best_spdx(other_candidates)
+    if result:
+        return result
 
     return "UNKNOWN"
-
-def _extract_first_valid_spdx(entry: dict):
-    # Ritorna il primo SPDX valido trovato nell'entry ScanCode
-    if not isinstance(entry, dict):
-        return None
-
-    def _is_valid(value: str | None) -> bool:
-        return bool(value) and value != "UNKNOWN"
-
-    spdx = entry.get("detected_license_expression_spdx")
-    if _is_valid(spdx):
-        return spdx
-
-    for detection in entry.get("license_detections", []) or []:
-        det_spdx = detection.get("license_expression_spdx")
-        if _is_valid(det_spdx):
-            return det_spdx
-
-    for lic in entry.get("licenses", []) or []:
-        spdx_key = lic.get("spdx_license_key")
-        if _is_valid(spdx_key):
-            return spdx_key
-
-    return None
-
-
-def _pick_best_spdx(entries: list[dict]) -> str | None:
-    # Ordina i file più vicini alla root e ritorna la prima licenza valida
-    if not entries:
-        return None
-
-    sorted_entries = sorted(entries, key=lambda e: (e.get("path", "") or "").count("/"))
-    for entry in sorted_entries:
-        spdx = _extract_first_valid_spdx(entry)
-        if spdx:
-            return spdx
-    return None
 
 #  ------------ FUNZIONI PER ESTRAZIONE RISULTATI DAL JSON LLM FILTRATO -----------------
 
@@ -368,6 +359,6 @@ def extract_file_licenses_from_llm(llm_data: dict) -> Dict[str, str]:
         if len(unique_spdx) == 1:
             results[path] = unique_spdx[0]
         else:
-            results[path] = " OR ".join(unique_spdx)
+            results[path] = " AND ".join(unique_spdx)
 
     return results
