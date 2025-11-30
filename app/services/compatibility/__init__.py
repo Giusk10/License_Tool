@@ -18,3 +18,11 @@ Nota: la logica è suddivisa in moduli separati:
 from .checker import check_compatibility
 
 __all__ = ["check_compatibility"]
+
+
+"""
+Perché in questo package l'`init` espone un'API pubblica: 
+viene fatto il re-export di check_compatibility così chi usa il package può fare from app.services.compatibility import check_compatibility. 
+Se l'`init` è vuoto l'import fallisce e devi importare il sottomodulo direttamente. 
+Inoltre __all__ controlla cosa viene esportato con from ... import * e aiuta l'IDE a risolvere i nomi
+"""
