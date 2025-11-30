@@ -5,23 +5,31 @@ import time
 from typing import List, Dict
 from app.core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_CODING_MODEL
 
+# Controlla se il servizio Ollama risponde entro il timeout indicato.
 def _is_ollama_running(timeout: float = 2.0) -> bool:
+    """
+    Effettua una GET a `OLLAMA_HOST_VERSION` per verificare che l'API sia attiva.
+    Ritorna True se la richiesta va a buon fine, False altrimenti.
+    """
     try:
         requests.get(f"{OLLAMA_HOST_VERSION}", timeout=timeout)
         return True
     except Exception:
         return False
 
+# Avvia il processo `ollama serve` in background e attende che l'API sia pronta.
 def _start_ollama(wait_seconds: float = 10.0) -> bool:
     """
-    Avvia `ollama serve` in background e attende che l'API risponda.
+    Avvia `ollama serve` in background (stdout/stderr silenziati).
+    Attende fino a `wait_seconds` che l'endpoint di versione risponda.
+    Ritorna True se il servizio è pronto, False altrimenti.
     """
     try:
         subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         return False
 
-    # attende con retry
+    # retry loop fino alla scadenza
     deadline = time.time() + wait_seconds
     while time.time() < deadline:
         if _is_ollama_running(1.0):
@@ -29,7 +37,12 @@ def _start_ollama(wait_seconds: float = 10.0) -> bool:
         time.sleep(0.5)
     return False
 
+# Verifica se un modello specifico è installato su Ollama.
 def _is_model_installed(model_name: str) -> bool:
+    """
+    Interroga `OLLAMA_HOST_TAGS` per ottenere la lista dei modelli installati.
+    Restituisce True se `model_name` è presente nella lista.
+    """
     try:
         res = requests.get(f"{OLLAMA_HOST_TAGS}", timeout=3).json()
         models = [m.get("name") for m in res.get("models", []) if m.get("name")]
@@ -37,18 +50,19 @@ def _is_model_installed(model_name: str) -> bool:
     except Exception:
         return False
 
-# FIXED: model_name (mandatory) must come before timeout (optional)
+# Scarica un modello usando `ollama pull` e attende il completamento.
 def _pull_model(model_name: str, timeout: int = 600) -> None:
     """
-    Esegue `ollama pull MODEL_NAME` e aspetta che finisca.
+    Esegue `ollama pull MODEL_NAME` e attende (blocking) fino a `timeout` secondi.
+    Genera eccezione se il comando fallisce o scade il timeout.
     """
     p = subprocess.Popen(["ollama", "pull", model_name])
     p.wait(timeout=timeout)
 
-# FIXED: model_name (mandatory) must come before boolean flags (optional)
+# Garantisce che Ollama sia in esecuzione e che il modello richiesto sia presente.
 def ensure_ollama_ready(model_name: str, start_if_needed: bool = True, pull_if_needed: bool = True) -> None:
     """
-    Garantisce che Ollama sia in esecuzione e che il modello sia presente.
+    Controlla e, se necessario, avvia Ollama e scarica il modello.
     Lancia RuntimeError se non è possibile rendere l'ambiente pronto.
     """
     if not _is_ollama_running():
@@ -59,10 +73,11 @@ def ensure_ollama_ready(model_name: str, start_if_needed: bool = True, pull_if_n
             raise RuntimeError(f"Modello {model_name} non installato.")
         _pull_model(model_name)
 
-
+# Chiamata sincrona semplice all'API Ollama per uso "coding".
 def _call_ollama(prompt: str) -> str:
     """
-    Chiamata semplice a Ollama (API locale).
+    Effettua una chiamata POST a `OLLAMA_URL` usando il modello di coding.
+    Ritorna la chiave 'response' dal JSON di risposta o stringa vuota.
     """
     ensure_ollama_ready(model_name=OLLAMA_CODING_MODEL)
     payload = {
@@ -75,10 +90,11 @@ def _call_ollama(prompt: str) -> str:
     data = resp.json()
     return data.get("response", "")
 
-
+# Chiamata sincrona semplice all'API Ollama per uso "general/GPT-like".
 def _call_ollama_gpt(prompt: json) -> str:
     """
-    Chiamata semplice a Ollama (API locale).
+    Effettua una chiamata POST a `OLLAMA_URL` usando il modello generale.
+    Maggior timeout per risposte più lunghe.
     """
     ensure_ollama_ready(model_name=OLLAMA_GENERAL_MODEL)
     payload = {
@@ -91,11 +107,14 @@ def _call_ollama_gpt(prompt: json) -> str:
     data = resp.json()
     return data.get("response", "")
 
-
+# Arricchisce la lista di issue con suggerimenti generici e codice rigenerato (se fornito).
 def enrich_with_llm_suggestions(issues: List[Dict], regenerated_map: Dict[str, str] = None) -> List[Dict]:
     """
-    Arricchisce ogni issue con un campo 'suggestion'.
-    Se presente in regenerated_map, popola 'regenerated_code_path' con il codice.
+    Per ogni issue ritorna un dizionario con campi:
+      - file_path, detected_license, compatible, reason
+      - suggestion: testo suggerito
+      - regenerated_code_path: codice rigenerato se presente in `regenerated_map`
+    `regenerated_map` è opzionale.
     """
     if regenerated_map is None:
         regenerated_map = {}

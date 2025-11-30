@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="feat: Replace Loader2 with custom spinner component for loading states">
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="feat: Update environment configuration for Windows paths and replace Scancode binary location">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/index.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/llm_helper.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/llm_helper.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -439,7 +438,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764173721294</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="feat: Update environment configuration for Windows paths and replace Scancode binary location">
+      <option name="closed" value="true" />
+      <created>1764497183385</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1764497183385</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -484,7 +491,8 @@
     <MESSAGE value="refactor: Remove debug JSON output from scancode_service and update workspace configuration" />
     <MESSAGE value="feat: Add Ollama host configuration and ensure Ollama service readiness in llm_helper" />
     <MESSAGE value="feat: Update Ollama host configuration to include version and tags endpoints" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: Update Ollama host configuration to include version and tags endpoints" />
+    <MESSAGE value="feat: Update environment configuration for Windows paths and replace Scancode binary location" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: Update environment configuration for Windows paths and replace Scancode binary location" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
