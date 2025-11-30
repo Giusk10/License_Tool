@@ -3,7 +3,7 @@ import requests
 import subprocess
 import time
 from typing import List, Dict
-from app.core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_CODING_MODEL
+from app.core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_CODING_MODEL, OLLAMA_HOST_TAGS
 
 # Controlla se il servizio Ollama risponde entro il timeout indicato.
 def _is_ollama_running(timeout: float = 2.0) -> bool:
