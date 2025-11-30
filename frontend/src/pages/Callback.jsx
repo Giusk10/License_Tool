@@ -13,7 +13,8 @@ import {
     FileText,
     Code,
     RefreshCw,
-    ArrowRight
+    ArrowRight,
+    Download
 } from 'lucide-react';
 
 const Callback = () => {
@@ -97,7 +98,7 @@ const Callback = () => {
             clearInterval(interval);
 
             // Check for regeneration needs immediately after analysis
-            checkAndRegenerate(response.data, cloneData.owner, cloneData.repo);
+            // REMOVED AUTO REGENERATION: checkAndRegenerate(response.data, cloneData.owner, cloneData.repo);
 
         } catch (err) {
             console.error(err);
@@ -108,18 +109,40 @@ const Callback = () => {
     };
 
     // 3. Check and Regenerate Logic
-    const checkAndRegenerate = async (data, owner, repo) => {
-        const hasIncompatible = data.issues.some(issue => !issue.compatible);
-        if (hasIncompatible) {
-            setIsRegenerating(true);
-            try {
-                const regenResponse = await axios.post(`http://localhost:8000/api/regenerate`, data);
-                setRegeneratedData(regenResponse.data);
-            } catch (regenErr) {
-                console.error("Regeneration failed:", regenErr);
-            } finally {
-                setIsRegenerating(false);
-            }
+    // 3. Check and Regenerate Logic
+    const handleRegenerate = async () => {
+        if (!analysisData) return;
+
+        setIsRegenerating(true);
+        try {
+            const regenResponse = await axios.post(`http://localhost:8000/api/regenerate`, analysisData);
+            setRegeneratedData(regenResponse.data);
+        } catch (regenErr) {
+            console.error("Regeneration failed:", regenErr);
+        } finally {
+            setIsRegenerating(false);
+        }
+    };
+
+    // 4. Handle Download
+    const handleDownload = async () => {
+        if (!cloneData) return;
+        try {
+            const response = await axios.post('http://localhost:8000/api/download', {
+                owner: cloneData.owner,
+                repo: cloneData.repo
+            }, { responseType: 'blob' });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${cloneData.owner}_${cloneData.repo}.zip`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Download failed:", err);
+            // Optionally set an error state or alert
         }
     };
 
@@ -165,11 +188,18 @@ const Callback = () => {
                         <p><strong>Local Path:</strong> <span style={{ fontSize: '0.85rem', opacity: 0.7 }}>{cloneData.local_path}</span></p>
                     </div>
 
-                    <button onClick={handleAnalyze} className="glass-button" style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            Analyze Repository <ArrowRight size={20} />
-                        </span>
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                        <button onClick={handleAnalyze} className="glass-button" style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                Analyze Repository <ArrowRight size={20} />
+                            </span>
+                        </button>
+                        <button onClick={handleDownload} className="glass-button" style={{ fontSize: '1.1rem', padding: '1rem 2rem', background: 'rgba(255, 255, 255, 0.1)' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                Download <Download size={20} />
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -241,6 +271,20 @@ const Callback = () => {
                         <ArrowLeft size={16} style={{ marginRight: '0.5rem' }} /> Back
                     </button>
                     <h2>Analysis Report {isComparisonMode ? '(Regenerated)' : ''}</h2>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        {!isComparisonMode && displayData.issues.some(i => !i.compatible) && (
+                            <button onClick={handleRegenerate} className="glass-button" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'rgba(100, 108, 255, 0.2)' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <RefreshCw size={16} /> Regenerate
+                                </span>
+                            </button>
+                        )}
+                        <button onClick={handleDownload} className="glass-button" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Download size={16} /> Download
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
                 {isRegenerating && (

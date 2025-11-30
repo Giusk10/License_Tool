@@ -1,10 +1,10 @@
 # app/api/analysis.py
 import httpx
 from fastapi import APIRouter, HTTPException, Body
-from fastapi.responses import RedirectResponse, JSONResponse
-
+from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from app.core.config import GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, CALLBACK_URL
 from app.services.analysis_workflow import perform_cloning, perform_initial_scan, perform_regeneration
+from app.services.download_service import perform_download
 from app.models.schemas import AnalyzeResponse, CloneResult
 
 router = APIRouter()
@@ -86,7 +86,7 @@ async def auth_callback(code: str, state: str):
 
 
 # ------------------------------------------------------------------
-# 4. ANALYZE: Endpoint per lanciare l'analisi (dopo clonazione)
+# 3. ANALYZE: Endpoint per lanciare l'analisi (dopo clonazione)
 # ------------------------------------------------------------------
 @router.post("/analyze", response_model=AnalyzeResponse)
 def run_analysis(payload: dict = Body(...)):
@@ -96,7 +96,7 @@ def run_analysis(payload: dict = Body(...)):
     """
     owner = payload.get("owner")
     repo = payload.get("repo")
-    
+
     if not owner or not repo:
         raise HTTPException(status_code=400, detail="Owner e Repo obbligatori")
 
@@ -110,7 +110,7 @@ def run_analysis(payload: dict = Body(...)):
 
 
 # ------------------------------------------------------------------
-# 3. REGENERATE: Endpoint per lanciare la rigenerazione
+# 4. REGENERATE: Endpoint per lanciare la rigenerazione
 # ------------------------------------------------------------------
 @router.post("/regenerate", response_model=AnalyzeResponse)
 def regenerate_analysis(previous_analysis: AnalyzeResponse = Body(...)):
@@ -121,12 +121,42 @@ def regenerate_analysis(previous_analysis: AnalyzeResponse = Body(...)):
     try:
         # Estraiamo owner e repo dalla stringa "owner/repo"
         if "/" not in previous_analysis.repository:
-             raise ValueError("Formato repository non valido. Atteso 'owner/repo'")
-        
+            raise ValueError("Formato repository non valido. Atteso 'owner/repo'")
+
         owner, repo = previous_analysis.repository.split("/", 1)
 
         result = perform_regeneration(owner=owner, repo=repo, previous_analysis=previous_analysis)
         return result
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+
+
+# ------------------------------------------------------------------
+# 5. DOWNLOAD: Endpoint per scaricare lo zip della repo
+# ------------------------------------------------------------------
+@router.post("/download")
+def download_repo(payload: dict = Body(...)):
+    """
+    Scarica lo zip della repository clonata.
+    Payload atteso: {"owner": "...", "repo": "..."}
+    """
+    owner = payload.get("owner")
+    repo = payload.get("repo")
+
+    if not owner or not repo:
+        raise HTTPException(status_code=400, detail="Owner e Repo obbligatori")
+
+    try:
+        zip_path = perform_download(owner=owner, repo=repo)
+
+        # Ritorniamo il file. filename imposta il nome del file scaricato dal browser
+        return FileResponse(
+            path=zip_path,
+            filename=f"{owner}_{repo}.zip",
+            media_type='application/zip'
+        )
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
