@@ -1,3 +1,8 @@
+"""
+This module handles the interaction with the ScanCode Toolkit CLI for raw license detection
+and implements a post-processing layer using an LLM to filter false positives.
+"""
+
 import os
 import json
 import subprocess
@@ -5,12 +10,21 @@ from typing import List, Dict, Any, Optional, Tuple
 from app.core.config import SCANCODE_BIN, OUTPUT_BASE_DIR
 from app.services.llm_helper import _call_ollama_gpt
 
-#  ------------ FUNZIONE PRINCIPALE PER ESEGUIRE SCANCODE -----------------
+
+#  ------------ MAIN FUNCTION TO EXECUTE SCANCODE -----------------
 
 def run_scancode(repo_path: str) -> dict:
     """
-    Esegue ScanCode, mostra il progresso in tempo reale nel terminale
-    e ritorna il JSON parsato.
+    Executes ScanCode on the target repository and parses the JSON output.
+
+    Note: Real-time progress is printed to the standard output.
+
+    Args:
+        repo_path (str): The file system path to the target repository.
+
+    Returns:
+        dict: The parsed JSON data from ScanCode, with the top-level
+              'license_detections' key removed to reduce payload size.
     """
 
     os.makedirs(OUTPUT_BASE_DIR, exist_ok=True)
@@ -27,13 +41,13 @@ def run_scancode(repo_path: str) -> dict:
         repo_path,
     ]
 
-    # ⬇ Stampa in tempo reale (NO capture_output)
+    # Real-time output (NO capture_output)
     process = subprocess.Popen(cmd)
 
-    # Attende la fine ed ottiene il return code
+    # Wait for completion and get return code
     returncode = process.wait()
 
-    # Gestione errori secondo le regole reali di ScanCode
+    # Error handling according to ScanCode rules
     if returncode > 1:
         raise RuntimeError(f"Errore ScanCode (exit {returncode})")
 
@@ -43,26 +57,27 @@ def run_scancode(repo_path: str) -> dict:
     if not os.path.exists(output_file):
         raise RuntimeError("ScanCode non ha generato il file JSON")
 
-    # 1. Carica il JSON generato
+    # 1. Load the generated JSON
     with open(output_file, "r", encoding="utf-8") as f:
         scancode_data = json.load(f)
 
-    # ⬇ Rimuovi la chiave "license_detections" dal JSON di primo livello
+    # Remove 'license_detections' key from top-level JSON
     scancode_data.pop("license_detections", None)
 
-    # 2. Sovrascrivi il file JSON con i dati modificati
+    # 2. Overwrite the file with modified data
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(scancode_data, f, indent=4, ensure_ascii=False)
 
-    # 3. Ritorna i dati modificati
+    # 3. Return modified data
     return scancode_data
 
-#  ------------ FUNZIONI PER FILTRARE I RISULTATI CON LLM -----------------
+
+#  ------------ FUNCTIONS TO FILTER RESULTS WITH LLM -----------------
 
 def remove_main_license(main_spdx, path, scancode_data) -> dict:
     """
-    Rimuove la licenza principale dal JSON di ScanCode,
-    per evitare che il LLM le consideri.
+    Removes the main license from the ScanCode results for a specific file path.
+    This prevents the LLM from being biased by the main license when filtering.
     """
     for file_entry in scancode_data.get("files", []):
         for det in file_entry.get("matches", []):
@@ -71,41 +86,44 @@ def remove_main_license(main_spdx, path, scancode_data) -> dict:
 
     return scancode_data
 
+
 def filter_with_llm(scancode_data: dict, main_spdx: str, path: str) -> dict:
     """
-    Filtra i risultati di ScanCode usando un LLM per rimuovere
-    i falsi positivi basati sul testo della licenza rilevata.
+    Filters ScanCode results using an LLM to remove false positives.
+
+    It constructs a minimal JSON representation of the file matches and asks the LLM
+    to validate the 'matched_text' against known license patterns.
     """
     minimal = build_minimal_json(scancode_data)
-    #print(json.dumps(minimal, indent=4))
+    # print(json.dumps(minimal, indent=4))
     scan_clean = remove_main_license(main_spdx, path, minimal)
 
     return ask_llm_to_filter_licenses(scan_clean)
 
+
 def build_minimal_json(scancode_data: dict) -> dict:
     """
-    Costruisce un JSON minimale raggruppato per file.
-    Invece di usare la lista globale 'license_detections' (che richiede al LLM di raggruppare),
-    iteriamo direttamente sui file e raccogliamo i loro match.
+    Builds a minimal JSON structure from the ScanCode data.
+    Instead of using the global 'license_detections' list (which requires the LLM to group),
+    we iterate directly over files and collect their matches.
     """
     minimal = {"files": []}
 
-    # Iteriamo sui file (che sono già stati filtrati da _remove_main_license_from_scancode)
+    # Iterate over files (which have already been filtered by remove_main_license)
     for file_entry in scancode_data.get("files", []):
         path = file_entry.get("path")
         if not path:
             continue
 
         file_matches = []
-        
+
         # ScanCode file-level detections
         for det in file_entry.get("license_detections", []):
-            
-            # 'matches' contiene i dettagli (start_line, end_line, matched_text)
+
+            # 'matches' contains details (start_line, end_line, matched_text)
             for match in det.get("matches", []):
 
                 if match.get("from_file") == path:
-
                     file_matches.append({
                         "license_spdx": match.get("license_expression_spdx"),
                         "matched_text": match.get("matched_text"),
@@ -122,11 +140,11 @@ def build_minimal_json(scancode_data: dict) -> dict:
 
     return minimal
 
+
 def ask_llm_to_filter_licenses(minimal_json: dict) -> dict:
     """
-    Manda il JSON ridotto al LLM e ritorna il JSON pulito
-    (match filtrati).
-    Analizza SOLO matched_text.
+    Sends the reduced JSON to the LLM and returns the clean JSON (matches filtered).
+    Analyzes ONLY matched_text.
     """
 
     prompt = f"""
@@ -214,40 +232,42 @@ Ecco il JSON da analizzare:
     try:
         return json.loads(llm_response)
     except json.JSONDecodeError:
-        raise RuntimeError("Il modello ha restituito una risposta non valida")
+        raise RuntimeError("Invalid response from model.")
 
-#  ------------ FUNZIONI PER RILEVARE LA LICENZA PRINCIPALE DAL JSON SCANCODE -----------------
+
+#  ------------ FUNCTIONS TO DETECT MAIN LICENSE FROM SCANCODE JSON -----------------
 
 def _is_valid(value: Optional[str]) -> bool:
-    """Verifica se una stringa è un SPDX valido e non None/vuota/UNKNOWN."""
+    """Verifies if a string is a valid SPDX and not None/empty/UNKNOWN."""
     return bool(value) and value != "UNKNOWN"
+
 
 def _extract_first_valid_spdx(entry: Dict[str, Any]) -> Optional[Tuple[str, str]]:
     """
-    Ritorna il primo SPDX valido trovato nell'entry ScanCode,
-    cercando nell'espressione rilevata, nelle license_detections e infine nelle licenses.
+    Returns the first valid SPDX found in the ScanCode entry,
+    searching in the detected expression, license_detections, and finally in licenses.
 
-    Ritorna: (spdx_expression, path) o None.
+    Returns: (spdx_expression, path) or None.
     """
     if not isinstance(entry, dict):
         return None
 
     path = entry.get("path") or ""
 
-    # 1. Controlla l'espressione di licenza principale
+    # 1. Check main detected license expression
     spdx = entry.get("detected_license_expression_spdx")
     if _is_valid(spdx):
         return spdx, path
 
-    # 2. Controlla le singole detections
-    # Sebbene l'output root 'license_detections' possa essere rimosso,
-    # questa chiave è ancora presente all'interno di ogni oggetto 'files'.
+    # 2. Check individual detections
+    # Although the root output 'license_detections' may be removed,
+    # this key is still present inside each 'files' object.
     for detection in entry.get("license_detections", []) or []:
         det_spdx = detection.get("license_expression_spdx")
         if _is_valid(det_spdx):
             return det_spdx, path
 
-    # 3. Controlla le chiavi SPDX nelle licenze dettagliate
+    # 3. Check SPDX keys in detailed licenses
     for lic in entry.get("licenses", []) or []:
         spdx_key = lic.get("spdx_license_key")
         if _is_valid(spdx_key):
@@ -255,39 +275,40 @@ def _extract_first_valid_spdx(entry: Dict[str, Any]) -> Optional[Tuple[str, str]
 
     return None
 
+
 def _pick_best_spdx(entries: List[Dict[str, Any]]) -> Optional[Tuple[str, str]]:
     """
-    Ordina i file più vicini alla root (minore profondità del path) e
-    ritorna la prima licenza SPDX valida trovata.
+    Sorts files closest to root (lower path depth) and
+    returns the first valid SPDX license found.
 
-    Ritorna: (spdx_expression, path) o None.
+    Returns: (spdx_expression, path) or None.
     """
     if not entries:
         return None
 
-    # Ordina: usa la profondità del path (conteggio degli "/") come chiave
-    # Più basso è il conteggio, più vicino è alla root.
+    # Sort: use path depth (count of "/") as key
+    # Lower count means closer to root.
     sorted_entries = sorted(entries, key=lambda e: (e.get("path", "") or "").count("/"))
 
     for entry in sorted_entries:
         res = _extract_first_valid_spdx(entry)
         if res:
-            # res è già una tupla (spdx, path)
+            # res is already a tuple (spdx, path)
             return res
 
     return None
 
+
 def detect_main_license_scancode(data: dict) -> Optional[Tuple[str, str]] | str:
     """
-    Individua la licenza principale del progetto dai risultati di ScanCode.
+    Identifies the main license of the project based on ScanCode results.
 
-    Strategia:
-    1. Cerca nei candidati di licenza più probabili (es. file LICENSE/license).
-    2. Usa COPYING come fallback.
-    3. Come ultima risorsa considera gli altri percorsi rilevanti.
+    Strategy:
+    1. Search in most likely license candidates (e.g., LICENSE/license files).
+    2. Use COPYING as fallback.
+    3. Use other relevant paths as last resort.
 
-    Ritorna: (spdx_expression, path) o "UNKNOWN" (che non è una tupla, quindi
-             il tipo di ritorno è leggermente semplificato qui per un caso speciale).
+    Returns: (spdx_expression, path) or "UNKNOWN" (simplified return type for this special case).
     """
 
     license_candidates = []
@@ -302,42 +323,43 @@ def detect_main_license_scancode(data: dict) -> Optional[Tuple[str, str]] | str:
         lower = path.lower()
         basename = os.path.basename(lower)
 
-        # Ignora NOTICE/COPYRIGHT
+        # Ignore NOTICE/COPYRIGHT
         if basename.startswith("notice") or basename.startswith("copyright"):
             continue
 
-        # Classificazione dei candidati
+        # Classification of candidates
         if basename.startswith("license"):
             license_candidates.append(entry)
         elif basename.startswith("copying"):
             copying_candidates.append(entry)
-        # Se non è già un candidato primario e contiene 'license' o 'copying'
+        # If not already a primary candidate and contains 'license' or 'copying'
         elif "license" in lower or "copying" in lower:
             other_candidates.append(entry)
 
-    # 1. Tenta la prima scelta: file LICENSE
+    # 1. Try first choice: LICENSE file
     result = _pick_best_spdx(license_candidates)
     if result:
         return result
 
-    # 2. Tenta il fallback: file COPYING
+    # 2. Try fallback: COPYING file
     result = _pick_best_spdx(copying_candidates)
     if result:
         return result
 
-    # 3. Tenta l'ultima risorsa: altri percorsi rilevanti
+    # 3. Try last resort: other relevant paths
     result = _pick_best_spdx(other_candidates)
     if result:
         return result
 
     return "UNKNOWN"
 
-#  ------------ FUNZIONI PER ESTRAZIONE RISULTATI DAL JSON LLM FILTRATO -----------------
+
+#  ------------ FUNCTIONS TO EXTRACT RESULTS FROM FILTERED LLM JSON -----------------
 
 def extract_file_licenses_from_llm(llm_data: dict) -> Dict[str, str]:
     """
-    Estrae la licenza per ogni file a partire dal JSON filtrato dall’LLM.
-    llm_data ha un formato diverso dal JSON ScanCode originale.
+    Extracts the license for each file starting from the LLM-filtered JSON.
+    llm_data has a different format than the original ScanCode JSON.
     """
 
     results = {}
@@ -349,7 +371,7 @@ def extract_file_licenses_from_llm(llm_data: dict) -> Dict[str, str]:
         if not matches:
             continue
 
-        # Se ci sono più match, li combiniamo in OR (come fa il tool ScanCode)
+        # If there are multiple matches, combine them with AND (like ScanCode tool)
         unique_spdx = list({m.get("license_spdx") for m in matches if m.get("license_spdx")})
 
         if not unique_spdx:

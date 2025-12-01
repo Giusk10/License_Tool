@@ -1,20 +1,14 @@
 """
-Modulo `evaluator` — valutazione ricorsiva dell'albero SPDX.
+This module implements a recursive evaluation engine for SPDX license trees.
+It uses a Tri-State logic (Yes | No | Conditional/Unknown) to determine compatibility.
 
-Questo modulo implementa la valutazione tri-stato (Tri = "yes" | "no" | "conditional" | "unknown")
-contro la matrice professionale fornita dal modulo `matrix`.
-
-Comportamento chiave:
-- Leaf: se il valore contiene "WITH" viene considerata la licenza base per il lookup
-  (l'eccezione viene annotata nella trace).
-- AND: valuta i due rami e combina gli esiti con una regola conservativa; inoltre esegue
-  controlli incrociati tra le leaves dei due rami (L->R e R->L) per rilevare incompatibilità
-  reciproche.
-- OR: se almeno un ramo è 'yes' allora il risultato finale è 'yes', altrimenti se entrambi
-  sono 'no' restituisce 'no', altrimenti 'conditional'.
-
-La funzione pubblica principale è `eval_node(main_license, node)` che restituisce
-una tupla (stato, traccia) dove traccia è una lista di stringhe descrittive per report.
+Key Logic:
+- **Leaf Nodes**: Looked up directly in the compatibility matrix. Exceptions (WITH clause)
+  are noted in the trace.
+- **AND Operators**: Evaluated conservatively. Both branches must be compatible.
+  Cross-checks between left and right branches are performed to detect mutual incompatibilities.
+- **OR Operators**: Evaluated such that if at least one branch is compatible,
+  the result is compatible.
 """
 
 from typing import List, Optional, Tuple
@@ -26,7 +20,10 @@ Tri = str
 
 
 def _lookup_status(main_license: str, dep_license: str) -> Tri:
-    """Effettua il lookup della compatibilità nella matrice considerata (tri-state)."""
+    """
+    Looks up the compatibility status of `dep_license` against `main_license`
+    in the compatibility matrix.
+    """
     matrix = get_matrix()
     if not matrix:
         return "unknown"
@@ -42,7 +39,9 @@ def _lookup_status(main_license: str, dep_license: str) -> Tri:
 
 
 def _combine_and(a: Tri, b: Tri) -> Tri:
-    """Combina due risultati tri-stato per l'operatore AND usando una regola conservativa."""
+    """
+    Combines two results for the AND operator (conservative rule).
+    """
     if a == "no" or b == "no":
         return "no"
     if a == "yes" and b == "yes":
@@ -51,7 +50,9 @@ def _combine_and(a: Tri, b: Tri) -> Tri:
 
 
 def _combine_or(a: Tri, b: Tri) -> Tri:
-    """Combina due risultati per l'operatore OR (regola conservativa)."""
+    """
+    Combines two results for the OR operator (conservative rule).
+    """
     if a == "yes" or b == "yes":
         return "yes"
     if a == "no" and b == "no":
@@ -61,13 +62,16 @@ def _combine_or(a: Tri, b: Tri) -> Tri:
 
 def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
     """
-    Valuta ricorsivamente `node` rispetto alla licenza principale `main_license`.
+    Recursively evaluates an SPDX node against the `main_license`.
 
-    Restituisce (status, trace) dove trace è una lista di stringhe che spiegano i passaggi
-    della valutazione (utile per report e debugging manuale).
+    Returns:
+        Tuple[Tri, List[str]]:
+            - Tri: The status ("yes", "no", "conditional", "unknown").
+            - List[str]: A trace of strings explaining the derivation of the result,
+              useful for reporting and debugging.
     """
     if node is None:
-        return "unknown", ["Espressione mancante o non riconosciuta"]
+        return "unknown", ["Expression missed or not recognized"]
 
     if isinstance(node, Leaf):
         val = node.value
@@ -76,16 +80,16 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
             base = normalize_symbol(base)
             exc = exc.strip()
             status = _lookup_status(main_license, base)
-            reason = f"{base} (with exception: {exc}) → {status} rispetto a {main_license}"
+            reason = f"{base} (with exception: {exc}) → {status} for {main_license}"
             if exc:
                 if status != "yes":
-                    reason += "; Nota: presenza di eccezione richiede verifica manuale sull'impatto dell'eccezione"
+                    reason += "; Note: exception requires manual verification."
                 else:
-                    reason += "; Eccezione rilevata: verificare se l'eccezione altera la compatibilità"
+                    reason += "; Exception found: check if compatibility is altered."
             return status, [reason]
         else:
             status = _lookup_status(main_license, val)
-            reason = f"{val} → {status} rispetto a {main_license}"
+            reason = f"{val} → {status} for {main_license}"
             return status, [reason]
 
     if isinstance(node, And):
@@ -94,7 +98,9 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
         combined = _combine_and(ls, rs)
 
         def _collect_leaves(n: Node) -> List[str]:
-            """Estrae le licenze base da un sotto-albero (rimuove la parte WITH se presente)."""
+            """
+            Extracts all leaf license values from a subtree (removes WITH parts).
+            """
             vals: List[str] = []
             if isinstance(n, Leaf):
                 v = n.value
@@ -114,9 +120,9 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
         for L in left_leaves:
             for R in right_leaves:
                 st_lr = _lookup_status(L, R)
-                cross_checks.append(f"Compatibilità incrociata: {L} rispetto a {R} → {st_lr}")
+                cross_checks.append(f"Cross compatibility check: {L} with {R} → {st_lr}")
                 st_rl = _lookup_status(R, L)
-                cross_checks.append(f"Compatibilità incrociata: {R} rispetto a {L} → {st_rl}")
+                cross_checks.append(f"Cross compatibility check: {R} with {L} → {st_rl}")
 
         trace = ltrace + rtrace + [f"AND ⇒ {combined}"] + cross_checks
         return combined, trace
@@ -128,4 +134,4 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
         trace = ltrace + rtrace + [f"OR ⇒ {combined}"]
         return combined, trace
 
-    return "unknown", ["Nodo non riconosciuto"]
+    return "unknown", ["Node not recognized"]

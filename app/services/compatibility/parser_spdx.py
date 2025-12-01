@@ -1,14 +1,13 @@
 """
-Modulo `parser_spdx` — parser semplice per espressioni SPDX.
+This module implements a lightweight parser for a subset of SPDX expressions
+relevant to this project.
+It constructs an Abstract Syntax Tree (AST) composed of Leaf, And, and Or nodes.
 
-Supporta un sotto-insieme delle espressioni SPDX utile per l'applicazione:
-- operatori logici: AND, OR (AND ha priorità su OR)
-- parentesi per raggruppamento
-- costrutto speciale WITH (es. "GPL-2.0-or-later WITH Autoconf-exception-generic")
-
-Il parser non è un parser completo SPDX ma è sufficiente per le espressioni prodotte
-da ScanCode + LLM in questo progetto. Restituisce un albero di nodi (Leaf/And/Or)
-che può essere percorso da `evaluator.eval_node`.
+Supported syntax:
+- Logical operators: AND, OR (AND has higher precedence).
+- Grouping: Parentheses `()`.
+- Special construct: WITH (e.g., 'GPL-2.0-or-later WITH Classpath-exception').
+  Note: 'WITH' clauses are collapsed into the Leaf node for simplified evaluation.
 """
 
 from typing import List, Optional
@@ -18,13 +17,19 @@ class Node:
     pass
 
 class Leaf(Node):
+    """
+    Leaf node that represents a single license symbol, possibly with a WITH clause.
+    """
     def __init__(self, value: str):
-        # Il value è normalizzato per comodità (es. + -> -or-later, WITH uppercase)
+        # The value is normalized for convenience
         self.value = normalize_symbol(value)
     def __repr__(self):
         return f"Leaf({self.value})"
 
 class And(Node):
+    """
+    And node representing a logical AND operation between two nodes.
+    """
     def __init__(self, left: Node, right: Node):
         self.left = left
         self.right = right
@@ -32,6 +37,9 @@ class And(Node):
         return f"And({self.left}, {self.right})"
 
 class Or(Node):
+    """
+    Or node representing a logical OR operation between two nodes.
+    """
     def __init__(self, left: Node, right: Node):
         self.left = left
         self.right = right
@@ -41,8 +49,8 @@ class Or(Node):
 
 def _tokenize(expr: str) -> List[str]:
     """
-    Tokenizza l'espressione in parole e parentesi, combinando eventuale costrutto "WITH"
-    in un singolo token "<ID> WITH <ID>" per semplificare il parser.
+    Tokenizes the expression into words and parentheses, combining any "WITH" construct
+    into a single token "<ID> WITH <ID>" to simplify parsing.
     """
     if not expr:
         return []
@@ -70,7 +78,7 @@ def _tokenize(expr: str) -> List[str]:
     if buf:
         tokens.append("".join(buf))
 
-    # Combina token in cui appare il costrutto WITH in un singolo token per leaf
+    # Combines "WITH" constructs into single tokens
     out: List[str] = []
     i = 0
     while i < len(tokens):
@@ -86,9 +94,9 @@ def _tokenize(expr: str) -> List[str]:
 
 def parse_spdx(expr: str) -> Optional[Node]:
     """
-    Esegue il parsing ricorsivo con la precedenza AND > OR e supporto per le parentesi.
+    Recursively parses the SPDX expression with AND > OR precedence and support for parentheses.
 
-    Restituisce None per espressione vuota o un Node (Leaf/And/Or).
+    Returns None for empty expressions or a Node (Leaf/And/Or).
     """
     tokens = _tokenize(expr)
     if not tokens:
