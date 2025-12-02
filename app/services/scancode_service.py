@@ -2,7 +2,7 @@ import os
 import json
 import subprocess
 from typing import List, Dict, Any, Optional, Tuple
-from app.core.config import SCANCODE_BIN, OLLAMA_URL, OUTPUT_BASE_DIR, OLLAMA_GENERAL_MODEL
+from app.core.config import SCANCODE_BIN, OUTPUT_BASE_DIR
 from app.services.llm_helper import _call_ollama_gpt
 
 #  ------------ FUNZIONE PRINCIPALE PER ESEGUIRE SCANCODE -----------------
