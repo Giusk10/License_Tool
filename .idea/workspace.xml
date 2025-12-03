@@ -493,7 +493,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764591058969</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Pre pull-commit">
+      <option name="closed" value="true" />
+      <created>1764776250696</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1764776250696</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -517,7 +525,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Enhance ScanCode processing with LLM-based license filtering and JSON cleanup" />
     <MESSAGE value="Refactor license extraction to utilize LLM filtering and improve JSON handling" />
     <MESSAGE value="Enhance LLM filtering by removing main license references from ScanCode JSON" />
     <MESSAGE value="Clear GITHUB_TOKEN in .env for security reasons" />
@@ -542,7 +549,8 @@
     <MESSAGE value="feat: Enhance __init__.py with additional exports and documentation, set Project Structure" />
     <MESSAGE value="Added THIRD_PART_NOTICA" />
     <MESSAGE value="Added THIRD_PART_NOTICE" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added THIRD_PART_NOTICE" />
+    <MESSAGE value="Pre pull-commit" />
+    <option name="LAST_COMMIT_MESSAGE" value="Pre pull-commit" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
