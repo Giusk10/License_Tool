@@ -1,17 +1,17 @@
 """
-Modulo `compat_utils` — utilità di parsing e normalizzazione.
+Module `compat_utils` — parsing and normalization utilities.
 
-Funzioni principali:
+Main functions:
 - normalize_symbol(sym: str) -> str
-    Normalizza uno symbol SPDX applicando trasformazioni comuni (es. '+' -> '-or-later') e
-    mappando alcuni alias frequenti a forme canoniche usate nella matrice.
+    Normalizes an SPDX symbol by applying common transformations (e.g., '+' -> '-or-later')
+    and mapping frequent aliases to canonical forms used in the matrix.
 
 - extract_symbols(expr: str) -> List[str]
-    Usa la libreria `license_expression` per estrarre i simboli presenti in una espressione SPDX.
-    Restituisce una lista di stringhe rappresentanti i symbol identificati.
+    Uses the `license_expression` library to extract symbols present in an SPDX expression.
+    Returns a list of strings representing the identified symbols.
 
-Queste utilità sono intenzionalmente semplici: il parser più complesso per AND/OR/WITH
-è implementato in `parser_spdx.py`.
+These utilities are intentionally simple; the more complex parser for AND/OR/WITH
+logic is implemented in `parser_spdx.py`.
 """
 
 from typing import List
@@ -19,7 +19,7 @@ from license_expression import Licensing
 
 licensing = Licensing()
 
-# Alias/sinonimi comuni -> forma canonica usata nella matrice
+# Common aliases/synonyms -> canonical form used in the matrix
 _SYNONYMS = {
     "GPL-3.0+": "GPL-3.0-or-later",
     "GPL-2.0+": "GPL-2.0-or-later",
@@ -30,20 +30,20 @@ _SYNONYMS = {
 
 def normalize_symbol(sym: str) -> str:
     """
-    Normalizza una singola stringa di licenza.
+    Normalizes a single license string.
 
-    Trasformazioni eseguite (non esaustive):
-      - trim degli spazi
-      - normalizzazione di costrutti 'with' -> 'WITH'
-      - conversione di '+' in '-or-later'
-      - mappatura di alias comuni tramite _SYNONYMS
+    Transformations performed (non-exhaustive):
+      - whitespace trimming
+      - normalization of 'with' constructs -> 'WITH'
+      - conversion of '+' to '-or-later'
+      - mapping of common aliases via _SYNONYMS
 
-    L'obiettivo è ottenere chiavi consistenti da cercare nella matrice.
+    The goal is to obtain consistent keys for matrix lookup.
     """
     if not sym:
         return sym
     s = sym.strip()
-    # normalizza spazi multipli attorno a WITH
+    # Normalize multiple spaces around WITH
     if " with " in s:
         s = s.replace(" with ", " WITH ")
     if " With " in s:
@@ -57,10 +57,10 @@ def normalize_symbol(sym: str) -> str:
 
 def extract_symbols(expr: str) -> List[str]:
     """
-    Estrae i symbol (identificatori) presenti in una espressione SPDX.
+    Extracts the symbols (identifiers) present in an SPDX expression.
 
-    Nota: questa funzione non gestisce la struttura logica (AND/OR/WITH). Serve
-    come utilità di retrocompatibilità e per semplici debug/log.
+    Note: This function does not handle logical structure (AND/OR/WITH). It serves
+    as a backward compatibility utility and for simple debugging/logging.
     """
     if not expr:
         return []
