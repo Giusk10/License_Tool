@@ -1,4 +1,9 @@
 # Questo file contiene la TUA logica di business pura, senza FastAPI
+import shutil
+import zipfile
+from pathlib import Path
+
+from fastapi import UploadFile, HTTPException
 from app.models.schemas import AnalyzeResponse, LicenseIssue
 from app.services.github_client import clone_repo
 from app.services.scancode_service import (
@@ -24,6 +29,47 @@ def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
     
     return clone_result.repo_path
 
+def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
+    """
+    Gestisce l'upload di uno zip, pulisce la directory target e estrae i file.
+    Utilizza CLONE_BASE_DIR e la nomenclatura {owner}_{repo} per compatibilità
+    con perform_initial_scan.
+    """
+    # Costruiamo il path nello stesso modo in cui lo si aspetta la scansione successiva
+    target_dir = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
+
+    # Pulisci la directory se esiste già (per evitare mix di file vecchi e nuovi)
+    if os.path.exists(target_dir):
+        try:
+            shutil.rmtree(target_dir)
+        except OSError as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Errore durante la pulizia della directory esistente: {e}"
+            )
+
+    # Crea la directory pulita
+    os.makedirs(target_dir, exist_ok=True)
+
+    # Validazione base dell'estensione
+    if not uploaded_file.filename.endswith('.zip'):
+        raise HTTPException(status_code=400, detail="Il file caricato deve essere un archivio .zip")
+
+    # Estrazione del file
+    try:
+        # Usa uploaded_file.file (oggetto spooled) direttamente
+        with zipfile.ZipFile(uploaded_file.file, 'r') as zip_ref:
+            # Estrazione sicura (nota: in produzione considerare controlli su path traversal 'Zip Slip')
+            zip_ref.extractall(target_dir)
+
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=400, detail="Il file fornito è un file zip corrotto o non valido.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore durante l'estrazione: {str(e)}")
+    finally:
+        uploaded_file.file.close()
+
+    return os.path.abspath(target_dir)
 
 def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     """
@@ -78,7 +124,6 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
         issues=license_issue_models,
         report_path=report_path,
     )
-
 
 def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeResponse) -> AnalyzeResponse:
     """

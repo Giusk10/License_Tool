@@ -1,9 +1,9 @@
 # app/api/analysis.py
 import httpx
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, UploadFile, Form, File
 from fastapi.responses import RedirectResponse, FileResponse
 from app.core.config import CALLBACK_URL
-from app.services.analysis_workflow import perform_cloning, perform_initial_scan, perform_regeneration
+from app.services.analysis_workflow import perform_cloning, perform_initial_scan, perform_regeneration, perform_upload_zip
 from app.services.download_service import perform_download
 from app.models.schemas import AnalyzeResponse
 from app.env.Encrypted_Auth_Info import github_auth_credentials
@@ -91,7 +91,43 @@ async def auth_callback(code: str, state: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
 
+# ------------------------------------------------------------------
+# 2.1 ZIP: Endpoint per testare lo zip (opzionale)
+# ------------------------------------------------------------------
+@router.post("/zip")
+def upload_zip(
+        # Form(...) è obbligatorio quando si usa File(...) nello stesso endpoint
+        owner: str = Form(...),
+        repo: str = Form(...),
+        uploaded_file: UploadFile = File(...)
+):
+    try:
+        repo_path = perform_upload_zip(
+            owner=owner,
+            repo=repo,
+            uploaded_file=uploaded_file
+        )
 
+        return {
+            "status": "cloned_from_zip",
+            "owner": owner,
+            "repo": repo,
+            "local_path": repo_path,
+        }
+
+    except HTTPException:
+        # Se perform_upload_zip lancia già un 400 o 500 specifico,
+        # lo rilanciamo così com'è senza modificarlo.
+        raise
+
+    except ValueError as ve:
+        # Se il service lancia ValueError (non gestito come HTTP), diventa un 400
+        raise HTTPException(status_code=400, detail=str(ve))
+
+    except Exception as e:
+        # Solo gli errori imprevisti diventano 500
+        print(f"Errore critico in upload_zip: {e}") # Logga l'errore vero per debug
+        raise HTTPException(status_code=500, detail=f"Errore interno imprevisto: {str(e)}")
 # ------------------------------------------------------------------
 # 3. ANALYZE: Endpoint per lanciare l'analisi (dopo clonazione)
 # ------------------------------------------------------------------
