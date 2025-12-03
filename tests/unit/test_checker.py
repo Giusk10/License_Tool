@@ -1,11 +1,20 @@
+# python
 """
 checker.py - Unit tests per la funzione `check_compatibility` nel modulo
 `app.services.compatibility.checker`.
 """
 
-#TESTA checker.py
 from unittest.mock import MagicMock
 from app.services.compatibility.checker import check_compatibility
+
+def _msg_matches(s: str, en: str, it: str) -> bool:
+    """
+    Restituisce True se la stringa `s` contiene la variante inglese `en`
+    oppure la variante italiana `it`.
+    """
+    if s is None:
+        return False
+    return (en in s) or (it in s)
 
 """
     Se la licenza principale normalizzata risulta vuota, la funzione deve
@@ -22,7 +31,9 @@ def test_main_license_invalid_returns_issues(monkeypatch):
     issue = res["issues"][0]
     assert issue["file_path"] == "a.py"
     assert issue["compatible"] is False
-    assert "Licenza principale non rilevata" in issue["reason"]
+    assert _msg_matches(issue["reason"],
+                        "Main license not found or invalid",
+                        "Licenza principale non rilevata")
 
 """
     Quando la matrice non è disponibile, la funzione deve segnalare la
@@ -36,7 +47,9 @@ def test_matrix_missing_or_license_not_in_matrix(monkeypatch):
     res = check_compatibility("MIT", {"b.py": "Apache-2.0"})
     assert res["main_license"] == "MIT"
     assert len(res["issues"]) == 1
-    assert "Matrice professionale non disponibile" in res["issues"][0]["reason"]
+    assert _msg_matches(res["issues"][0]["reason"],
+                        "Matrix not available",
+                        "Matrice professionale non disponibile")
 
 """
     Se `eval_node` ritorna ('yes', trace), l'issue generato deve essere
@@ -120,7 +133,13 @@ def test_matrix_present_but_main_not_in_matrix(monkeypatch):
     res = check_compatibility("MIT", {"file.py": "Apache-2.0"})
     assert res["main_license"] == "MIT"
     assert len(res["issues"]) == 1
-    assert "licenza principale non presente" in res["issues"][0]["reason"].lower() or "Matrice professionale non disponibile" in res["issues"][0]["reason"]
+
+    reason = res["issues"][0]["reason"].lower()
+    assert _msg_matches(reason,
+                        "main license not in",
+                        "licenza principale non presente") or _msg_matches(reason,
+                                                                       "matrix not available",
+                                                                       "matrice professionale non disponibile")
 
 """
     Se `eval_node` restituisce uno status non previsto (es. 'weird'),
@@ -163,4 +182,6 @@ def test_main_license_special_values_treated_as_invalid(monkeypatch):
         res = check_compatibility(val, {"a.py": "MIT"})
         assert res["main_license"] == val or res["main_license"] == val
         assert len(res["issues"]) == 1
-        assert "Licenza principale non rilevata" in res["issues"][0]["reason"] or "non valida" in res["issues"][0]["reason"]
+        assert _msg_matches(res["issues"][0]["reason"],
+                            "Main license not found or invalid",
+                            "Licenza principale non rilevata") or ("non valida" in res["issues"][0]["reason"].lower())
