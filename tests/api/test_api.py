@@ -5,26 +5,6 @@ from app.main import app
 
 client = TestClient(app)
 
-"""
-# ---------------------------------------------------------
-# Test Auth Start #FIXME: NON FUNZIONA
-# ---------------------------------------------------------
-# python
-@patch("app.api.auth.github_auth_credentials")
-def test_auth_start(mock_creds):
-    #Verifica che l'endpoint di start generi l'URL corretto per GitHub
-    mock_creds.return_value = "fake-client-id"
-
-    # Non seguire il redirect verso GitHub per evitare chiamate esterne
-    response = client.get("/api/auth/start?owner=giusk10&repo=license_tool", follow_redirects=False)
-
-    # Dovrebbe essere un redirect locale (302/307) con Location verso github.com
-    assert response.status_code in (302, 307)
-    assert "github.com/login/oauth/authorize" in response.headers.get("location", "")
-    assert "client_id=fake-client-id" in response.headers.get("location", "")
-    assert "state=giusk10:license_tool" in response.headers.get("location", "")
-"""
-
 # ---------------------------------------------------------
 # Test Analyze Endpoint
 # ---------------------------------------------------------
@@ -65,7 +45,6 @@ def test_analyze_error(mock_scan):
     assert response.status_code == 400
     assert "Repository not found" in response.json()["detail"]
 
-"""
 # ---------------------------------------------------------
 # Test Callback (Più complesso) #FUNZIONA SOLO SE AGGIUNGO 2 COSE IN ANLYSIS MA NON VA BENE
 # ---------------------------------------------------------
@@ -104,4 +83,3 @@ def test_callback_success(mock_httpx_post, mock_creds, mock_clone):
         repo="testrepo",
         oauth_token="gho_fake_token"
     )
-"""

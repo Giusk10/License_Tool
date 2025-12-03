@@ -1,8 +1,6 @@
 #PUO' ESSERE VUOTO
 
 from .config import (
-    GITHUB_CLIENT_ID,
-    GITHUB_CLIENT_SECRET,
     CALLBACK_URL,
     OLLAMA_URL,
     OLLAMA_CODING_MODEL,
@@ -15,8 +13,6 @@ from .config import (
 )
 
 __all__ = [
-    "GITHUB_CLIENT_ID",
-    "GITHUB_CLIENT_SECRET",
     "CALLBACK_URL",
     "OLLAMA_URL",
     "OLLAMA_CODING_MODEL",

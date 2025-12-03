@@ -18,32 +18,43 @@ import unittest
 # ESEMPIO MINIMALE
 import pytest
 import os
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 # 1. Mock delle variabili d'ambiente per TUTTI i test
 @pytest.fixture(scope="session", autouse=True)
 def mock_env_vars():
-    """Impedisce ai test di cercare vere API Key o file .env"""
-    with unittest.mock.patch.dict(os.environ, {
-        "GITHUB_CLIENT_ID": "fake-id",
-        "GITHUB_CLIENT_SECRET": "fake-secret",
-        "OLLAMA_HOST": "http://fake-ollama",
-        "ENCRYPTION_KEY": "fake-key-must-be-32-bytes-long-!!" # Deve essere 32 byte se usi fernet
+    """Mocka le variabili d'ambiente critiche."""
+    with patch.dict(os.environ, {
+        "GITHUB_CLIENT_ID": "test_id",
+        "GITHUB_CLIENT_SECRET": "test_secret",
+        "CALLBACK_URL": "http://localhost:8000/callback",
+        "OLLAMA_HOST": "http://mock-ollama:11434",
+        "ENCRYPTION_KEY": "a" * 32  # Chiave valida per Fernet (32 bytes)
     }):
         yield
 
 # 2. Mock della Matrice di Compatibilità (per non dipendere dal JSON su disco)
 @pytest.fixture
-def mock_matrix_data():
+def complex_matrix_data():
+    """
+    Matrice complessa per testare:
+    - YES: Compatibilità piena
+    - NO: Incompatibilità
+    - CONDITIONAL: Compatibile con clausole
+    - UNKNOWN: Non presente (implicito nel codice se manca chiave)
+    """
     return {
         "MIT": {
             "MIT": "yes",
-            "GPL-3.0": "no",
-            "APACHE-2.0": "yes"
+            "Apache-2.0": "yes",
+            "GPL-3.0": "no",          # MIT include GPL, ma GPL "infetta" MIT -> qui semplifichiamo
+            "GPL-3.0-or-later": "no",
+            "LGPL-2.1": "conditional" # Caso ipotetico per testare "conditional"
         },
         "GPL-3.0": {
-            "MIT": "yes", # GPL può includere MIT
-            "GPL-3.0": "yes"
+            "MIT": "yes",             # GPL può includere codice MIT
+            "GPL-3.0": "yes",
+            "Apache-2.0": "no"        # Spesso incompatibili (GPLv3 vs Apache2 è ok, ma testiamo "no")
         }
     }

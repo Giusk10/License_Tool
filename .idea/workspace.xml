@@ -4,8 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="feat: Add global test configuration and mock data for improved testing framework">
-      <change beforePath="$PROJECT_DIR$/pytest.ini" beforeDir="false" afterPath="$PROJECT_DIR$/pytest.ini" afterDir="false" />
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="feat: Add initial test suite for API endpoints with mock data and error handling, da Fixare">
+      <change afterPath="$PROJECT_DIR$/app/env/Encrypted_Auth_Info.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/env/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/core/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/core/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/core/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/api/test_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/api/test_api.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -67,41 +75,41 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python tests.Python tests in test_regeneration_manual.py.executor": "Coverage",
-    "Python tests.pytest in tests.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "Lucia2",
-    "junie.onboarding.icon.badge.shown": "true",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/gius03/Progetti/License Checker/app/api",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15906128",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python tests.Python tests in test_regeneration_manual.py.executor&quot;: &quot;Coverage&quot;,
+    &quot;Python tests.pytest in tests.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Lucia2&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/gius03/Progetti/License Checker/app/api&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15906128&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "GitStage.ChangesTree.GroupingKeys": [
-      "directory",
-      "module",
-      "repository"
+  &quot;keyToStringList&quot;: {
+    &quot;GitStage.ChangesTree.GroupingKeys&quot;: [
+      &quot;directory&quot;,
+      &quot;module&quot;,
+      &quot;repository&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/app/api" />
@@ -311,7 +319,9 @@
       <workItem from="1764590006624" duration="1036000" />
       <workItem from="1764663946979" duration="67000" />
       <workItem from="1764690069673" duration="728000" />
-      <workItem from="1764692650268" duration="4181000" />
+      <workItem from="1764692650268" duration="4364000" />
+      <workItem from="1764697305930" duration="2923000" />
+      <workItem from="1764772307149" duration="2213000" />
     </task>
     <task id="LOCAL-00001" summary="Add license compatibility checker with analysis and reporting features">
       <option name="closed" value="true" />
@@ -593,7 +603,23 @@
       <option name="project" value="LOCAL" />
       <updated>1764696796912</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="feat: Update pytest.ini and workspace.xml for enhanced test configuration and coverage reporting">
+      <option name="closed" value="true" />
+      <created>1764697034980</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1764697034980</updated>
+    </task>
+    <task id="LOCAL-00037" summary="feat: Add initial test suite for API endpoints with mock data and error handling, da Fixare">
+      <option name="closed" value="true" />
+      <created>1764700228607</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1764700228607</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -617,8 +643,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Enhance license matching logic in scancode_service.py to include license_spdx validation and improve filtering criteria" />
-    <MESSAGE value="Add comments to scancode_service.py for improved code clarity and organization" />
     <MESSAGE value="Refactor configuration management in multiple files to use environment variables for GitHub token, ScanCode binary, and output directories" />
     <MESSAGE value="Update OLLAMA model environment variable and enhance ScanCode execution feedback" />
     <MESSAGE value="Add compatibility evaluation package with SPDX parsing and matrix support" />
@@ -642,7 +666,9 @@
     <MESSAGE value="feat: Update README.md and add THRID_PART_NOTICE for licensing information" />
     <MESSAGE value="feat: Refactor README.md and workspace.xml for improved licensing clarity" />
     <MESSAGE value="feat: Add global test configuration and mock data for improved testing framework" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: Add global test configuration and mock data for improved testing framework" />
+    <MESSAGE value="feat: Update pytest.ini and workspace.xml for enhanced test configuration and coverage reporting" />
+    <MESSAGE value="feat: Add initial test suite for API endpoints with mock data and error handling, da Fixare" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: Add initial test suite for API endpoints with mock data and error handling, da Fixare" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -660,7 +686,7 @@
     <select />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/License_Tool$pytest_in_tests.coverage" NAME="pytest in tests Coverage Results" MODIFIED="1764696716050" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool" />
+    <SUITE FILE_PATH="coverage/License_Tool$pytest_in_tests.coverage" NAME="pytest in tests Coverage Results" MODIFIED="1764700105797" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool" />
     <SUITE FILE_PATH="coverage/License_Tool$.coverage" NAME=" Coverage Results" MODIFIED="1764692830995" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
   </component>
   <component name="github-copilot-workspace">
