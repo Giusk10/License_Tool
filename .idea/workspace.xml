@@ -534,7 +534,39 @@
       <option name="project" value="LOCAL" />
       <updated>1764781411833</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="Pre pull commit">
+      <option name="closed" value="true" />
+      <created>1764782643570</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1764782643570</updated>
+    </task>
+    <task id="LOCAL-00034" summary="Added support for italian assert in test_evaluator.py">
+      <option name="closed" value="true" />
+      <created>1764782848794</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1764782848794</updated>
+    </task>
+    <task id="LOCAL-00035" summary="Added support for italian assert in test_evaluator.py">
+      <option name="closed" value="true" />
+      <created>1764782902159</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1764782902159</updated>
+    </task>
+    <task id="LOCAL-00036" summary="Added support for italian assert in test_evaluator.py">
+      <option name="closed" value="true" />
+      <created>1764782910448</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1764782910448</updated>
+    </task>
+    <option name="localTasksCounter" value="37" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -558,8 +590,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Clarify comment in scancode_service.py regarding license matching logic" />
-    <MESSAGE value="Implement extended OSADL license compatibility matrix and enhance SPDX expression parsing" />
     <MESSAGE value="Refactor compatibility matrix loading to use professional matrix and improve SPDX expression handling" />
     <MESSAGE value="Enhance license matching logic in scancode_service.py to include license_spdx validation and improve filtering criteria" />
     <MESSAGE value="Add comments to scancode_service.py for improved code clarity and organization" />
@@ -583,7 +613,9 @@
     <MESSAGE value="Added test for test_evaluator and updated conftest" />
     <MESSAGE value="Merged with tests from Lucia2" />
     <MESSAGE value="Removed test_spdx" />
-    <option name="LAST_COMMIT_MESSAGE" value="Removed test_spdx" />
+    <MESSAGE value="Pre pull commit" />
+    <MESSAGE value="Added support for italian assert in test_evaluator.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added support for italian assert in test_evaluator.py" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
