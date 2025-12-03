@@ -18,7 +18,6 @@ from app.services.report_service import generate_report
 from app.core.config import CLONE_BASE_DIR
 import os
 
-
 def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
     """
     Executes the repository cloning process only.
@@ -118,6 +117,7 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
     # Locates the repository
     repo_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
 
+
     if not os.path.exists(repo_path):
         raise ValueError(f"Couldn't find the specified repository in {repo_path}. Try running the initial scan first.")
 
@@ -181,15 +181,12 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
             scan_raw = run_scancode(repo_path)
             main_license, path = detect_main_license_scancode(scan_raw)  # Should be unchanged
             llm_clean = filter_with_llm(scan_raw, main_license, path)
-            print("\n\n")
-            print(llm_clean)
+
             file_licenses = extract_file_licenses_from_llm(llm_clean)
             compatibility = check_compatibility(main_license, file_licenses)
 
-            print("\n\n")
-            print(compatibility)
-
-            # Updates the current issues with the new compatibility results
+            # Aggiorniamo la lista di issues con i nuovi risultati
+            # check_compatibility ritorna un dict con "issues": [dict, dict...]
             current_issues_dicts = compatibility["issues"]
         else:
             # If no files were actually regenerated, keep previous issues

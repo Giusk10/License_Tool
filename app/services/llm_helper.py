@@ -25,6 +25,7 @@ def _is_ollama_running(timeout: float = 2.0) -> bool:
     except Exception:
         return False
 
+# Avvia il processo `ollama serve` in background e attende che l'API sia pronta.
 def _start_ollama(wait_seconds: float = 10.0) -> bool:
     """
     Starts the Ollama server process and waits until it's running or timeout occurs.

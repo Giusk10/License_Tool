@@ -1,11 +1,12 @@
 # app/api/analysis.py
 import httpx
 from fastapi import APIRouter, HTTPException, Body
-from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
-from app.core.config import GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, CALLBACK_URL
+from fastapi.responses import RedirectResponse, FileResponse
+from app.core.config import CALLBACK_URL
 from app.services.analysis_workflow import perform_cloning, perform_initial_scan, perform_regeneration
 from app.services.download_service import perform_download
-from app.models.schemas import AnalyzeResponse, CloneResult
+from app.models.schemas import AnalyzeResponse
+from app.env.Encrypted_Auth_Info import github_auth_credentials
 
 router = APIRouter()
 
@@ -20,6 +21,9 @@ def start_analysis(owner: str, repo: str):
     # Impacchettiamo i due dati in una stringa unica per il viaggio
     state_data = f"{owner}:{repo}"
 
+    # Recupera le credenziali GitHub
+    GITHUB_CLIENT_ID = github_auth_credentials("CLIENT_ID")
+
     scope = "repo" # Serve 'repo' anche per leggere repo pubbliche senza limiti severi
 
     github_url = (
@@ -30,7 +34,6 @@ def start_analysis(owner: str, repo: str):
         f"&state={state_data}"  # <--- Qui viaggiano owner e repo insieme
     )
     return RedirectResponse(github_url)
-
 
 # ------------------------------------------------------------------
 # 2. CALLBACK: GitHub torna qui dopo il login
@@ -45,6 +48,10 @@ async def auth_callback(code: str, state: str):
         target_owner, target_repo = state.split(":")
     except ValueError:
         raise HTTPException(status_code=400, detail="Stato non valido. Formato atteso 'owner:repo'")
+
+    # Recupera le credenziali GitHub
+    GITHUB_CLIENT_ID = github_auth_credentials("CLIENT_ID")
+    GITHUB_CLIENT_SECRET = github_auth_credentials("CLIENT_SECRET")
 
     async with httpx.AsyncClient() as client:
         # 2. Otteniamo il Token dell'utente che sta facendo la richiesta
@@ -107,7 +114,6 @@ def run_analysis(payload: dict = Body(...)):
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
-
 
 # ------------------------------------------------------------------
 # 4. REGENERATE: Endpoint per lanciare la rigenerazione
