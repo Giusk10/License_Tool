@@ -20,8 +20,8 @@ from app.services.compatibility import evaluator
 
 def _msg_matches(s: str, en: str, it: str) -> bool:
     """
-    Restituisce True se la stringa `s` contiene la variante inglese `en`
-    oppure la variante italiana `it`.
+    Returns True if string `s` is in english (`en`)
+    or italian (`it`).
     """
     return (en in s) or (it in s)
 
