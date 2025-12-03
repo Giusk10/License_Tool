@@ -1,4 +1,3 @@
-# python
 """
 checker.py - Unit tests per la funzione `check_compatibility` nel modulo
 `app.services.compatibility.checker`.
@@ -7,15 +6,6 @@ checker.py - Unit tests per la funzione `check_compatibility` nel modulo
 from unittest.mock import MagicMock
 from app.services.compatibility.checker import check_compatibility
 
-def _msg_matches(s: str, en: str, it: str) -> bool:
-    """
-    Restituisce True se la stringa `s` contiene la variante inglese `en`
-    oppure la variante italiana `it`.
-    """
-    if s is None:
-        return False
-    return (en in s) or (it in s)
-
 """
     Se la licenza principale normalizzata risulta vuota, la funzione deve
     indicare che la licenza principale non è stata rilevata e produrre un
@@ -23,7 +13,7 @@ def _msg_matches(s: str, en: str, it: str) -> bool:
 
     Usa `monkeypatch` per forzare `normalize_symbol` a ritornare stringa vuota.
     """
-def test_main_license_invalid_returns_issues(monkeypatch):
+def test_main_license_invalid_returns_issues(monkeypatch, _msg_matches):
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "")
     res = check_compatibility("", {"a.py": "MIT"})
     assert res["main_license"] == "UNKNOWN"
@@ -41,7 +31,7 @@ def test_main_license_invalid_returns_issues(monkeypatch):
 
     Mocka `get_matrix` per ritornare None.
 """
-def test_matrix_missing_or_license_not_in_matrix(monkeypatch):
+def test_matrix_missing_or_license_not_in_matrix(monkeypatch, _msg_matches):
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: None)
     res = check_compatibility("MIT", {"b.py": "Apache-2.0"})
@@ -127,7 +117,7 @@ def test_all_files_compatible_returns_no_issues(complex_matrix_data, monkeypatch
     Quando la matrice è presente ma non contiene la main license, la
     funzione deve comunque restituire un issue che segnala l'anomalia.
 """
-def test_matrix_present_but_main_not_in_matrix(monkeypatch):
+def test_matrix_present_but_main_not_in_matrix(monkeypatch, _msg_matches):
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: {"GPL-3.0": {"MIT": "no"}})
     res = check_compatibility("MIT", {"file.py": "Apache-2.0"})
@@ -176,7 +166,7 @@ def test_empty_detected_license_calls_parse_with_empty(monkeypatch, complex_matr
     Valori speciali o non informativi della main license (UNKNOWN, NOASSERTION,
     NONE) devono essere trattati come mancanza di licenza principale.
 """
-def test_main_license_special_values_treated_as_invalid(monkeypatch):
+def test_main_license_special_values_treated_as_invalid(monkeypatch, _msg_matches):
     for val in ("UNKNOWN", "NOASSERTION", "NONE"):
         monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s, v=val: v)
         res = check_compatibility(val, {"a.py": "MIT"})
