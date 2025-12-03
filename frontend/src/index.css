@@ -5,7 +5,7 @@
 
   color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #0f0f13;
+  background-color:  #1c1124;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -19,7 +19,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background: radial-gradient(circle at top left, #1a1a2e, #0f0f13);
+  background: radial-gradient(circle at top left , #472978 , #271c38, #090114);
 }
 
 #root {
@@ -32,12 +32,12 @@ body {
 
 /* Glassmorphism Utilities */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 16px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
 }
 
 .glass-input {
@@ -80,14 +80,14 @@ body {
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
-  background: linear-gradient(to right, #fff, #aaa);
+  background: linear-gradient(to right, #fff, #d9dcde);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.5em;
 }
 
 h2 {
-  font-size: 2em;
+  font-size: 2.3em;
   color: #e0e0e0;
 }
 
@@ -146,6 +146,7 @@ pre {
   border: 4px solid rgba(255,255,255,0.12);
   border-top-color: #646cff;
   animation: spin 1s linear infinite;
+
 }
 
 @keyframes spin {

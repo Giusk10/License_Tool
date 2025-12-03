@@ -287,14 +287,14 @@ const Callback = () => {
                     </div>
                 </div>
 
-                {isRegenerating && (
+                 {isRegenerating && (
                     <div className="glass-panel" style={{
                         marginBottom: '2rem',
                         background: 'rgba(100, 108, 255, 0.1)',
                         borderColor: '#646cff',
                         display: 'flex', alignItems: 'center', gap: '1rem'
                     }}>
-                        <div className="spin" style={{ width: 24, height: 24 }} />
+                        <div className="spin" style={{ width: 24, height: 24, marginLeft: '1.3rem'}} />
                         <div>
                             <h4 style={{ margin: 0, color: '#646cff' }}>Regenerating Code...</h4>
                             <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>
@@ -303,6 +303,7 @@ const Callback = () => {
                         </div>
                     </div>
                 )}
+
 
                 {displayData && (
                     <div style={{ textAlign: 'left' }}>

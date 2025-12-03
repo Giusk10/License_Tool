@@ -1,3 +1,4 @@
+# python
 """
 Module: tests/test_evaluator.py
 
@@ -16,6 +17,13 @@ against a main project license.
 import pytest
 from unittest.mock import patch
 from app.services.compatibility import evaluator
+
+def _msg_matches(s: str, en: str, it: str) -> bool:
+    """
+    Restituisce True se la stringa `s` contiene la variante inglese `en`
+    oppure la variante italiana `it`.
+    """
+    return (en in s) or (it in s)
 
 """
 The following classes are defined here to mock the behavior of the real SPDX parser nodes.
@@ -70,10 +78,10 @@ def setup_mocks(complex_matrix_data):
         complex_matrix_data (dict): The shared fixture containing compatibility rules.
     """
     with patch("app.services.compatibility.evaluator.get_matrix", return_value=complex_matrix_data), \
-         patch("app.services.compatibility.evaluator.normalize_symbol", side_effect=lambda x: x.strip()), \
-         patch("app.services.compatibility.evaluator.Leaf", MockLeaf), \
-         patch("app.services.compatibility.evaluator.And", MockAnd), \
-         patch("app.services.compatibility.evaluator.Or", MockOr):
+            patch("app.services.compatibility.evaluator.normalize_symbol", side_effect=lambda x: x.strip()), \
+            patch("app.services.compatibility.evaluator.Leaf", MockLeaf), \
+            patch("app.services.compatibility.evaluator.And", MockAnd), \
+            patch("app.services.compatibility.evaluator.Or", MockOr):
         yield
 
 """
@@ -104,7 +112,9 @@ def test_eval_node_none():
     """
     status, trace = evaluator.eval_node("MIT", None)
     assert status == "unknown"
-    assert "Expression missed" in trace[0]
+    assert _msg_matches(trace[0],
+                        "Expression missed",
+                        "Espressione mancante o non riconosciuta")
 
 def test_eval_leaf_simple():
     """
@@ -116,7 +126,9 @@ def test_eval_leaf_simple():
 
     status, trace = evaluator.eval_node("MIT", node)
     assert status == "yes"
-    assert "Apache-2.0 → yes for MIT" in trace[0]
+    assert _msg_matches(trace[0],
+                        "Apache-2.0 → yes for MIT",
+                        "Apache-2.0 → yes rispetto a MIT")
 
 def test_eval_leaf_with_exception():
     """
@@ -134,7 +146,9 @@ def test_eval_leaf_with_exception():
     # Ensure the failure message is NOT present
     assert "exception requires manual verification" not in trace[0]
     # Ensure the success/detection message IS present
-    assert "Exception found" in trace[0]
+    assert _msg_matches(trace[0],
+                        "Exception found",
+                        "Eccezione rilevata")
 
 def test_eval_or_logic_optimistic():
     """
@@ -177,8 +191,12 @@ def test_and_cross_compatibility_check():
     status, trace = evaluator.eval_node("GPL-3.0", node)
 
     trace_str = " ".join(trace)
-    assert "Cross compatibility check: Apache-2.0 with GPL-3.0" in trace_str
-    assert "Cross compatibility check: GPL-3.0 with Apache-2.0" in trace_str
+    assert _msg_matches(trace_str,
+                        "Cross compatibility check: Apache-2.0 with GPL-3.0",
+                        "Compatibilità incrociata: Apache-2.0 rispetto a GPL-3.0")
+    assert _msg_matches(trace_str,
+                        "Cross compatibility check: GPL-3.0 with Apache-2.0",
+                        "Compatibilità incrociata: GPL-3.0 rispetto a Apache-2.0")
 
 def test_combine_helpers():
     """
@@ -219,7 +237,9 @@ def test_eval_leaf_with_exception_fail():
     status, trace = evaluator.eval_node("GPL-3.0", node)
 
     assert status == "no"
-    assert "exception requires manual verification" in trace[0]
+    assert _msg_matches(trace[0],
+                        "exception requires manual verification",
+                        "Nota: presenza di eccezione richiede verifica manuale")
 
 def test_combine_conditional_logic():
     """
@@ -246,7 +266,9 @@ def test_eval_node_unrecognized_type():
 
     status, trace = evaluator.eval_node("MIT", UnknownNode())
     assert status == "unknown"
-    assert "Node not recognized" in trace[0]
+    assert _msg_matches(trace[0],
+                        "Node not recognized",
+                        "Nodo non riconosciuto")
 
 def test_and_nested_leaves_collection():
     """
@@ -266,5 +288,9 @@ def test_and_nested_leaves_collection():
     trace_str = " ".join(trace)
 
     # Verify that cross-checks were performed for ALL nested leaves
-    assert "Cross compatibility check: MIT with GPL-3.0" in trace_str
-    assert "Cross compatibility check: Apache-2.0 with GPL-3.0" in trace_str
+    assert _msg_matches(trace_str,
+                        "Cross compatibility check: MIT with GPL-3.0",
+                        "Compatibilità incrociata: MIT rispetto a GPL-3.0")
+    assert _msg_matches(trace_str,
+                        "Cross compatibility check: Apache-2.0 with GPL-3.0",
+                        "Compatibilità incrociata: Apache-2.0 rispetto a GPL-3.0")
