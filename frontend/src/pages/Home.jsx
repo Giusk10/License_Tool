@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { Github, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Github, ArrowRight, Upload } from 'lucide-react';
+import axios from 'axios';
 
 const Home = () => {
     const [owner, setOwner] = useState('');
     const [repo, setRepo] = useState('');
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const navigate = useNavigate();
+    const fileInputRef = React.useRef(null);
 
     const handleAnalyze = (e) => {
         e.preventDefault();
@@ -16,6 +21,63 @@ const Home = () => {
         const backendUrl = 'http://localhost:8000/api/auth/start';
         window.location.href = `${backendUrl}?owner=${owner}&repo=${repo}`;
     };
+
+    const handleUploadClick = () => {
+        if (!owner || !repo) {
+            alert("Please enter Owner and Repository name first.");
+            return;
+        }
+        fileInputRef.current.click();
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('owner', owner);
+        formData.append('repo', repo);
+        formData.append('uploaded_file', file);
+
+        try {
+            const response = await axios.post('http://localhost:8000/api/zip', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            navigate('/callback', {
+                state: {
+                    cloneData: response.data,
+                    source: 'upload'
+                }
+            });
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Upload failed: " + (error.response?.data?.detail || error.message));
+            setUploading(false);
+        }
+    };
+
+    if (uploading) {
+        return (
+            <div className="container">
+                <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
+                    <div
+                        className="spin"
+                        style={{
+                            width: 48,
+                            height: 48,
+                            marginBottom: '1rem'
+                        }}
+                    />
+                    <h2>Uploading Repository...</h2>
+                    <p>Please wait while we upload and process the repository.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container">
@@ -44,13 +106,34 @@ const Home = () => {
                         required
                     />
 
-                    <button type="submit" className="glass-button" disabled={loading}>
-                        {loading ? 'Redirecting...' : (
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        accept=".zip"
+                        onChange={handleFileChange}
+                    />
+
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button type="submit" className="glass-button" style={{ flex: 1 }} disabled={loading}>
+                            {loading ? 'Redirecting...' : (
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                    Clone Repository <ArrowRight size={16} />
+                                </span>
+                            )}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleUploadClick}
+                            className="glass-button"
+                            style={{ flex: 1 }}
+                            disabled={loading}
+                        >
                             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                Clone Repository <ArrowRight size={16} />
+                                Upload Zip <Upload size={16} />
                             </span>
-                        )}
-                    </button>
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -58,3 +141,4 @@ const Home = () => {
 };
 
 export default Home;
+

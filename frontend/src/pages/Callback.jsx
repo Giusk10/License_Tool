@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
     CheckCircle,
@@ -20,6 +20,7 @@ import {
 const Callback = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const location = useLocation();
 
     // States
     const [status, setStatus] = useState('loading'); // loading, cloned, analyzing, success, error
@@ -28,6 +29,7 @@ const Callback = () => {
     const [regeneratedData, setRegeneratedData] = useState(null);
     const [isRegenerating, setIsRegenerating] = useState(false);
     const [error, setError] = useState('');
+    const [source, setSource] = useState('clone'); // clone or upload
 
     // Simulated progress for analysis
     const [progressStep, setProgressStep] = useState(0);
@@ -42,6 +44,16 @@ const Callback = () => {
     const hasCalledRef = React.useRef(false);
 
     useEffect(() => {
+        // Check if data was passed via navigation (e.g. from Upload Zip)
+        if (location.state?.cloneData) {
+            setCloneData(location.state.cloneData);
+            setStatus('cloned');
+            if (location.state.source) {
+                setSource(location.state.source);
+            }
+            return;
+        }
+
         const code = searchParams.get('code');
         const state = searchParams.get('state');
 
@@ -70,7 +82,7 @@ const Callback = () => {
         };
 
         performClone();
-    }, [searchParams]);
+    }, [searchParams, location.state]);
 
     // 2. Handle Analyze Click
     const handleAnalyze = async () => {
@@ -175,10 +187,11 @@ const Callback = () => {
                     <div style={{ marginBottom: '2rem' }}>
                         <GitBranch size={64} color="#4caf50" />
                     </div>
-                    <h2 style={{ marginBottom: '1rem' }}>Repository Cloned Successfully!</h2>
+                    <h2 style={{ marginBottom: '1rem' }}>
+                        {source === 'upload' ? 'Repository Uploaded Successfully!' : 'Repository Cloned Successfully!'}
+                    </h2>
 
                     <div className="glass-panel" style={{
-                        background: 'rgba(255,255,255,0.05)',
                         padding: '1.5rem',
                         marginBottom: '2rem',
                         textAlign: 'left'
@@ -287,14 +300,14 @@ const Callback = () => {
                     </div>
                 </div>
 
-                 {isRegenerating && (
+                {isRegenerating && (
                     <div className="glass-panel" style={{
                         marginBottom: '2rem',
                         background: 'rgba(100, 108, 255, 0.1)',
                         borderColor: '#646cff',
                         display: 'flex', alignItems: 'center', gap: '1rem'
                     }}>
-                        <div className="spin" style={{ width: 24, height: 24, marginLeft: '1.3rem'}} />
+                        <div className="spin" style={{ width: 24, height: 24, marginLeft: '1.3rem' }} />
                         <div>
                             <h4 style={{ margin: 0, color: '#646cff' }}>Regenerating Code...</h4>
                             <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>
