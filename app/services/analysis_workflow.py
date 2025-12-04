@@ -1,8 +1,6 @@
-# Questo file contiene la TUA logica di business pura, senza FastAPI
 import shutil
+import tempfile
 import zipfile
-from pathlib import Path
-
 from fastapi import UploadFile, HTTPException
 from app.models.schemas import AnalyzeResponse, LicenseIssue
 from app.services.github_client import clone_repo
@@ -31,14 +29,13 @@ def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
 
 def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
     """
-    Gestisce l'upload di uno zip, pulisce la directory target e estrae i file.
-    Utilizza CLONE_BASE_DIR e la nomenclatura {owner}_{repo} per compatibilità
-    con perform_initial_scan.
+    Gestisce l'upload di uno zip, estrae i file e gestisce la struttura delle directory.
+    Se lo zip contiene una singola cartella root (es. repo-main/), il contenuto viene
+    spostato direttamente nella target_dir {owner}_{repo}, eliminando il livello extra.
     """
-    # Costruiamo il path nello stesso modo in cui lo si aspetta la scansione successiva
     target_dir = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
 
-    # Pulisci la directory se esiste già (per evitare mix di file vecchi e nuovi)
+    # 1. Pulizia preventiva: Rimuovi la directory di destinazione se esiste
     if os.path.exists(target_dir):
         try:
             shutil.rmtree(target_dir)
@@ -48,24 +45,47 @@ def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
                 detail=f"Errore durante la pulizia della directory esistente: {e}"
             )
 
-    # Crea la directory pulita
-    os.makedirs(target_dir, exist_ok=True)
-
-    # Validazione base dell'estensione
+    # Validazione estensione
     if not uploaded_file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="Il file caricato deve essere un archivio .zip")
 
-    # Estrazione del file
     try:
-        # Usa uploaded_file.file (oggetto spooled) direttamente
-        with zipfile.ZipFile(uploaded_file.file, 'r') as zip_ref:
-            # Estrazione sicura (nota: in produzione considerare controlli su path traversal 'Zip Slip')
-            zip_ref.extractall(target_dir)
+        # 2. Uso di una directory temporanea per l'estrazione
+        # Questo ci permette di analizzare la struttura PRIMA di decidere dove mettere i file definitivi
+        with tempfile.TemporaryDirectory() as temp_dir:
+
+            with zipfile.ZipFile(uploaded_file.file, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+
+            # Analisi del contenuto estratto
+            extracted_items = os.listdir(temp_dir)
+
+            # Filtriamo per ignorare file nascosti di sistema (es. __MACOSX o .DS_Store) che potrebbero falsare il conteggio
+            visible_items = [item for item in extracted_items if not item.startswith('__') and not item.startswith('.')]
+
+            source_to_move = temp_dir
+
+            # CASO A: Lo zip contiene una singola cartella (es. 'my-repo-main')
+            # Spostiamo quella cartella rinominandola in target_dir
+            if len(visible_items) == 1:
+                potential_root = os.path.join(temp_dir, visible_items[0])
+                if os.path.isdir(potential_root):
+                    source_to_move = potential_root
+
+            # CASO B: Lo zip è "piatto" (file sparsi nella root)
+            # Spostiamo tutto il contenuto di temp_dir in target_dir
+
+            # shutil.move(src, dst) se dst non esiste, rinomina src in dst.
+            # Poiché abbiamo cancellato target_dir all'inizio, questo è sicuro.
+            shutil.copytree(source_to_move, target_dir)
 
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="Il file fornito è un file zip corrotto o non valido.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore durante l'estrazione: {str(e)}")
+        # Pulizia extra in caso di errore (se target_dir è stata creata parzialmente)
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir)
+        raise HTTPException(status_code=500, detail=f"Errore durante l'elaborazione dello zip: {str(e)}")
     finally:
         uploaded_file.file.close()
 
