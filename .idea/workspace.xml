@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="feat: Add shared test helpers and fixtures for compatibility evaluation">
-      <change beforePath="$PROJECT_DIR$/app/api/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/analysis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/services/analysis_workflow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/analysis_workflow.py" afterDir="false" />
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="feat: Update pytest-conv to pytest-cov for improved test coverage reporting">
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -315,7 +315,10 @@
       <workItem from="1764692650268" duration="4364000" />
       <workItem from="1764697305930" duration="2923000" />
       <workItem from="1764772307149" duration="2935000" />
-      <workItem from="1764775749551" duration="9099000" />
+      <workItem from="1764775749551" duration="10579000" />
+      <workItem from="1764786467956" duration="56000" />
+      <workItem from="1764786607143" duration="327000" />
+      <workItem from="1764862826287" duration="1518000" />
     </task>
     <task id="LOCAL-00001" summary="Add license compatibility checker with analysis and reporting features">
       <option name="closed" value="true" />
@@ -661,7 +664,31 @@
       <option name="project" value="LOCAL" />
       <updated>1764784825618</updated>
     </task>
-    <option name="localTasksCounter" value="44" />
+    <task id="LOCAL-00044" summary="feat: Add endpoint for uploading ZIP files and processing repository data (da Giuseppe)">
+      <option name="closed" value="true" />
+      <created>1764784978037</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1764784978037</updated>
+    </task>
+    <task id="LOCAL-00045" summary="feat: Update requirements to include python-multipart for file handling">
+      <option name="closed" value="true" />
+      <created>1764785244535</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1764785244535</updated>
+    </task>
+    <task id="LOCAL-00046" summary="feat: Update pytest-conv to pytest-cov for improved test coverage reporting">
+      <option name="closed" value="true" />
+      <created>1764785475791</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1764785475791</updated>
+    </task>
+    <option name="localTasksCounter" value="47" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -685,9 +712,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="refactor: Remove debug JSON output from scancode_service and update workspace configuration" />
-    <MESSAGE value="feat: Add Ollama host configuration and ensure Ollama service readiness in llm_helper" />
-    <MESSAGE value="feat: Update Ollama host configuration to include version and tags endpoints" />
     <MESSAGE value="feat: Update environment configuration for Windows paths and replace Scancode binary location" />
     <MESSAGE value="feat: Add documentation llm_helper" />
     <MESSAGE value="feat: Add documentation to llm_helper" />
@@ -710,7 +734,10 @@
     <MESSAGE value="feat: Update styles and enhance compatibility evaluation tests with additional scenarios" />
     <MESSAGE value="feat: Add unit tests for compatibility matrix loading and status normalization (da Antonella)" />
     <MESSAGE value="feat: Add shared test helpers and fixtures for compatibility evaluation" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: Add shared test helpers and fixtures for compatibility evaluation" />
+    <MESSAGE value="feat: Add endpoint for uploading ZIP files and processing repository data (da Giuseppe)" />
+    <MESSAGE value="feat: Update requirements to include python-multipart for file handling" />
+    <MESSAGE value="feat: Update pytest-conv to pytest-cov for improved test coverage reporting" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: Update pytest-conv to pytest-cov for improved test coverage reporting" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
