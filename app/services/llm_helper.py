@@ -1,9 +1,13 @@
 import json
+import os
+
 import requests
 import subprocess
 import time
 from typing import List, Dict
-from app.core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_CODING_MODEL, OLLAMA_HOST_TAGS
+from app.core.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_CODING_MODEL, \
+    OLLAMA_HOST_TAGS, MINIMAL_JSON_BASE_DIR
+
 
 # Controlla se il servizio Ollama risponde entro il timeout indicato.
 def _is_ollama_running(timeout: float = 2.0) -> bool:
@@ -105,6 +109,14 @@ def _call_ollama_gpt(prompt: json) -> str:
     resp = requests.post(OLLAMA_URL, json=payload, timeout=240)
     resp.raise_for_status()
     data = resp.json()
+
+    # Assicura che la cartella esista e scrive il JSON minimale invece di leggerlo
+    os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)
+    output_minimal = os.path.join(MINIMAL_JSON_BASE_DIR, "model_output.json")
+
+    with open(output_minimal, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
     response = data.get("response", "")
     data_clean = response.replace("```json", "").replace("```", "")
     return data_clean

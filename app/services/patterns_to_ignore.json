@@ -1,0 +1,53 @@
+{
+  "ignored_patterns": [
+    "*.git", ".svn", ".hg", ".bzr",
+    ".idea", ".vscode", ".vs", ".settings", ".project", ".classpath",
+    ".DS_Store", "*.db", "*.swp", "*.bak", "*.tmp", "*.log",
+
+    "node_modules", "bower_components", ".npm", ".yarn",
+    "dist", "build", "out", "public",
+    ".next", ".nuxt",
+    "*.min.js", "*.min.css", "*.map",
+    "package-lock.json", "yarn.lock",
+
+    "venv", ".venv", "env", "__pycache__",
+    "*.pyc", "*.pyo", "*.pyd",
+    "*.egg-info", ".eggs", "*.whl",
+    ".mypy_cache", ".pytest_cache", ".tox",
+
+    "target", ".gradle", "build",
+    "*.class", "*.jar", "*.war", "*.ear", "*.nar",
+
+    "vendor", "bin", "pkg", "go.sum",
+
+    "Cargo.lock",
+
+    "obj", "*.suo", "*.user", "packages", "*.nupkg",
+
+    ".bundle", "vendor/bundle", "*.gem", ".ruby-version",
+
+    "composer.lock",
+
+    "Pods", "Carthage", ".build", "*.xcodeproj", "*.xcworkspace", "*.ipa", "*.app",
+
+    "*.exe", "*.dll", "*.so", "*.dylib", "*.o", "*.a", "*.lib", "*.com",
+    "*.pdb", "*.idb", "*.tlog",
+
+    "*.png", "*.jpg", "*.jpeg", "*.gif", "*.ico", "*.svg", "*.webp",
+    "*.ttf", "*.woff", "*.woff2", "*.eot",
+    "*.mp3", "*.wav", "*.mp4", "*.mov", "*.m4a", "*.avi",
+
+    "*.zip", "*.tar", "*.tar.gz", "*.tgz", "*.gz", "*.7z", "*.rar", "*.bz2",
+    "*.iso", "*.img", "*.vmdk", "*.ova", "*.dmg",
+
+    "*.pdf", "*.doc", "*.docx", "*.xls", "*.xlsx", "*.ppt", "*.pptx", "*.odt",
+    "*.psd", "*.ai",
+
+    "tests", "test", "spec",
+    "javadoc", "docs/_build", "site",
+
+    "*.pem", "*.crt", "*.csr", "*.der", "*.key", "*.p12", "*.jks",
+    "config.log", "config.status", "autom4te.cache",
+    "*.json"
+  ]
+}

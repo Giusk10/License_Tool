@@ -17,6 +17,7 @@ OLLAMA_HOST_TAGS = os.getenv("OLLAMA_HOST_TAGS")
 SCANCODE_BIN = os.getenv("SCANCODE_BIN")
 CLONE_BASE_DIR = os.getenv("CLONE_BASE_DIR")
 OUTPUT_BASE_DIR = os.getenv("OUTPUT_BASE_DIR")
+MINIMAL_JSON_BASE_DIR = os.getenv("MINIMAL_JSON_BASE_DIR")
 
 # Database settings and encryption
 MONGO_URI = os.getenv("MONGO_URI")

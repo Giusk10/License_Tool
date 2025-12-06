@@ -1,31 +1,59 @@
 import os
 import json
 import subprocess
+import re
+from re import match
 from typing import List, Dict, Any, Optional, Tuple
-from app.core.config import SCANCODE_BIN, OUTPUT_BASE_DIR
+from app.core.config import SCANCODE_BIN, OUTPUT_BASE_DIR, MINIMAL_JSON_BASE_DIR
 from app.services.llm_helper import _call_ollama_gpt
 
 #  ------------ FUNZIONE PRINCIPALE PER ESEGUIRE SCANCODE -----------------
 
 def run_scancode(repo_path: str) -> dict:
     """
-    Esegue ScanCode, mostra il progresso in tempo reale nel terminale
-    e ritorna il JSON parsato.
+    Esegue ScanCode con filtri avanzati, mostra il progresso in tempo reale
+    e ritorna il JSON parsato e pulito.
     """
 
+    # 1. Definizione degli ignore pattern
+    ignore_path = os.path.join(os.path.dirname(__file__), 'license_rules.json')
+    with open(ignore_path, 'r', encoding='utf-8') as f:
+        rules = json.load(f)
+    ignore_patterns = rules.get("ignored_patterns", [])
+
+    # Assicuriamoci che la directory di output esista
     os.makedirs(OUTPUT_BASE_DIR, exist_ok=True)
 
     repo_name = os.path.basename(os.path.normpath(repo_path))
     output_file = os.path.join(OUTPUT_BASE_DIR, f"{repo_name}_scancode_output.json")
 
+    # 2. Costruzione del comando base
     cmd = [
         SCANCODE_BIN,
+        # Opzioni Licenza
         "--license",
         "--license-text",
         "--filter-clues",
+        "--license-clarity-score",
+
+        # Opzioni Statistiche e Classificazione
+        "--tallies",
+        "--tallies-key-files",
+        "--classify",
+    ]
+
+    # 3. Aggiunta dinamica degli ignore pattern
+    for pattern in ignore_patterns:
+        cmd.extend(["--ignore", pattern])
+
+    # 4. Aggiunta output e target
+    cmd.extend([
         "--json-pp", output_file,
         repo_path,
-    ]
+    ])
+
+    print(f"🚀 Avvio ScanCode su: {repo_name}")
+    print(f"📂 Output su: {output_file}")
 
     # ⬇ Stampa in tempo reale (NO capture_output)
     process = subprocess.Popen(cmd)
@@ -48,11 +76,14 @@ def run_scancode(repo_path: str) -> dict:
         scancode_data = json.load(f)
 
     # ⬇ Rimuovi la chiave "license_detections" dal JSON di primo livello
+    # (Nota: license_detections a volte è pesante e ridondante se usi i dettagli dei file)
     scancode_data.pop("license_detections", None)
 
     # 2. Sovrascrivi il file JSON con i dati modificati
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(scancode_data, f, indent=4, ensure_ascii=False)
+
+    print("✅ ScanCode completato e JSON processato.")
 
     # 3. Ritorna i dati modificati
     return scancode_data
@@ -80,7 +111,13 @@ def filter_with_llm(scancode_data: dict, main_spdx: str, path: str) -> dict:
     #print(json.dumps(minimal, indent=4))
     scan_clean = remove_main_license(main_spdx, path, minimal)
 
-    return ask_llm_to_filter_licenses(scan_clean)
+    if main_spdx != "UNKNOWN":
+        regex_filtered = filter_license_data(scan_clean, detected_main_spdx=True)
+    else:
+        regex_filtered = filter_license_data(scan_clean, detected_main_spdx=False)
+
+    post_regex_cleaning = remove_mainspdx_from_filespdx(regex_filtered, main_spdx)
+    return post_regex_cleaning
 
 def build_minimal_json(scancode_data: dict) -> dict:
     """
@@ -93,6 +130,8 @@ def build_minimal_json(scancode_data: dict) -> dict:
     # Iteriamo sui file (che sono già stati filtrati da _remove_main_license_from_scancode)
     for file_entry in scancode_data.get("files", []):
         path = file_entry.get("path")
+        legal = file_entry.get("is_legal")
+        key_file = file_entry.get("is_key_file")
         if not path:
             continue
 
@@ -116,9 +155,19 @@ def build_minimal_json(scancode_data: dict) -> dict:
         if file_matches:
             minimal["files"].append({
                 "path": path,
+                "is_legal": legal,
+                "is_key_file": key_file,
                 "matches": file_matches,
                 "score": score
             })
+
+
+    # Assicura che la cartella esista e scrive il JSON minimale invece di leggerlo
+    os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)
+    output_minimal = os.path.join(MINIMAL_JSON_BASE_DIR, "minimal_output.json")
+
+    with open(output_minimal, "w", encoding="utf-8") as f:
+        json.dump(minimal, f, indent=4, ensure_ascii=False)
 
     return minimal
 
@@ -215,6 +264,192 @@ Ecco il JSON da analizzare:
         return json.loads(llm_response)
     except json.JSONDecodeError:
         raise RuntimeError("Il modello ha restituito una risposta non valida")
+
+def filter_license_data(data: dict, detected_main_spdx: bool) -> dict:
+    """
+    Filtra i risultati di Scancode usando regole caricate da un file JSON esterno.
+    """
+
+    # --- 1. CARICAMENTO E COMPILAZIONE REGOLE ---
+
+    rules_path = os.path.join(os.path.dirname(__file__), 'license_rules.json')
+
+    if not os.path.exists(rules_path):
+        raise FileNotFoundError(f"Impossibile trovare il file di regole: {rules_path}")
+
+    with open(rules_path, 'r', encoding='utf-8') as f:
+        rules = json.load(f)
+
+    # Compiliamo le liste di esclusione in un'unica regex ottimizzata con OR logic (|)
+    # Questo è molto più veloce di fare un loop su ogni stringa.
+    re_references = re.compile("|".join(rules.get("ignore_patterns", [])), re.IGNORECASE)
+    re_docs_changelog = re.compile("|".join(rules.get("changelog_patterns", [])), re.IGNORECASE)
+
+    # Compiliamo la regex per il tag SPDX
+    re_spdx_tag = re.compile(rules.get("spdx_tag_pattern", ""), re.IGNORECASE)
+
+    # Compiliamo i pattern per riconoscere TESTO LEGALE EFFETTIVO delle licenze
+    valid_license_patterns = []
+    for pattern in rules.get("valid_license_text_patterns", []):
+        try:
+            valid_license_patterns.append(re.compile(pattern, re.IGNORECASE))
+        except re.error:
+            pass  # Skip pattern non validi
+
+    # Compiliamo i pattern per riconoscere LINK VALIDI a licenze (RST, Markdown, URL)
+    valid_link_patterns = []
+    for pattern in rules.get("valid_license_link_patterns", []):
+        try:
+            valid_link_patterns.append(re.compile(pattern, re.IGNORECASE))
+        except re.error:
+            pass  # Skip pattern non validi
+
+    # Lunghezza minima del testo
+    min_text_length = rules.get("min_matched_text_length", 20)
+
+    filtered_files = {"files": []}
+
+    # --- 2. ELABORAZIONE ---
+
+    files = data.get('files', [])
+
+    for file_obj in files:
+        file_path = file_obj.get('path')
+        matches = file_obj.get('matches', [])
+        file_score = file_obj.get('score', 0)
+        legal = file_obj.get('is_legal')
+        key_file = file_obj.get('is_key_file')
+
+        if legal is True:
+            filtered_files["files"].append({
+                "path": file_path,
+                "matches": file_obj.get('matches', []),
+                "score": file_score
+            })
+            continue
+        elif legal is False and detected_main_spdx is True and key_file is True:
+            continue
+
+        valid_matches = []
+
+        for match in matches:
+            matched_text = match.get('matched_text', '').strip()
+            spdx = match.get('license_spdx', '')
+
+            # --- FASE A: FILTRO PRELIMINARE SUL TESTO ---
+
+            # 0. Check se è un LINK VALIDO a una licenza (RST, Markdown, URL diretto)
+            # Questi link sono utili e NON devono essere scartati
+            is_valid_license_link = False
+            for pattern_re in valid_link_patterns:
+                if pattern_re.search(matched_text):
+                    is_valid_license_link = True
+                    break
+
+            # 1. Lunghezza minima (salvo se contiene SPDX tag esplicito o è un link valido)
+            if len(matched_text) < min_text_length and "SPDX-License-Identifier" not in matched_text and not is_valid_license_link:
+                continue
+
+            # 2. Scarta Riferimenti/Link generici ("see LICENSE", "http://...")
+            # MA NON scartare se è un link valido a licenza riconosciuto
+            # Applichiamo questo filtro solo se il testo è breve (< 300 char).
+            if len(matched_text) < 300 and not is_valid_license_link:
+                if re_references.search(matched_text):
+                    continue
+
+            # 3. Scarta Linguaggio da Changelog/Docs (deprecate, switch to...)
+            # MA NON scartare se è un link valido a licenza
+            if not is_valid_license_link:
+                if re_docs_changelog.search(matched_text):
+                    continue
+
+            # --- FASE B: VALIDAZIONE E CORREZIONE SPDX ---
+
+            final_spdx = None
+            is_valid_spdx = True
+
+            # Verifica validità base dello scancode trovato
+            if not spdx or "unknown" in spdx.lower() or "scancode" in spdx.lower():
+                is_valid_spdx = False
+
+            # --- FASE C: VERIFICA CHE IL TESTO SIA LEGALE EFFETTIVO ---
+
+            # Check se il testo contiene frasi legali tipiche di licenze
+            has_valid_legal_text = False
+
+            # I link validi a licenze sono considerati testo legale valido
+            if is_valid_license_link:
+                has_valid_legal_text = True
+
+            # Check pattern di testo legale
+            if not has_valid_legal_text:
+                for pattern_re in valid_license_patterns:
+                    if pattern_re.search(matched_text):
+                        has_valid_legal_text = True
+                        break
+
+            # Check per tag SPDX esplicito nel testo
+            spdx_tag_match = re_spdx_tag.search(matched_text)
+            if spdx_tag_match:
+                has_valid_legal_text = True
+                # Se troviamo un tag SPDX esplicito, usiamo quello come SPDX finale
+                if not is_valid_spdx:
+                    final_spdx = spdx_tag_match.group(1)
+
+            # Se non è testo legale valido e non c'è tag SPDX, scarta
+            if not has_valid_legal_text and not is_valid_spdx:
+                continue
+
+            # Determina SPDX finale
+            if is_valid_spdx:
+                final_spdx = spdx
+            elif not final_spdx and has_valid_legal_text:
+                # Testo legale valido ma nessun SPDX trovato - lo teniamo con SPDX originale o unknown
+                final_spdx = spdx if spdx else "LicenseRef-scancode-unknown"
+
+            # Se abbiamo trovato un SPDX valido (originale o recuperato) lo aggiungiamo
+            if final_spdx:
+                valid_matches.append({
+                    "license_spdx": final_spdx,
+                    "matched_text": matched_text
+                })
+
+        # Salvataggio se ci sono match validi e score sufficiente
+        if valid_matches:
+            filtered_files["files"].append({
+                "path": file_path,
+                "matches": valid_matches,
+                "score": file_score
+            })
+
+    # --- 3. OUTPUT FILE ---
+    # Definisci MINIMAL_JSON_BASE_DIR nel tuo codice globale o passalo come argomento se serve
+    # Qui assumo esista nel contesto o uso una default locale
+    base_dir = globals().get('MINIMAL_JSON_BASE_DIR', './output')
+    os.makedirs(base_dir, exist_ok=True)
+    output_minimal = os.path.join(base_dir, "filtered_output.json")
+
+    with open(output_minimal, "w", encoding="utf-8") as f:
+        json.dump(filtered_files, f, indent=4, ensure_ascii=False)
+
+    return filtered_files
+
+def remove_mainspdx_from_filespdx(data: dict, main_spdx: str) -> dict:
+    # Nota il [:] alla fine: stiamo iterando su una COPIA della lista
+    for file_entry in data.get("files", [])[:]:
+
+        matches = file_entry.get("matches", [])
+        should_remove = True
+
+        for m in matches:
+            if m.get("license_spdx") != main_spdx:
+                should_remove = False
+                break  # Trovato un motivo per rimuovere, smettiamo di cercare nei match
+
+        if should_remove:
+            data["files"].remove(file_entry) # Rimuoviamo il file una volta sola
+
+    return data
 
 #  ------------ FUNZIONI PER RILEVARE LA LICENZA PRINCIPALE DAL JSON SCANCODE -----------------
 
