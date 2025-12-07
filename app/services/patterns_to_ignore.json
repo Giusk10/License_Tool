@@ -37,7 +37,6 @@
     "*.ttf", "*.woff", "*.woff2", "*.eot",
     "*.mp3", "*.wav", "*.mp4", "*.mov", "*.m4a", "*.avi",
 
-    "*.zip", "*.tar", "*.tar.gz", "*.tgz", "*.gz", "*.7z", "*.rar", "*.bz2",
     "*.iso", "*.img", "*.vmdk", "*.ova", "*.dmg",
 
     "*.pdf", "*.doc", "*.docx", "*.xls", "*.xlsx", "*.ppt", "*.pptx", "*.odt",
