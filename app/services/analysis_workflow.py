@@ -8,7 +8,7 @@ from app.services.scancode_service import (
     run_scancode,
     detect_main_license_scancode,
     extract_file_licenses_from_llm,
-    filter_with_llm,
+    filter_with_regex,
 )
 from app.services.compatibility import check_compatibility
 from app.services.suggestion import enrich_with_llm_suggestions
@@ -109,7 +109,7 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     main_license, path_license = detect_main_license_scancode(scan_raw)
 
     # 4) Filtro LLM
-    llm_clean = filter_with_llm(scan_raw, main_license, path_license)
+    llm_clean = filter_with_regex(scan_raw, main_license, path_license)
     file_licenses = extract_file_licenses_from_llm(llm_clean)
 
 
@@ -119,8 +119,7 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
 
     # 6) Suggerimenti AI (senza rigenerazione per ora)
     # Passiamo una mappa vuota perché non abbiamo ancora rigenerato nulla
-    # TODO: pass empty regenerated map for now (nessuna AI presente)
-    enriched_issues = enrich_with_llm_suggestions(compatibility["issues"], {})
+    enriched_issues = enrich_with_llm_suggestions(main_license, compatibility["issues"], {})
 
     # 7) Mapping Pydantic
     license_issue_models = [
@@ -130,6 +129,7 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
             compatible=i["compatible"],
             reason=i.get("reason"),
             suggestion=i.get("suggestion"),
+            licenses=i.get("licenses"),
             regenerated_code_path=i.get("regenerated_code_path"),
         )
         for i in enriched_issues
@@ -197,7 +197,8 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
                     new_code = regenerate_code(
                         code_content=original_content,
                         main_license=main_license,
-                        detected_license=issue.detected_license
+                        detected_license=issue.detected_license,
+                        licenses= issue.licenses
                     )
 
                     if new_code and len(new_code.strip()) > 10:
@@ -219,7 +220,7 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
 
             main_license, path = detect_main_license_scancode(scan_raw) # Main license non dovrebbe cambiare
 
-            llm_clean = filter_with_llm(scan_raw, main_license, path)
+            llm_clean = filter_with_regex(scan_raw, main_license, path)
 
             file_licenses = extract_file_licenses_from_llm(llm_clean)
 
@@ -242,7 +243,7 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
 
     # 6) Suggerimenti AI (con mappa rigenerati)
     # enrich_with_llm_suggestions si aspetta una lista di DICT
-    enriched_issues = enrich_with_llm_suggestions(current_issues_dicts, regenerated_files_map)
+    enriched_issues = enrich_with_llm_suggestions(main_license, current_issues_dicts, regenerated_files_map)
 
     # 7) Mapping Pydantic
     license_issue_models = [
