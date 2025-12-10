@@ -120,11 +120,9 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
         for L in left_leaves:
             for R in right_leaves:
                 st_lr = _lookup_status(L, R)
-                cross_checks.append(f"Cross compatibility check: {L} with {R} → {st_lr}")
-                st_rl = _lookup_status(R, L)
-                cross_checks.append(f"Cross compatibility check: {R} with {L} → {st_rl}")
+                cross_checks.append(f"Compatibilità incrociata: {L} rispetto a {R} → {st_lr}")
 
-        trace = ltrace + rtrace + [f"AND ⇒ {combined}"] + cross_checks
+        trace = ltrace + rtrace + cross_checks
         return combined, trace
 
     if isinstance(node, Or):

@@ -10,6 +10,7 @@ def regenerate_code(
     code_content: str,
     main_license: str,
     detected_license: str,
+    licenses: str
 ) -> Optional[str]:
     """
     Requests the LLM to regenerate a code block under a compatible license.
@@ -32,9 +33,9 @@ def regenerate_code(
     prompt = (
         f"Sei un esperto di licenze software e refactoring. "
         f"Il seguente codice è attualmente sotto licenza '{detected_license}', che è incompatibile con la licenza principale del progetto '{main_license}'.\n"
-        f"Il tuo compito è riscrivere/rigenerare questo codice in modo che sia funzionalmente equivalente ma rilasciabile sotto una licenza compatibile con '{main_license}' (preferibilmente MIT o Apache-2.0, o la stessa '{main_license}').\n"
-        f"Se il codice originale ha vincoli forti (es. copyleft forte), riscrivilo da zero usando algoritmi standard o logica pulita per evitare violazioni.\n"
-        f"Dichiara esplicitamente la nuova licenza scelta nei commenti se necessario.\n\n"
+        f"Il tuo compito è ricercare un componente in modo che sia funzionalmente equivalente ma rilasciabile sotto una licenza compatibile con '{main_license} tra queste: {licenses}'.\n"
+        f"Se il componente non esiste, rigeneralo da zero mantenendo la stessa funzionalità ma con una licenza compatibile tra queste: {licenses}.\n"
+        f"Assicurati che il codice rigenerato non contenga parti copiate dal codice originale per evitare problemi di licenza.\n\n"
         f"Ecco il codice originale:\n"
         f"```\n{code_content}\n```\n\n"
         f"Restituisci SOLO il codice rigenerato, senza markdown (```) e senza spiegazioni verbali extra. Il codice deve essere pronto per essere salvato su file."

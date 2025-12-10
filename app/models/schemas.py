@@ -13,6 +13,7 @@ class LicenseIssue(BaseModel):
     compatible: bool
     reason: Optional[str] = None
     suggestion: Optional[str] = None
+    licenses: Optional[str] = None
     regenerated_code_path: Optional[str] = None
 
 # ----- RESPONSE -----

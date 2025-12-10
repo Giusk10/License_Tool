@@ -128,7 +128,7 @@ def remove_main_license(main_spdx, path, scancode_data) -> dict:
 
     return scancode_data
 
-def filter_with_llm(scancode_data: dict, main_spdx: str, path: str) -> dict:
+def filter_with_regex(scancode_data: dict, main_spdx: str, path: str) -> dict:
     """
     Filters ScanCode results using an LLM to remove false positives.
 
