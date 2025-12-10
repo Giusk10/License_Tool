@@ -130,9 +130,7 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     # 3) Identifies the main project license
     main_license, path_license = detect_main_license_scancode(scan_raw)
 
-    # 4) Filters false positives using an LLM
-    llm_clean = filter_with_llm(scan_raw, main_license, path_license)
-    # 4) Filtro LLM
+    # 4) Filters false positives using regex
     llm_clean = filter_with_regex(scan_raw, main_license, path_license)
     file_licenses = extract_file_licenses_from_llm(llm_clean)
 
@@ -201,6 +199,8 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
     for issue in previous_analysis.issues:
         if not issue.compatible:
             fpath = issue.file_path
+            files_to_regenerate.append(issue)
+            # Esempio filtro estensioni
             files_to_regenerate.append(issue)
 
     # Processes each incompatible file for regeneration
