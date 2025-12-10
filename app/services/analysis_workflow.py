@@ -170,9 +170,7 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
         # issue è un oggetto LicenseIssue
         if not issue.compatible:
             fpath = issue.file_path
-            # Esempio filtro estensioni
-            if not fpath.lower().endswith(('.txt', '.md', 'license', 'copying', '.rst')):
-                files_to_regenerate.append(issue)
+            files_to_regenerate.append(issue)
 
     if files_to_regenerate:
         print(f"Trovati {len(files_to_regenerate)} file incompatibili da rigenerare...")
