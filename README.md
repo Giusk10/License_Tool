@@ -15,7 +15,7 @@ Questo strumento utilizza il **ScanCode Toolkit** per l'analisi delle licenze. S
 * **Software ScanCode:** Apache License 2.0.
 * **Dati ScanCode (e.g., set per il rilevamento delle licenze):** CC-BY-4.0 (Creative Commons Attribuzione 4.0 Internazionale).
 
-**Obbligo di Avviso:** Come richiesto dalla Licenza Apache 2.0, tutti gli avvisi di copyright e le licenze dei componenti di terze parti di ScanCode sono documentati tramite i file `.ABOUT` e sono inclusi e distribuiti nel file **[THIRD_PART_NOTICE](THIRD_PART_NOTICE)**, il quale riproduce il contenuto del file `NOTICE` di ScanCode.
+**Obbligo di Avviso:** Come richiesto dalla Licenza Apache 2.0, tutti gli avvisi di copyright e le licenze dei componenti di terze parti di ScanCode sono documentati tramite i file `.ABOUT` e sono inclusi e distribuiti nel file **[THIRD_PART_NOTICE](THRID_PART_NOTICE)**, il quale riproduce il contenuto del file `NOTICE` di ScanCode.
 
 **Attribuzione Dati ScanCode (CC-BY-4.0):**
 L'uso dei set di dati di ScanCode richiede la seguente attribuzione preferita:

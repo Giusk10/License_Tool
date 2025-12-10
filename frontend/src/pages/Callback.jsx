@@ -373,7 +373,26 @@ const Callback = () => {
                                                         {issue.compatible ? 'Compatible' : 'Incompatible'}
                                                     </div>
                                                 </div>
-                                                {issue.reason && <p style={{ fontSize: '0.95rem', opacity: 0.8, marginBottom: '1rem' }}>{issue.reason}</p>}
+                                                {issue.reason && (
+                                                    <ul style={{
+                                                        fontSize: '0.95rem',
+                                                        opacity: 0.8,
+                                                        marginBottom: '1rem',
+                                                        paddingLeft: '1.5rem' // Aggiunto per l'indentazione dei punti
+                                                    }}>
+                                                        {issue.reason.split(';').map((item, index) => {
+                                                            // Rimuoviamo spazi bianchi extra e saltiamo stringhe vuote
+                                                            const text = item.trim();
+                                                            if (!text) return null;
+
+                                                            return (
+                                                                <li key={index} style={{ marginBottom: '0.25rem' }}>
+                                                                    {text}
+                                                                </li>
+                                                            );
+                                                        })}
+                                                    </ul>
+                                                )}
                                                 {issue.suggestion && (
                                                     <div style={{ background: 'rgba(100, 108, 255, 0.05)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid rgba(100, 108, 255, 0.2)' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#646cff' }}>
@@ -382,9 +401,7 @@ const Callback = () => {
                                                         </div>
 
                                                         <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: '#e0e0e0' }}>
-                                                            {/* Separiamo la stringa in base ai ritorni a capo (\n) generati dal backend.
-               Filtriamo le linee vuote per sicurezza.
-            */}
+                                                            {/* Separiamo la stringa in base ai ritorni a capo (\n) generati dal backend.*/}
                                                             {issue.suggestion.split('\n').filter(line => line.trim() !== '').map((line, index) => (
                                                                 <li key={index} style={{ marginBottom: '0.5rem' }}>
                                                                     {/* Rimuoviamo "1. " o "2. " all'inizio se vogliamo usare i bullet points standard */}
