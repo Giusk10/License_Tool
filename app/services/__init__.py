@@ -12,7 +12,7 @@ from .report_service import generate_report
 from .scancode_service import (
     run_scancode,
     detect_main_license_scancode,
-    filter_with_llm,
+    filter_with_regex,
     extract_file_licenses_from_llm,
 )
 
@@ -26,6 +26,6 @@ __all__ = [
     "generate_report",
     "run_scancode",
     "detect_main_license_scancode",
-    "filter_with_llm",
+    "filter_with_regex",
     "extract_file_licenses_from_llm",
 ]
