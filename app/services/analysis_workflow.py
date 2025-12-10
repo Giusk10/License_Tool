@@ -11,7 +11,7 @@ from app.services.scancode_service import (
     filter_with_llm,
 )
 from app.services.compatibility import check_compatibility
-from app.services.llm_helper import enrich_with_llm_suggestions
+from app.services.suggestion import enrich_with_llm_suggestions
 from app.services.report_service import generate_report
 from app.core.config import CLONE_BASE_DIR
 import os

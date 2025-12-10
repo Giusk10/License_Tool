@@ -95,7 +95,7 @@ def _call_ollama(prompt: str) -> str:
     return data.get("response", "")
 
 # Chiamata sincrona semplice all'API Ollama per uso "general/GPT-like".
-def _call_ollama_gpt(prompt: json) -> str:
+def _call_ollama_gpt(prompt: json ) -> str:
     """
     Effettua una chiamata POST a `OLLAMA_URL` usando il modello generale.
     Maggior timeout per risposte più lunghe.
@@ -121,32 +121,28 @@ def _call_ollama_gpt(prompt: json) -> str:
     data_clean = response.replace("```json", "").replace("```", "")
     return data_clean
 
-# Arricchisce la lista di issue con suggerimenti generici e codice rigenerato (se fornito).
-def enrich_with_llm_suggestions(issues: List[Dict], regenerated_map: Dict[str, str] = None) -> List[Dict]:
+def _call_ollama_deepseek(prompt: str) -> str:
     """
-    Per ogni issue ritorna un dizionario con campi:
-      - file_path, detected_license, compatible, reason
-      - suggestion: testo suggerito
-      - regenerated_code_path: codice rigenerato se presente in `regenerated_map`
-    `regenerated_map` è opzionale.
+    Effettua una chiamata POST a `OLLAMA_URL` usando il modello generale.
+    Maggior timeout per risposte più lunghe.
     """
-    if regenerated_map is None:
-        regenerated_map = {}
+    ensure_ollama_ready(model_name=OLLAMA_GENERAL_MODEL)
+    payload = {
+        "model": OLLAMA_GENERAL_MODEL,
+        "prompt": prompt,
+        "stream": False,
+    }
+    resp = requests.post(OLLAMA_URL, json=payload, timeout=240)
+    resp.raise_for_status()
+    data = resp.json()
 
-    enriched = []
+    # Assicura che la cartella esista e scrive il JSON minimale invece di leggerlo
+    os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)
+    output_minimal = os.path.join(MINIMAL_JSON_BASE_DIR, "model_output.json")
 
-    for issue in issues:
-        enriched.append({
-            "file_path": issue["file_path"],
-            "detected_license": issue["detected_license"],
-            "compatible": issue["compatible"],
-            "reason": issue["reason"],
-            "suggestion": (
-                f"Verifica la licenza {issue['detected_license']} nel file "
-                f"{issue['file_path']} e assicurati che sia coerente con la policy del progetto."
-            ),
-            # Se il file è stato rigenerato, inseriamo il codice qui
-            "regenerated_code_path": regenerated_map.get(issue["file_path"]),
-        })
+    with open(output_minimal, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
-    return enriched
+    response = data.get("response", "")
+    data_clean = response.replace("```json", "").replace("```", "")
+    return data_clean

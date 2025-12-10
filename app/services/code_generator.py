@@ -5,7 +5,6 @@ def regenerate_code(
     code_content: str,
     main_license: str,
     detected_license: str,
-    language: str = "python"
 ) -> Optional[str]:
     """
     Chiede a Ollama di rigenerare un blocco di codice con licenza compatibile.

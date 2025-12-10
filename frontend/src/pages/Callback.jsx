@@ -375,11 +375,23 @@ const Callback = () => {
                                                 </div>
                                                 {issue.reason && <p style={{ fontSize: '0.95rem', opacity: 0.8, marginBottom: '1rem' }}>{issue.reason}</p>}
                                                 {issue.suggestion && (
-                                                    <div style={{ background: 'rgba(100, 108, 255, 0.1)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#646cff' }}>
-                                                            <Lightbulb size={16} /><span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>AI Suggestion</span>
+                                                    <div style={{ background: 'rgba(100, 108, 255, 0.05)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid rgba(100, 108, 255, 0.2)' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#646cff' }}>
+                                                            <Lightbulb size={18} />
+                                                            <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Suggerimenti di Risoluzione</span>
                                                         </div>
-                                                        <p style={{ margin: 0, fontSize: '0.9rem' }}>{issue.suggestion}</p>
+
+                                                        <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: '#e0e0e0' }}>
+                                                            {/* Separiamo la stringa in base ai ritorni a capo (\n) generati dal backend.
+               Filtriamo le linee vuote per sicurezza.
+            */}
+                                                            {issue.suggestion.split('\n').filter(line => line.trim() !== '').map((line, index) => (
+                                                                <li key={index} style={{ marginBottom: '0.5rem' }}>
+                                                                    {/* Rimuoviamo "1. " o "2. " all'inizio se vogliamo usare i bullet points standard */}
+                                                                    {line.replace(/^\d+\.\s/, '')}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
                                                     </div>
                                                 )}
                                                 {issue.regenerated_code_path && (

@@ -7,7 +7,7 @@ from .analysis_workflow import (
 )
 from .code_generator import regenerate_code
 from .github_client import clone_repo
-from .llm_helper import enrich_with_llm_suggestions
+from .suggestion import enrich_with_llm_suggestions
 from .report_service import generate_report
 from .scancode_service import (
     run_scancode,
