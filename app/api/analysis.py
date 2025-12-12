@@ -53,23 +53,28 @@ async def auth_callback(code: str, state: str):
     GITHUB_CLIENT_ID = github_auth_credentials("CLIENT_ID")
     GITHUB_CLIENT_SECRET = github_auth_credentials("CLIENT_SECRET")
 
-    async with httpx.AsyncClient() as client:
-        # 2. Otteniamo il Token dell'utente che sta facendo la richiesta
-        token_resp = await client.post(
+    try:
+        async with httpx.AsyncClient() as client:
+            # 2. Otteniamo il Token dell'utente che sta facendo la richiesta
+            token_resp = await client.post(
             "https://github.com/login/oauth/access_token",
             json={
                 "client_id": GITHUB_CLIENT_ID,
                 "client_secret": GITHUB_CLIENT_SECRET,
                 "code": code
             },
-            headers={"Accept": "application/json"}
-        )
-        token_data = token_resp.json()
-        access_token = token_data.get("access_token")
+                headers={"Accept": "application/json"}
+            )
+            token_data = token_resp.json()
+            access_token = token_data.get("access_token")
 
         if not access_token:
             print(f"DEBUG: Token exchange failed. Response: {token_data}")
-            raise HTTPException(status_code=400, detail=f"Login fallito: impossibile ottenere token. GitHub dice: {token_data.get('error_description', token_data)}")
+            raise HTTPException(status_code=400, detail=f"Failed login: couldn't get token. From GitHub: {token_data.get('error_description', token_data)}")
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=503, detail=f"An error occurred while trying to reach GitHub: {str(exc)}")
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail=f"Unexpected GitHub error: {str(exc)}")
 
     # 3. ESEGUE SOLO LA CLONAZIONE
     try:
