@@ -92,6 +92,13 @@ def _call_ollama(prompt: str) -> str:
     resp = requests.post(OLLAMA_URL, json=payload, timeout=120)
     resp.raise_for_status()
     data = resp.json()
+
+    os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)
+    output_minimal = os.path.join(MINIMAL_JSON_BASE_DIR, "model_coding_output.json")
+
+    with open(output_minimal, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
     return data.get("response", "")
 
 # Chiamata sincrona semplice all'API Ollama per uso "general/GPT-like".
