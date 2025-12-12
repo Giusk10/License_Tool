@@ -123,11 +123,11 @@ def enrich_with_llm_suggestions(main_spdx : str, issues: List[Dict], regenerated
                     "detected_license": issue["detected_license"],
                     "compatible": issue["compatible"],
                     "reason": issue["reason"],
-                    "suggestion": f"1. Valuta la possibilità di cambiare la licenza principale del progetto per adottare "
+                    "suggestion": f"1) Valuta la possibilità di cambiare la licenza principale del progetto per adottare "
                                   f"la licenza '{detected_license}' (o una compatibile), così da risolvere il conflitto.\n"
-                                  f"2. Cerca un componente alternativo o una libreria diversa che implementi la logica di "
+                                  f"2) Cerca un componente alternativo o una libreria diversa che implementi la logica di "
                                   f"'{file_path}' ma che sia rilasciata con una licenza compatibile rispetto a quella attuale del progetto."
-                                  f"\n3. Ecco alcune licenze alternative compatibili che potresti considerare: {licenses}",
+                                  f"\n3) Ecco alcune licenze alternative compatibili che potresti considerare: {licenses}",
                     # Se il file è stato rigenerato, inseriamo il codice qui
                     "licenses": licenses,
                     "regenerated_code_path": regenerated_map.get(issue["file_path"]),

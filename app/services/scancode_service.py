@@ -109,7 +109,10 @@ def remove_main_license(main_spdx, path, scancode_data) -> dict:
     for file_entry in scancode_data.get("files", []):
         for det in file_entry.get("matches", []):
             if file_entry.get("path") == path and det.get("license_spdx") == main_spdx:
-                scancode_data["files"].remove(file_entry)
+                try:
+                    scancode_data["files"].remove(file_entry)
+                except ValueError:
+                    pass
 
     return scancode_data
 
