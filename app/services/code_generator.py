@@ -1,5 +1,5 @@
 from typing import Optional
-from app.services.llm_helper import _call_ollama  # se vuoi rendere pubblico, spostalo
+from app.services.llm_helper import _call_ollama, _call_ollama_deepseek  # se vuoi rendere pubblico, spostalo
 
 def regenerate_code(
     code_content: str,
@@ -34,6 +34,42 @@ def regenerate_code(
             if clean_response.endswith("```"):
                 clean_response = clean_response.rsplit("\n", 1)[0]
         
+        return clean_response.strip()
+    except Exception:
+        return None
+
+def review_document(
+        document_content: str,
+        main_license: str,
+        detected_license: str,
+        licenses: str
+) -> Optional[str]:
+    """
+    Chiede a Ollama di rivedere un documento di codice per problemi di licenza.
+    """
+    prompt = (
+        f"Sei un esperto di licenze software. "
+        f"Il seguente documento è attualmente sotto licenza '{detected_license}', che è incompatibile con la licenza principale del progetto '{main_license}'.\n"
+        f"Il tuo compito è rivedere il testo e suggerire modifiche o alternative in modo che sia rilasciabile sotto una licenza compatibile con '{main_license}' tra queste: {licenses}.\n"
+        f"Ecco il testo originale:\n"
+        f"```\n{document_content}\n```\n\n"
+        f"Rispondi esattamente con il seguente formato: '<tuo suggerimento qui>'."
+        f"Restituisci SOLO il suggerimento, senza markdown (```) e senza spiegazioni verbali extra."
+    )
+    try:
+        response = _call_ollama_deepseek(prompt)
+        if not response:
+            return None
+
+        # Pulizia Markdown se presente
+        clean_response = response.strip()
+        if clean_response.startswith("```"):
+            # Rimuove la prima riga (```python o simile)
+            clean_response = clean_response.split("\n", 1)[1]
+            # Rimuove l'ultima riga (```)
+            if clean_response.endswith("```"):
+                clean_response = clean_response.rsplit("\n", 1)[0]
+
         return clean_response.strip()
     except Exception:
         return None

@@ -401,13 +401,26 @@ const Callback = () => {
                                                         </div>
 
                                                         <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: '#e0e0e0' }}>
-                                                            {/* Separiamo la stringa in base ai ritorni a capo (\n) generati dal backend.*/}
-                                                            {issue.suggestion.split('\n').filter(line => line.trim() !== '').map((line, index) => (
-                                                                <li key={index} style={{ marginBottom: '0.5rem' }}>
-                                                                    {/* Rimuoviamo "1. " o "2. " all'inizio se vogliamo usare i bullet points standard */}
-                                                                    {line.replace(/^\d+\.\s/, '')}
-                                                                </li>
-                                                            ))}
+                                                            {issue.suggestion
+                                                                // 1. DIVIDI PER NUMERI
+                                                                // Questa regex cerca un numero seguito da punto e spazio (es. "3. ")
+                                                                // e spezza la stringa PRIMA di esso.
+                                                                // Così tutto il contenuto del punto 3 (testo + codice) rimane un unico blocco.
+                                                                .split(/(?=\d+\.\s)/)
+
+                                                                // 2. RIMUOVI RIGHE VUOTE
+                                                                .filter(line => line.trim() !== '')
+
+                                                                .map((line, index) => (
+                                                                    <li key={index} style={{ marginBottom: '0.8rem' }}>
+
+                                                                        {/* 3. FORMATTAZIONE CORRETTA */}
+                                                                        <div style={{ whiteSpace: 'pre-wrap' }}>
+                                                                            {/* Qui rimuovi il "3. " (o "1. ", "2. ") dall'inizio della stringa visualizzata usando .replace(/^\d+\.\s/, '') */}
+                                                                            {line.replace(/^\d+\.\s/, '').trim()}
+                                                                        </div>
+                                                                    </li>
+                                                                ))}
                                                         </ul>
                                                     </div>
                                                 )}
