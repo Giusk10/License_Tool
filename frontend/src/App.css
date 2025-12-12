@@ -40,3 +40,55 @@
 .read-the-docs {
   color: #888;
 }
+
+/* 3-State Toggle Switch */
+.toggle-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tgl-def {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 40px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 0 2px;
+  margin: 0;
+  cursor: pointer;
+  transition: background-color 0.25s ease-in-out;
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tgl-def::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #646cff; /* Default color (Middle/All) */
+  cursor: pointer;
+  transition: background-color 0.25s ease-in-out;
+}
+
+/* Custom colors based on value */
+/* Note: We will handle the color changes dynamically in React or use data-attributes if possible,
+   but specific classes for values might be harder with just a range input directly.
+   Actually, the CodePen used JS to filter, but we want visual feedback.
+   We can use a class on the input based on React state.
+*/
+
+.tgl-def.state-1::-webkit-slider-thumb {
+  background-color: #f44336; /* Incompatible - Red */
+}
+
+.tgl-def.state-2::-webkit-slider-thumb {
+  background-color: #646cff; /* All - Blue/Primary */
+}
+
+.tgl-def.state-3::-webkit-slider-thumb {
+  background-color: #4caf50; /* Compatible - Green */
+}
