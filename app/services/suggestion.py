@@ -1,4 +1,5 @@
 import os
+import re
 from typing import List, Dict
 
 from app.services.llm_helper import _call_ollama_deepseek
@@ -21,43 +22,66 @@ def ask_llm_for_suggestions(issue: dict , main_spdx: str) -> str:
 
     return suggestion
 
-def review_document(issue: dict , main_spdx: str, licenses: str ) -> str:
-
+def review_document(issue: dict, main_spdx: str, licenses: str) -> str:
     file_path = issue["file_path"]
+    # Assicurati che CLONE_BASE_DIR sia definito globalmente o passato come argomento
     abs_path = os.path.join(CLONE_BASE_DIR, file_path)
-    with open(abs_path, "r", encoding="utf-8") as f:
-        document_content = f.read()
+
+    try:
+        with open(abs_path, "r", encoding="utf-8") as f:
+            document_content = f.read()
+    except Exception as e:
+        print(f"Errore lettura file {file_path}: {e}")
+        return None
 
     print(f"Reviewing document: {file_path}")
 
-    """
-    Chiede a Ollama di rivedere un documento di codice per problemi di licenza.
-    """
     prompt = (
-        f"Sei un esperto di licenze software. "
-        f"Il seguente documento è attualmente sotto licenza '{issue['detected_license']}', che è incompatibile con la licenza principale del progetto '{main_spdx}'.\n"
-        f"Il tuo compito è rivedere il testo e suggerire modifiche o alternative in modo che sia rilasciabile sotto una licenza compatibile con '{main_spdx}' tra queste: {licenses}.\n"
-        f"Ecco il testo originale:\n"
-        f"```\n{document_content}\n```\n\n"
-        f"Rispondi esattamente con il seguente formato: '<tuo suggerimento qui>'."
-        f"Restituisci SOLO il suggerimento, senza markdown (```) e senza spiegazioni verbali extra."
+        "### RUOLO\n"
+        "Agisci come un Senior Open Source Compliance Officer.\n\n"
+
+        "### DATI\n"
+        f"1. Licenza Rilevata (Incompatibile): '{issue['detected_license']}'\n"
+        f"2. Licenza del Progetto (Target): '{main_spdx}'\n"
+        f"3. Licenze alternative accettate: {licenses}\n"
+        f"4. Contenuto/Snippet sotto esame:\n'''\n{document_content}\n'''\n\n"
+
+        "### OBIETTIVO\n"
+        "Analizzare il conflitto legale e fornire una raccomandazione strategica per risolverlo.\n\n"
+
+        "### ISTRUZIONI\n"
+        "1. NON riscrivere il codice o il testo del documento.\n"
+        "2. Spiega sinteticamente l'azione necessaria per risolvere l'incompatibilità (es. 'Richiedere dual-licensing all'autore', 'Isolare il componente', 'Rilasciare sotto licenza X invece di Y').\n"
+        "3. Sii diretto e pragmatico.\n\n"
+
+        "### FORMATO DI OUTPUT (OBBLIGATORIO)\n"
+        "La tua risposta deve essere STRETTAMENTE in questo formato, senza markdown (```) e senza altro testo:\n"
+        "<advice>Il tuo suggerimento operativo qui.</advice>"
     )
+
     try:
         response = _call_ollama_deepseek(prompt)
+
         if not response:
             return None
 
-        # Pulizia Markdown se presente
-        clean_response = response.strip()
-        if clean_response.startswith("```"):
-            # Rimuove la prima riga (```python o simile)
-            clean_response = clean_response.split("\n", 1)[1]
-            # Rimuove l'ultima riga (```)
-            if clean_response.endswith("```"):
-                clean_response = clean_response.rsplit("\n", 1)[0]
+        # --- LOGICA DI ESTRAZIONE MIGLIORATA (REGEX) ---
+        # Cerca tutto ciò che è compreso tra <advice> e </advice>.
+        # re.DOTALL permette al punto (.) di includere anche le nuove righe.
+        # re.IGNORECASE rende il tag case-insensitive (es. <Advice>).
+        match = re.search(r"<advice>(.*?)</advice>", response, re.DOTALL | re.IGNORECASE)
 
-        return clean_response.strip()
-    except Exception:
+        if match:
+            # Restituisce solo il contenuto pulito dentro i tag
+            return match.group(1).strip()
+        else:
+            # Fallback: Se il modello non usa i tag, prova a restituire tutto pulito
+            # o None se vuoi essere severo. Qui logghiamo l'errore per debug.
+            print(f"Warning: Formato <advice> non trovato nella risposta per {file_path}")
+            return None
+
+    except Exception as e:
+        print(f"Errore durante la chiamata LLM: {e}")
         return None
 
 def enrich_with_llm_suggestions(main_spdx : str, issues: List[Dict], regenerated_map: Dict[str, str] = None) -> List[Dict]:
@@ -118,11 +142,11 @@ def enrich_with_llm_suggestions(main_spdx : str, issues: List[Dict], regenerated
                     "detected_license": issue["detected_license"],
                     "compatible": issue["compatible"],
                     "reason": issue["reason"],
-                    "suggestion": f"1. Valuta la possibilità di cambiare la licenza principale del progetto per adottare "
+                    "suggestion": f"1) Valuta la possibilità di cambiare la licenza principale del progetto per adottare "
                                   f"la licenza '{detected_license}' (o una compatibile), così da risolvere il conflitto.\n"
-                                  f"2. Cerca un componente alternativo o una libreria diversa che implementi la logica di "
+                                  f"2) Cerca un componente alternativo o una libreria diversa che implementi la logica di "
                                   f"'{file_path}' ma che sia rilasciata con una licenza compatibile rispetto a quella attuale del progetto."
-                                  f"\n3. Ecco un suggerimento da adottare: {suggestion}",
+                                  f"\n3){suggestion}",
                     # Se il file è stato rigenerato, inseriamo il codice qui
                     "licenses": licenses,
                     "regenerated_code_path": regenerated_map.get(issue["file_path"]),

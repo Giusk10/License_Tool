@@ -285,7 +285,7 @@ const Callback = () => {
                     </button>
                     <h2>Analysis Report {isComparisonMode ? '(Regenerated)' : ''}</h2>
                     <div style={{ display: 'flex', gap: '1rem' }}>
-                        {!isComparisonMode && displayData.issues.some(i => !i.compatible) && (
+                        {!isComparisonMode && displayData.issues.some(i => !i.compatible && !/\.(md|txt|rst)$/i.test(i.file_path)) && (
                             <button onClick={handleRegenerate} className="glass-button" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'rgba(100, 108, 255, 0.2)' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <RefreshCw size={16} /> Regenerate
@@ -400,28 +400,43 @@ const Callback = () => {
                                                             <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Suggerimenti di Risoluzione</span>
                                                         </div>
 
-                                                        <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: '#e0e0e0' }}>
-                                                            {issue.suggestion
-                                                                // 1. DIVIDI PER NUMERI
-                                                                // Questa regex cerca un numero seguito da punto e spazio (es. "3. ")
-                                                                // e spezza la stringa PRIMA di esso.
-                                                                // Così tutto il contenuto del punto 3 (testo + codice) rimane un unico blocco.
-                                                                .split(/(?=\d+\.\s)/)
+                                                        {issue.suggestion
+                                                            // 1. SPLIT CORRETTO: Cerca numero seguito da parentesi ")"
+                                                            // La regex (?=\d+\)) usa un "lookahead" per trovare "1)", "2)" ecc.
+                                                            .split(/(?=\d+\))/)
 
-                                                                // 2. RIMUOVI RIGHE VUOTE
-                                                                .filter(line => line.trim() !== '')
+                                                            .filter(line => line && line.trim() !== '')
+                                                            .map((line, index) => (
 
-                                                                .map((line, index) => (
-                                                                    <li key={index} style={{ marginBottom: '0.8rem' }}>
+                                                                <ul key={index} style={{
+                                                                    margin: 0,
+                                                                    marginBottom: '0.8rem',
+                                                                    paddingLeft: '0.5rem',
+                                                                    fontSize: '0.9rem',
+                                                                    color: '#e0e0e0',
+                                                                    listStyleType: 'none'
+                                                                }}>
+                                                                    <li style={{ display: 'flex', alignItems: 'flex-start' }}>
 
-                                                                        {/* 3. FORMATTAZIONE CORRETTA */}
+                                                                        {/* Renderizza il numero progressivo visivo: 1) 2) ... */}
+                                                                        <span style={{
+                                                                            marginRight: '0.5rem',
+                                                                            fontWeight: 'bold',
+                                                                            color: '#646cff',
+                                                                            flexShrink: 0
+                                                                        }}>
+                            {index + 1})
+                        </span>
+
                                                                         <div style={{ whiteSpace: 'pre-wrap' }}>
-                                                                            {/* Qui rimuovi il "3. " (o "1. ", "2. ") dall'inizio della stringa visualizzata usando .replace(/^\d+\.\s/, '') */}
-                                                                            {line.replace(/^\d+\.\s/, '').trim()}
+                                                                            {/* 2. PULIZIA TESTO: Rimuove "1)", "2)" originali dall'inizio della stringa */}
+                                                                            {/* Nota il \) che indica la parentesi chiusa */}
+                                                                            {line.replace(/^\d+\)\s*/, '').trim()}
                                                                         </div>
                                                                     </li>
-                                                                ))}
-                                                        </ul>
+                                                                </ul>
+                                                            ))
+                                                        }
                                                     </div>
                                                 )}
                                                 {issue.regenerated_code_path && (
