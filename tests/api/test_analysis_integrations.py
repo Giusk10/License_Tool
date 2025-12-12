@@ -1,21 +1,174 @@
+import pytest
+import httpx
+from unittest.mock import patch, AsyncMock, MagicMock
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+
+"""
+Test di integrazione per gli endpoint /api/auth/start e /api/callback
+Questi test verificano il flusso completo di autenticazione OAuth con GitHub
+"""
+
+# --- FIXTURES PER PULIRE IL CODICE ---
+@pytest.fixture
+def mock_env_credentials():
+    """Simula le variabili d'ambiente o la funzione che le recupera."""
+    with patch("app.api.analysis.github_auth_credentials", side_effect=["MOCK_CID", "MOCK_SEC"]) as m:
+        yield m
+
+
+@pytest.fixture
+def mock_httpx_post():
+    """Mocka la chiamata POST di httpx."""
+    with patch("app.api.analysis.httpx.AsyncClient.post", new_callable=AsyncMock) as m:
+        yield m
+
+
+@pytest.fixture
+def mock_clone():
+    """Mocka la funzione di clonazione."""
+    with patch("app.api.analysis.perform_cloning") as m:
+        yield m
+
+
+# ------------------------------------------------------------------
+# TEST MIGLIORATI
+# ------------------------------------------------------------------
+
+def test_start_analysis_redirect_url_parsing(mock_env_credentials):
+    """
+    Migliorato: Invece di controllare stringhe parziali, parsa l'URL
+    per essere robusto contro l'ordine dei parametri.
+    """
+    mock_env_credentials.side_effect = None
+    mock_env_credentials.return_value = "CLIENT_ID_X"
+
+    response = client.get(
+        "/api/auth/start",
+        params={"owner": "facebook", "repo": "react"},
+        follow_redirects=False
+    )
+    assert response.status_code == 307
+
+    # Parsing dell'URL per verifica precisa
+    from urllib.parse import urlparse, parse_qs
+    parsed = urlparse(response.headers["location"])
+    params = parse_qs(parsed.query)
+
+    assert parsed.scheme == "https"
+    assert parsed.netloc == "github.com"
+    assert parsed.path == "/login/oauth/authorize"
+    assert params["client_id"] == ["CLIENT_ID_X"]
+    assert params["scope"] == ["repo"]
+    assert params["state"] == ["facebook:react"]
+
+
+@pytest.mark.asyncio
+async def test_auth_callback_happy_path_verify_args(mock_env_credentials, mock_httpx_post, mock_clone):
+    """
+    Approfondimento: Verifica che al clone vengano passati i dati corretti.
+    """
+    # Setup Mock HTTPX
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"access_token": "gh_token_XYZ", "token_type": "bearer"}
+    mock_httpx_post.return_value = mock_resp
+
+    # Setup Mock Clone
+    mock_clone.return_value = "/tmp/path/to/repo"
+
+    response = client.get("/api/callback", params={"code": "auth_code_123", "state": "user:repo"})
+
+    assert response.status_code == 200
+    assert response.json()["local_path"] == "/tmp/path/to/repo"
+
+    # VERIFICA CRUCIALE: Assicuriamoci che stiamo usando il token ricevuto da GitHub per clonare
+    mock_clone.assert_called_once()
+    args, _ = mock_clone.call_args
+    # Supponendo che la firma sia perform_cloning(url, token) o simile:
+    assert "gh_token_XYZ" in str(args) or "gh_token_XYZ" in str(_)
+
+
+@pytest.mark.asyncio
+async def test_auth_callback_network_error(mock_env_credentials, mock_httpx_post):
+    """
+    NUOVO SCENARIO: Errore di connessione verso GitHub (timeout, dns error).
+    """
+    # Simuliamo un'eccezione di rete lanciata da httpx
+    mock_httpx_post.side_effect = httpx.RequestError("Connection timeout", request=MagicMock())
+
+    response = client.get("/api/callback", params={"code": "code", "state": "u:r"})
+
+    # L'app dovrebbe gestire l'eccezione e non crashare (500) o restituire un 400 gestito
+    assert response.status_code in [400, 502, 503]
+    assert "errore" in response.json().get("detail", "").lower() or "connection" in response.json().get("detail",
+                                                                                                        "").lower()
+
+
+@pytest.mark.asyncio
+async def test_auth_callback_unexpected_json(mock_env_credentials, mock_httpx_post):
+    """
+    NUOVO SCENARIO: GitHub risponde 200 OK, ma il JSON non ha 'access_token'.
+    """
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    # Risposta vuota o inattesa
+    mock_resp.json.return_value = {"foo": "bar"}
+    mock_httpx_post.return_value = mock_resp
+
+    response = client.get("/api/callback", params={"code": "code", "state": "u:r"})
+
+    assert response.status_code == 400
+    assert "token" in response.json().get("detail", "").lower()
+
+@patch("app.api.analysis.perform_cloning")
+@patch("app.api.analysis.github_auth_credentials")
+@patch("httpx.AsyncClient.post")
+def test_callback_success(mock_httpx_post, mock_creds, mock_clone):
+
+    #Testa il flusso di callback:
+    #1. Riceve code & state
+    #2. Scambia code per token (mock httpx)
+    #3. Clona la repo (mock clone)
+
+    # Setup Mock
+    mock_creds.side_effect = lambda k: "fake-secret" if k == "CLIENT_SECRET" else "fake-id"
+
+    # Mock risposta GitHub token
+    mock_httpx_post.return_value = AsyncMock(
+        json=lambda: {"access_token": "gho_fake_token"}
+    )
+
+    # Mock clone
+    mock_clone.return_value = "/tmp/cloned/path"
+
+    # Chiamata API
+    response = client.get("/api/callback?code=12345&state=giusk10:testrepo")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "cloned"
+    assert data["local_path"] == "/tmp/cloned/path"
+
+    # Verifica che il token sia stato passato al servizio di clone
+    mock_clone.assert_called_with(
+        owner="giusk10",
+        repo="testrepo",
+        oauth_token="gho_fake_token"
+    )
+
 """
 Test di integrazione per gli endpoint /api/zip e /api/analyze
 Questi test verificano il flusso completo di upload zip e analisi con interazioni reali
 tra i componenti (senza mock eccessivi).
 """
-
-import pytest
 import os
 import shutil
 import zipfile
 from io import BytesIO
-from fastapi.testclient import TestClient
-from unittest.mock import patch
-from app.main import app
 from app.core.config import CLONE_BASE_DIR
-
-client = TestClient(app)
-
 
 # ==============================================================================
 # FIXTURES E HELPER
