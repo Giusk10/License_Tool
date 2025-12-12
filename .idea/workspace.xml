@@ -4,11 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="Add unit endpoint test">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/api/test_analysis.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/api/test_zip_analyze_endopoint.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/api/test_analysis_integrations.py" afterDir="false" />
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="fix: update workspace configuration for improved XML formatting and readability">
+      <change beforePath="$PROJECT_DIR$/frontend/src/App.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -351,14 +348,6 @@
       <workItem from="1764862826287" duration="3709000" />
       <workItem from="1764868401224" duration="5290000" />
       <workItem from="1765551252759" duration="7247000" />
-    </task>
-    <task id="LOCAL-00006" summary="Clear GITHUB_TOKEN in .env for security reasons">
-      <option name="closed" value="true" />
-      <created>1763195628131</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1763195628131</updated>
     </task>
     <task id="LOCAL-00007" summary="Update GITHUB_TOKEN in .env for access configuration">
       <option name="closed" value="true" />
@@ -744,7 +733,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765557846936</updated>
     </task>
-    <option name="localTasksCounter" value="55" />
+    <task id="LOCAL-00055" summary="fix: update workspace configuration for improved XML formatting and readability">
+      <option name="closed" value="true" />
+      <created>1765559244093</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1765559244093</updated>
+    </task>
+    <option name="localTasksCounter" value="56" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -768,7 +765,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: Update .env configuration and enhance LLM response handling in analysis_workflow" />
     <MESSAGE value="feat: Add LICENSE and THIRD_PART_NOTICE files for licensing information" />
     <MESSAGE value="feat: Update workspace.xml for licensing information and task tracking" />
     <MESSAGE value="feat: Update README.md and add THRID_PART_NOTICE for licensing information" />
@@ -793,7 +789,8 @@
     <MESSAGE value="test: add integration tests for /api/zip and /api/analyze endpoints" />
     <MESSAGE value="fix: update workspace configuration for improved test integration and task tracking" />
     <MESSAGE value="Add unit endpoint test" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add unit endpoint test" />
+    <MESSAGE value="fix: update workspace configuration for improved XML formatting and readability" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix: update workspace configuration for improved XML formatting and readability" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
