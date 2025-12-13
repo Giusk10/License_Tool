@@ -164,7 +164,7 @@ import os
 import shutil
 import zipfile
 from io import BytesIO
-from app.core.config import CLONE_BASE_DIR
+from app.utility.config import CLONE_BASE_DIR
 
 # ==============================================================================
 # FIXTURES E HELPER
@@ -666,8 +666,8 @@ def mock_scancode_and_llm():
     Mock inclusi:
     - run_scancode: Tool esterno ScanCode
     - detect_main_license_scancode: Rilevamento licenza principale
-    - filter_with_regex: Filtro risultati con regex
-    - extract_file_licenses_from_llm: Estrazione licenze via LLM
+    - filter_licenses: Filtro risultati con regex
+    - extract_file_licenses: Estrazione licenze via LLM
     - check_compatibility: Verifica compatibilità licenze
     - enrich_with_llm_suggestions: Arricchimento con AI
 
@@ -675,8 +675,8 @@ def mock_scancode_and_llm():
     """
     with patch('app.services.analysis_workflow.run_scancode') as mock_scancode, \
             patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
-            patch('app.services.analysis_workflow.filter_with_regex') as mock_filter, \
-            patch('app.services.analysis_workflow.extract_file_licenses_from_llm') as mock_extract, \
+            patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
+            patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
             patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
             patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich:
 
@@ -775,8 +775,8 @@ def test_run_analysis_with_incompatible_licenses(sample_zip_file, cleanup_test_r
     """
     with patch('app.services.analysis_workflow.run_scancode') as mock_scancode, \
             patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
-            patch('app.services.analysis_workflow.filter_with_regex') as mock_filter, \
-            patch('app.services.analysis_workflow.extract_file_licenses_from_llm') as mock_extract, \
+            patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
+            patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
             patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
             patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich:
 

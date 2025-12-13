@@ -1,9 +1,8 @@
 import os
 import re
 from typing import List, Dict
-
-from app.services.llm_helper import _call_ollama_deepseek
-from app.core.config import CLONE_BASE_DIR
+from app.services.llm.ollama_api import call_ollama_deepseek
+from app.utility.config import CLONE_BASE_DIR
 
 
 def ask_llm_for_suggestions(issue: dict , main_spdx: str) -> str:
@@ -18,7 +17,7 @@ def ask_llm_for_suggestions(issue: dict , main_spdx: str) -> str:
         f"Rispondi esattamente con il seguente formato: 'Licenza1, Licenza2, Licenza3'"
     )
 
-    suggestion = _call_ollama_deepseek(prompt)
+    suggestion = call_ollama_deepseek(prompt)
 
     return suggestion
 
@@ -60,7 +59,7 @@ def review_document(issue: dict, main_spdx: str, licenses: str) -> str:
     )
 
     try:
-        response = _call_ollama_deepseek(prompt)
+        response = call_ollama_deepseek(prompt)
 
         if not response:
             return None

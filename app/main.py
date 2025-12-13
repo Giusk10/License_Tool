@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.analysis import router as analysis_router
+from app.controllers.analysis import router as analysis_router
 
 app = FastAPI(
     title="License Compatibility Checker + Ollama",
