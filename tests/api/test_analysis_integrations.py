@@ -15,21 +15,21 @@ Questi test verificano il flusso completo di autenticazione OAuth con GitHub
 @pytest.fixture
 def mock_env_credentials():
     """Simula le variabili d'ambiente o la funzione che le recupera."""
-    with patch("app.api.analysis.github_auth_credentials", side_effect=["MOCK_CID", "MOCK_SEC"]) as m:
+    with patch("app.controllers.analysis.github_auth_credentials", side_effect=["MOCK_CID", "MOCK_SEC"]) as m:
         yield m
 
 
 @pytest.fixture
 def mock_httpx_post():
     """Mocka la chiamata POST di httpx."""
-    with patch("app.api.analysis.httpx.AsyncClient.post", new_callable=AsyncMock) as m:
+    with patch("app.controllers.analysis.httpx.AsyncClient.post", new_callable=AsyncMock) as m:
         yield m
 
 
 @pytest.fixture
 def mock_clone():
     """Mocka la funzione di clonazione."""
-    with patch("app.api.analysis.perform_cloning") as m:
+    with patch("app.controllers.analysis.perform_cloning") as m:
         yield m
 
 
@@ -119,8 +119,8 @@ async def test_auth_callback_unexpected_json(mock_env_credentials, mock_httpx_po
     assert response.status_code == 400
     assert "token" in response.json().get("detail", "").lower()
 
-@patch("app.api.analysis.perform_cloning")
-@patch("app.api.analysis.github_auth_credentials")
+@patch("app.controllers.analysis.perform_cloning")
+@patch("app.controllers.analysis.github_auth_credentials")
 @patch("httpx.AsyncClient.post")
 def test_callback_success(mock_httpx_post, mock_creds, mock_clone):
 
@@ -164,7 +164,7 @@ import os
 import shutil
 import zipfile
 from io import BytesIO
-from app.core.config import CLONE_BASE_DIR
+from app.utility.config import CLONE_BASE_DIR
 
 # ==============================================================================
 # FIXTURES E HELPER
@@ -626,7 +626,7 @@ def test_run_analysis_with_special_characters_in_params():
     assert response.status_code == 400
 
 
-@patch('app.api.analysis.perform_initial_scan')
+@patch('app.controllers.analysis.perform_initial_scan')
 def test_run_analysis_generic_exception(mock_scan):
     """
     Test di integrazione: Exception generica (non ValueError) in perform_initial_scan.
@@ -666,8 +666,8 @@ def mock_scancode_and_llm():
     Mock inclusi:
     - run_scancode: Tool esterno ScanCode
     - detect_main_license_scancode: Rilevamento licenza principale
-    - filter_with_regex: Filtro risultati con regex
-    - extract_file_licenses_from_llm: Estrazione licenze via LLM
+    - filter_licenses: Filtro risultati con regex
+    - extract_file_licenses: Estrazione licenze via LLM
     - check_compatibility: Verifica compatibilità licenze
     - enrich_with_llm_suggestions: Arricchimento con AI
 
@@ -675,8 +675,8 @@ def mock_scancode_and_llm():
     """
     with patch('app.services.analysis_workflow.run_scancode') as mock_scancode, \
             patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
-            patch('app.services.analysis_workflow.filter_with_regex') as mock_filter, \
-            patch('app.services.analysis_workflow.extract_file_licenses_from_llm') as mock_extract, \
+            patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
+            patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
             patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
             patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich:
 
@@ -775,8 +775,8 @@ def test_run_analysis_with_incompatible_licenses(sample_zip_file, cleanup_test_r
     """
     with patch('app.services.analysis_workflow.run_scancode') as mock_scancode, \
             patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
-            patch('app.services.analysis_workflow.filter_with_regex') as mock_filter, \
-            patch('app.services.analysis_workflow.extract_file_licenses_from_llm') as mock_extract, \
+            patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
+            patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
             patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
             patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich:
 
@@ -991,7 +991,7 @@ def test_regenerate_analysis_success_integration(
     assert os.path.exists(repo_path)
 
     # Step 2: Mock solo perform_regeneration (workflow complesso con LLM)
-    with patch('app.api.analysis.perform_regeneration') as mock_regen:
+    with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         # Mock della risposta di rigenerazione
         mock_regen.return_value = AnalyzeResponse(
             repository="regenowner/regenrepo",
@@ -1053,7 +1053,7 @@ def test_regenerate_analysis_repository_not_found(cleanup_test_repos):
     Test di integrazione: tentativo di rigenerazione su repository non esistente.
     Verifica l'integrazione endpoint → workflow → file system check.
     """
-    with patch('app.api.analysis.perform_regeneration') as mock_regen:
+    with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         # Mock che solleva ValueError (repository non trovata)
         mock_regen.side_effect = ValueError("Repository non trovata")
 
@@ -1074,7 +1074,7 @@ def test_regenerate_analysis_generic_exception(cleanup_test_repos):
     Test di integrazione: gestione Exception generica durante rigenerazione.
     Verifica che errori imprevisti ritornino 500.
     """
-    with patch('app.api.analysis.perform_regeneration') as mock_regen:
+    with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         # Mock che solleva Exception generica
         mock_regen.side_effect = RuntimeError("Errore imprevisto durante rigenerazione")
 
@@ -1289,7 +1289,7 @@ def test_download_repo_generic_exception(create_test_repo, cleanup_test_repos):
     # Crea repository
     create_test_repo("errorowner", "errorrepo")
 
-    with patch('app.api.analysis.perform_download') as mock_download:
+    with patch('app.controllers.analysis.perform_download') as mock_download:
         # Mock che solleva Exception generica
         mock_download.side_effect = RuntimeError("Errore imprevisto durante zip")
 
@@ -1328,7 +1328,7 @@ def test_complete_workflow_integration(create_test_repo, cleanup_test_repos):
     )
 
     # Step 2: Mock Analyze (già testato altrove)
-    with patch('app.api.analysis.perform_initial_scan') as mock_scan:
+    with patch('app.controllers.analysis.perform_initial_scan') as mock_scan:
         mock_scan.return_value = AnalyzeResponse(
             repository=f"{owner}/{repo}",
             main_license="MIT",
@@ -1340,7 +1340,7 @@ def test_complete_workflow_integration(create_test_repo, cleanup_test_repos):
         analyze_result = analyze_resp.json()
 
     # Step 3: Mock Regenerate
-    with patch('app.api.analysis.perform_regeneration') as mock_regen:
+    with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         mock_regen.return_value = AnalyzeResponse(
             repository=f"{owner}/{repo}",
             main_license="MIT",

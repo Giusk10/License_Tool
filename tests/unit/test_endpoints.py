@@ -15,7 +15,7 @@ client = TestClient(app)
 @pytest.fixture
 def mock_creds():
     """Simula il recupero delle credenziali (CLIENT_ID, SECRET)."""
-    with patch("app.api.analysis.github_auth_credentials") as m:
+    with patch("app.controllers.analysis.github_auth_credentials") as m:
         m.return_value = "MOCK_CLIENT_ID"
         yield m
 
@@ -23,42 +23,42 @@ def mock_creds():
 @pytest.fixture
 def mock_httpx_client():
     """Mocka le chiamate HTTP esterne (es. verso GitHub per il token)."""
-    with patch("app.api.analysis.httpx.AsyncClient.post", new_callable=AsyncMock) as m:
+    with patch("app.controllers.analysis.httpx.AsyncClient.post", new_callable=AsyncMock) as m:
         yield m
 
 
 @pytest.fixture
 def mock_cloning():
     """Mocka il servizio di clonazione (git clone)."""
-    with patch("app.api.analysis.perform_cloning") as m:
+    with patch("app.controllers.analysis.perform_cloning") as m:
         yield m
 
 
 @pytest.fixture
 def mock_scan():
     """Mocka il servizio di scansione iniziale (ScanCode + LLM)."""
-    with patch("app.api.analysis.perform_initial_scan") as m:
+    with patch("app.controllers.analysis.perform_initial_scan") as m:
         yield m
 
 
 @pytest.fixture
 def mock_regen():
     """Mocka il servizio di rigenerazione codice."""
-    with patch("app.api.analysis.perform_regeneration") as m:
+    with patch("app.controllers.analysis.perform_regeneration") as m:
         yield m
 
 
 @pytest.fixture
 def mock_zip_upload():
     """Mocka il servizio di gestione upload ZIP."""
-    with patch("app.api.analysis.perform_upload_zip") as m:
+    with patch("app.controllers.analysis.perform_upload_zip") as m:
         yield m
 
 
 @pytest.fixture
 def mock_download():
     """Mocka il servizio di creazione pacchetto ZIP per il download."""
-    with patch("app.api.analysis.perform_download") as m:
+    with patch("app.controllers.analysis.perform_download") as m:
         yield m
 
 

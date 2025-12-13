@@ -1,5 +1,5 @@
 from typing import Optional
-from app.services.llm_helper import _call_ollama, _call_ollama_deepseek  # se vuoi rendere pubblico, spostalo
+from app.services.llm.ollama_api import call_ollama_qwen3_coder  # se vuoi rendere pubblico, spostalo
 
 def regenerate_code(
     code_content: str,
@@ -21,7 +21,7 @@ def regenerate_code(
         f"Restituisci SOLO il codice rigenerato, senza markdown (```) e senza spiegazioni verbali extra. Il codice deve essere pronto per essere salvato su file."
     )
     try:
-        response = _call_ollama(prompt)
+        response = call_ollama_qwen3_coder(prompt)
         if not response:
             return None
             

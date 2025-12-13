@@ -1,7 +1,7 @@
 import json
 from pymongo import MongoClient
 from cryptography.fernet import Fernet
-from app.core.config import MONGO_URI, DATABASE_NAME, COLLECTION_NAME, ENCRYPTION_KEY
+from app.utility.config import MONGO_URI, DATABASE_NAME, COLLECTION_NAME, ENCRYPTION_KEY
 
 def decripta_dato_singolo(encrypted_data_string):
     """Decrittografa una singola stringa crittografata."""

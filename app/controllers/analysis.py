@@ -2,11 +2,11 @@
 import httpx
 from fastapi import APIRouter, HTTPException, Body, UploadFile, Form, File
 from fastapi.responses import RedirectResponse, FileResponse
-from app.core.config import CALLBACK_URL
+from app.utility.config import CALLBACK_URL
 from app.services.analysis_workflow import perform_cloning, perform_initial_scan, perform_regeneration, perform_upload_zip
-from app.services.download_service import perform_download
+from app.services.dowloader.download_service import perform_download
 from app.models.schemas import AnalyzeResponse
-from app.env.Encrypted_Auth_Info import github_auth_credentials
+from app.services.github.Encrypted_Auth_Info import github_auth_credentials
 
 router = APIRouter()
 
