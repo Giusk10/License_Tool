@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+import tempfile
 
 # Costruisci il percorso assoluto verso il file .env
 # __file__ è il percorso di config.py
@@ -23,7 +24,10 @@ OLLAMA_HOST_TAGS = os.getenv("OLLAMA_HOST_TAGS")
 
 # directories and scancode
 SCANCODE_BIN = os.getenv("SCANCODE_BIN")
-CLONE_BASE_DIR = os.getenv("CLONE_BASE_DIR", "./cloned_repos")
+# Fallback sicuro se la variabile d'ambiente non è impostata
+CLONE_BASE_DIR = os.environ.get('CLONE_BASE_DIR') or os.path.join(tempfile.gettempdir(), 'clones')
+# Assicura che la directory esista all'avvio
+os.makedirs(CLONE_BASE_DIR, exist_ok=True)
 OUTPUT_BASE_DIR = os.getenv("OUTPUT_BASE_DIR", "./output")
 MINIMAL_JSON_BASE_DIR = os.getenv("MINIMAL_JSON_BASE_DIR")
 

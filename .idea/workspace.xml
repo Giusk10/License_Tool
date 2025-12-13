@@ -4,11 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="test: Refactor and enhance test suite for authentication and analysis endpoints">
-      <change afterPath="$PROJECT_DIR$/tests/api/test_regenerate_download_integration.py" afterDir="false" />
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="chore: rename environment configuration file to .env">
+      <change afterPath="$PROJECT_DIR$/app/utility/repo_path.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/api/test_analysis_integrations.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/api/test_analysis_integrations.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/api/test_regenerate_download.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/analysis_workflow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/analysis_workflow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/utility/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/utility/config.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -119,11 +119,11 @@
       <recent name="$PROJECT_DIR$/app/models" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\app\utility" />
+      <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\app" />
+      <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool" />
       <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\tests\unit" />
       <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\tests" />
-      <recent name="$PROJECT_DIR$/app/services/compatibility" />
-      <recent name="$PROJECT_DIR$/app/services" />
-      <recent name="$PROJECT_DIR$/app" />
     </key>
   </component>
   <component name="RunManager" selected="Python tests.Python tests for api.test_zip_analyze_endopoint.test_analyze_on_empty_repository">
@@ -352,22 +352,7 @@
       <workItem from="1764862826287" duration="3709000" />
       <workItem from="1764868401224" duration="5290000" />
       <workItem from="1765551252759" duration="7247000" />
-    </task>
-    <task id="LOCAL-00010" summary="Refactor compatibility matrix loading to use professional matrix and improve SPDX expression handling">
-      <option name="closed" value="true" />
-      <created>1763398558320</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1763398558320</updated>
-    </task>
-    <task id="LOCAL-00011" summary="Enhance license matching logic in scancode_service.py to include license_spdx validation and improve filtering criteria">
-      <option name="closed" value="true" />
-      <created>1763458036618</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1763458036618</updated>
+      <workItem from="1765650773873" duration="5961000" />
     </task>
     <task id="LOCAL-00012" summary="Add comments to scancode_service.py for improved code clarity and organization">
       <option name="closed" value="true" />
@@ -745,7 +730,23 @@
       <option name="project" value="LOCAL" />
       <updated>1765559599983</updated>
     </task>
-    <option name="localTasksCounter" value="59" />
+    <task id="LOCAL-00059" summary="feat: implement TripleToggleSwitch component and update styles for better UX">
+      <option name="closed" value="true" />
+      <created>1765654598825</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1765654598825</updated>
+    </task>
+    <task id="LOCAL-00060" summary="chore: rename environment configuration file to .env">
+      <option name="closed" value="true" />
+      <created>1765654667080</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1765654667080</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -769,8 +770,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: Update README.md and add THRID_PART_NOTICE for licensing information" />
-    <MESSAGE value="feat: Refactor README.md and workspace.xml for improved licensing clarity" />
     <MESSAGE value="feat: Add global test configuration and mock data for improved testing framework" />
     <MESSAGE value="feat: Update pytest.ini and workspace.xml for enhanced test configuration and coverage reporting" />
     <MESSAGE value="feat: Add initial test suite for API endpoints with mock data and error handling, da Fixare" />
@@ -794,18 +793,9 @@
     <MESSAGE value="fix: correct logo hover effect filter for consistent styling" />
     <MESSAGE value="fix: update workspace configuration for improved XML formatting and readability" />
     <MESSAGE value="test: Refactor and enhance test suite for authentication and analysis endpoints" />
-    <option name="LAST_COMMIT_MESSAGE" value="test: Refactor and enhance test suite for authentication and analysis endpoints" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/app/services/analysis_workflow.py</url>
-          <line>4</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="feat: implement TripleToggleSwitch component and update styles for better UX" />
+    <MESSAGE value="chore: rename environment configuration file to .env" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: rename environment configuration file to .env" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
