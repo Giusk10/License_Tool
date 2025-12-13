@@ -4,6 +4,7 @@ from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 from app.main import app
 
+# Client globale per test che non richiedono directory patchate
 client = TestClient(app)
 
 """
@@ -164,7 +165,7 @@ import os
 import shutil
 import zipfile
 from io import BytesIO
-from app.utility.config import CLONE_BASE_DIR
+from app.utility import config
 
 # ==============================================================================
 # FIXTURES E HELPER
@@ -231,7 +232,7 @@ def cleanup_test_repos():
         'incompatowner_incompatrepo'
     ]
     for pattern in test_patterns:
-        test_dir = os.path.join(CLONE_BASE_DIR, pattern)
+        test_dir = os.path.join(config.CLONE_BASE_DIR, pattern)
         if os.path.exists(test_dir):
             try:
                 shutil.rmtree(test_dir)
@@ -466,7 +467,7 @@ def test_upload_zip_with_special_characters_in_filename():
     assert response.status_code == 200
 
     # Cleanup
-    cleanup_path = os.path.join(CLONE_BASE_DIR, 'specialowner_specialrepo')
+    cleanup_path = os.path.join(config.CLONE_BASE_DIR, 'specialowner_specialrepo')
     if os.path.exists(cleanup_path):
         shutil.rmtree(cleanup_path)
 
@@ -553,7 +554,7 @@ def test_analyze_on_empty_repository(cleanup_test_repos):
     """
     # Creiamo manualmente una directory vuota
     owner, repo = 'emptyowner', 'emptyrepo'
-    empty_path = os.path.join(CLONE_BASE_DIR, f'{owner}_{repo}')
+    empty_path = os.path.join(config.CLONE_BASE_DIR, f'{owner}_{repo}')
     os.makedirs(empty_path, exist_ok=True)
 
     try:
@@ -824,7 +825,7 @@ def test_run_analysis_with_incompatible_licenses(sample_zip_file, cleanup_test_r
         assert 'GPL-3.0' in result['issues'][0]['detected_license']
 
         # Cleanup
-        cleanup_path = os.path.join(CLONE_BASE_DIR, 'incompatowner_incompatrepo')
+        cleanup_path = os.path.join(config.CLONE_BASE_DIR, 'incompatowner_incompatrepo')
         if os.path.exists(cleanup_path):
             shutil.rmtree(cleanup_path)
 
@@ -886,7 +887,7 @@ def cleanup_test_repos():
         'missingowner_missingrepo'
     ]
     for pattern in test_patterns:
-        test_dir = os.path.join(CLONE_BASE_DIR, pattern)
+        test_dir = os.path.join(config.CLONE_BASE_DIR, pattern)
         if os.path.exists(test_dir):
             try:
                 shutil.rmtree(test_dir)
@@ -894,7 +895,7 @@ def cleanup_test_repos():
                 print(f"Cleanup warning: Could not remove {test_dir}: {e}")
 
         # Cleanup anche dei file zip
-        zip_file = os.path.join(CLONE_BASE_DIR, f"{pattern}_download.zip")
+        zip_file = os.path.join(config.CLONE_BASE_DIR, f"{pattern}_download.zip")
         if os.path.exists(zip_file):
             try:
                 os.remove(zip_file)
@@ -917,7 +918,7 @@ def create_test_repo():
         Returns:
             Path assoluto della repository creata
         """
-        repo_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
+        repo_path = os.path.join(config.CLONE_BASE_DIR, f"{owner}_{repo}")
         os.makedirs(repo_path, exist_ok=True)
 
         # File di default se non specificati
@@ -1256,10 +1257,10 @@ def test_download_repo_with_special_characters_in_filenames(
         assert any('special (parens).txt' in f for f in zip_files)
 
     # Cleanup
-    cleanup_path = os.path.join(CLONE_BASE_DIR, 'specialowner_specialrepo')
+    cleanup_path = os.path.join(config.CLONE_BASE_DIR, 'specialowner_specialrepo')
     if os.path.exists(cleanup_path):
         shutil.rmtree(cleanup_path)
-    zip_path = os.path.join(CLONE_BASE_DIR, 'specialowner_specialrepo_download.zip')
+    zip_path = os.path.join(config.CLONE_BASE_DIR, 'specialowner_specialrepo_download.zip')
     if os.path.exists(zip_path):
         os.remove(zip_path)
 
@@ -1363,10 +1364,10 @@ def test_complete_workflow_integration(create_test_repo, cleanup_test_repos):
         assert any('src/code.py' in f for f in zip_files)
 
     # Cleanup
-    cleanup_path = os.path.join(CLONE_BASE_DIR, f'{owner}_{repo}')
+    cleanup_path = os.path.join(config.CLONE_BASE_DIR, f'{owner}_{repo}')
     if os.path.exists(cleanup_path):
         shutil.rmtree(cleanup_path)
-    zip_path = os.path.join(CLONE_BASE_DIR, f'{owner}_{repo}_download.zip')
+    zip_path = os.path.join(config.CLONE_BASE_DIR, f'{owner}_{repo}_download.zip')
     if os.path.exists(zip_path):
         os.remove(zip_path)
 
