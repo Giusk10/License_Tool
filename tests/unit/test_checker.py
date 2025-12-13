@@ -19,7 +19,7 @@ def test_main_license_invalid_returns_issues(monkeypatch, _msg_matches):
     assert res["main_license"] == "UNKNOWN"
     assert len(res["issues"]) == 1
     issue = res["issues"][0]
-    assert issue["file_pat"] == "a.py"
+    assert issue["file_path"] == "a.py"
     assert issue["compatible"] is False
     assert _msg_matches(issue["reason"],
                         "Main license not found or invalid",
