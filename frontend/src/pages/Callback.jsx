@@ -344,9 +344,9 @@ const Callback = () => {
                                 <div className="toggle-wrapper" style={{ minWidth: '300px', height: '60px', position: 'relative' }}>
                                     <TripleToggleSwitch
                                         labels={{
-                                            left: { title: "Compatible", value: "left" },
+                                            left: { title: "✓", value: "left" },
                                             center: { title: "All", value: "center" },
-                                            right: { title: "Incompatible", value: "right" }
+                                            right: { title: "✗", value: "right" }
                                         }}
                                         value={filterState === 1 ? 'left' : filterState === 3 ? 'right' : 'center'}
                                         onChange={(val) => {

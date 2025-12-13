@@ -43,10 +43,10 @@ class TripleToggleSwitch extends React.Component {
         }
     }
 
-    mapValueToPosition(val) {
-        if (val === 1) return "left";
-        if (val === 2) return "center";
-        if (val === 3) return "right";
+     mapValueToPosition(val) {
+        if (val === 1 || val === "left") return "left";
+        if (val === 2 || val === "center") return "center";
+        if (val === 3 || val === "right") return "right";
         return "center";
     }
 
