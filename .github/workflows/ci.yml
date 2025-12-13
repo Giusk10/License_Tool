@@ -36,4 +36,4 @@ jobs:
       # Grazie al tuo file 'pytest.ini', il comando è semplicissimo.
       # Pytest userà automaticamente 'pythonpath = .' e cercherà in 'tests/'
       - name: Esegui Pytest
-        run: pytest
+        run: pytest -m pytest
