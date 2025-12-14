@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="dataSourceStorageLocal" created-in="IU-252.27397.103">
-    <data-source name=".coverage" uuid="a6497184-9c9b-4b67-a7bd-629c86d7e3ff">
-      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="SQLITE" />
-      <schema-mapping />
-    </data-source>
-  </component>
-</project>
