@@ -41,14 +41,21 @@
 
 .black-font {
     color: #6643e2 !important;
+
+}
+.center-label.black-font h4 {
+    color: #6643e2 !important;
+    font-size: 1.2rem;
 }
 
 .left-label.black-font h4 {
-    color: #2ecc71 !important;
+    color: #219625ff !important;
+    font-size: 1.8rem;
 }
 
 .right-label.black-font h4 {
     color: #e74c3c !important;
+    font-size: 1.8rem;
 }
 
 .left-label h4,
