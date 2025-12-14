@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="feat: update styles for 3-State Toggle Switch and adjust logo hover effect">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="chore: clean up workspace.xml by removing closed tasks and updating recent changes" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -351,14 +349,7 @@
       <workItem from="1765551252759" duration="7247000" />
       <workItem from="1765650773873" duration="6363000" />
       <workItem from="1765703665388" duration="1471000" />
-    </task>
-    <task id="LOCAL-00015" summary="Add compatibility evaluation package with SPDX parsing and matrix support">
-      <option name="closed" value="true" />
-      <created>1763633710615</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1763633710616</updated>
+      <workItem from="1765705213873" duration="466000" />
     </task>
     <task id="LOCAL-00016" summary="Implement OAuth authentication flow for GitHub in analysis API and refactor repository cloning logic">
       <option name="closed" value="true" />
@@ -744,7 +735,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765705104109</updated>
     </task>
-    <option name="localTasksCounter" value="64" />
+    <task id="LOCAL-00064" summary="chore: clean up workspace.xml by removing closed tasks and updating recent changes">
+      <option name="closed" value="true" />
+      <created>1765705290977</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1765705290978</updated>
+    </task>
+    <option name="localTasksCounter" value="65" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -768,7 +767,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: Refactor authentication handling to use environment variables and add MongoDB integration for GitHub credentials" />
     <MESSAGE value="feat: Enhance compatibility checker tests with additional scenarios and edge cases" />
     <MESSAGE value="feat: Add comprehensive unit tests for check_compatibility function with detailed scenarios" />
     <MESSAGE value="feat: Update styles and enhance compatibility evaluation tests with additional scenarios" />
@@ -793,7 +791,8 @@
     <MESSAGE value="feat: enhance import handling for regenerate_code and improve CLONE_BASE_DIR configuration" />
     <MESSAGE value="chore: rename .env file and simplify dotenv loading in configuration" />
     <MESSAGE value="feat: update styles for 3-State Toggle Switch and adjust logo hover effect" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: update styles for 3-State Toggle Switch and adjust logo hover effect" />
+    <MESSAGE value="chore: clean up workspace.xml by removing closed tasks and updating recent changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: clean up workspace.xml by removing closed tasks and updating recent changes" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
