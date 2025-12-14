@@ -4,11 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="chore: rename environment configuration file to .env">
-      <change afterPath="$PROJECT_DIR$/app/utility/repo_path.py" afterDir="false" />
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="feat: update styles for 3-State Toggle Switch and adjust logo hover effect">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/services/analysis_workflow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/analysis_workflow.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/utility/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/utility/config.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -119,9 +116,9 @@
       <recent name="$PROJECT_DIR$/app/models" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool" />
       <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\app\utility" />
       <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\app" />
-      <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool" />
       <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\tests\unit" />
       <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\tests" />
     </key>
@@ -352,31 +349,8 @@
       <workItem from="1764862826287" duration="3709000" />
       <workItem from="1764868401224" duration="5290000" />
       <workItem from="1765551252759" duration="7247000" />
-      <workItem from="1765650773873" duration="5961000" />
-    </task>
-    <task id="LOCAL-00012" summary="Add comments to scancode_service.py for improved code clarity and organization">
-      <option name="closed" value="true" />
-      <created>1763464800057</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1763464800057</updated>
-    </task>
-    <task id="LOCAL-00013" summary="Refactor configuration management in multiple files to use environment variables for GitHub token, ScanCode binary, and output directories">
-      <option name="closed" value="true" />
-      <created>1763483981091</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1763483981091</updated>
-    </task>
-    <task id="LOCAL-00014" summary="Update OLLAMA model environment variable and enhance ScanCode execution feedback">
-      <option name="closed" value="true" />
-      <created>1763539776397</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1763539776397</updated>
+      <workItem from="1765650773873" duration="6363000" />
+      <workItem from="1765703665388" duration="1471000" />
     </task>
     <task id="LOCAL-00015" summary="Add compatibility evaluation package with SPDX parsing and matrix support">
       <option name="closed" value="true" />
@@ -746,7 +720,31 @@
       <option name="project" value="LOCAL" />
       <updated>1765654667080</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="feat: enhance import handling for regenerate_code and improve CLONE_BASE_DIR configuration">
+      <option name="closed" value="true" />
+      <created>1765659222713</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1765659222713</updated>
+    </task>
+    <task id="LOCAL-00062" summary="chore: rename .env file and simplify dotenv loading in configuration">
+      <option name="closed" value="true" />
+      <created>1765704150719</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1765704150719</updated>
+    </task>
+    <task id="LOCAL-00063" summary="feat: update styles for 3-State Toggle Switch and adjust logo hover effect">
+      <option name="closed" value="true" />
+      <created>1765705104109</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1765705104109</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -770,9 +768,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: Add global test configuration and mock data for improved testing framework" />
-    <MESSAGE value="feat: Update pytest.ini and workspace.xml for enhanced test configuration and coverage reporting" />
-    <MESSAGE value="feat: Add initial test suite for API endpoints with mock data and error handling, da Fixare" />
     <MESSAGE value="feat: Refactor authentication handling to use environment variables and add MongoDB integration for GitHub credentials" />
     <MESSAGE value="feat: Enhance compatibility checker tests with additional scenarios and edge cases" />
     <MESSAGE value="feat: Add comprehensive unit tests for check_compatibility function with detailed scenarios" />
@@ -795,7 +790,10 @@
     <MESSAGE value="test: Refactor and enhance test suite for authentication and analysis endpoints" />
     <MESSAGE value="feat: implement TripleToggleSwitch component and update styles for better UX" />
     <MESSAGE value="chore: rename environment configuration file to .env" />
-    <option name="LAST_COMMIT_MESSAGE" value="chore: rename environment configuration file to .env" />
+    <MESSAGE value="feat: enhance import handling for regenerate_code and improve CLONE_BASE_DIR configuration" />
+    <MESSAGE value="chore: rename .env file and simplify dotenv loading in configuration" />
+    <MESSAGE value="feat: update styles for 3-State Toggle Switch and adjust logo hover effect" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: update styles for 3-State Toggle Switch and adjust logo hover effect" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
