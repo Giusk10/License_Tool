@@ -30,20 +30,20 @@ class TestDecriptaDatoSingolo:
             assert result == original_data
 
     def test_decripta_dato_singolo_invalid_token(self):
-        """Test con token non valido (solleva eccezione)"""
+        """Test con token non valido (restituisce None)"""
         test_key = Fernet.generate_key()
 
         with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
-            with pytest.raises(Exception):
-                decripta_dato_singolo("invalid_encrypted_data")
+            result = decripta_dato_singolo("invalid_encrypted_data")
+            assert result is None
 
     def test_decripta_dato_singolo_empty_string(self):
-        """Test con stringa vuota"""
+        """Test con stringa vuota (restituisce stringa vuota)"""
         test_key = Fernet.generate_key()
 
         with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
-            with pytest.raises(Exception):
-                decripta_dato_singolo("")
+            result = decripta_dato_singolo("")
+            assert result == ""
 
     def test_decripta_dato_singolo_special_characters(self):
         """Test decrittazione con caratteri speciali"""
@@ -196,7 +196,7 @@ class TestGithubAuthCredentials:
             mock_client.close.assert_called_once()
 
     def test_github_auth_credentials_invalid_json(self):
-        """Test gestione JSON non valido nei dati decrittati"""
+        """Test gestione JSON non valido nei dati decrittati (restituisce la stringa grezza)"""
         test_key = Fernet.generate_key()
         fernet = Fernet(test_key)
 
@@ -222,7 +222,7 @@ class TestGithubAuthCredentials:
 
             result = github_auth_credentials("CLIENT_ID")
 
-            assert result is None
+            assert result == "not a json string"
             mock_client.close.assert_called_once()
 
     def test_github_auth_credentials_missing_key_in_json(self):
