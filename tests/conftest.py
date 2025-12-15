@@ -69,6 +69,32 @@ def mock_env_vars():
     }):
         yield
 
+
+# Patch diretto delle variabili nel modulo config (autouse per applicarlo a tutti i test)
+@pytest.fixture(autouse=True)
+def patch_config_variables(tmp_path):
+    """
+    Patch diretto delle variabili di configurazione nel modulo config e in tutti
+    i moduli che le importano direttamente.
+    Questo è necessario perché config.py carica le variabili d'ambiente all'import,
+    prima che mock_env_vars possa intervenire.
+    """
+    test_clone_dir = str(tmp_path / "test_clones")
+    test_output_dir = str(tmp_path / "test_output")
+
+    # Crea le directory di test
+    os.makedirs(test_clone_dir, exist_ok=True)
+    os.makedirs(test_output_dir, exist_ok=True)
+
+    # Patch in tutti i moduli che importano CLONE_BASE_DIR direttamente
+    with patch("app.utility.config.CLONE_BASE_DIR", test_clone_dir), \
+         patch("app.utility.config.OUTPUT_BASE_DIR", test_output_dir), \
+         patch("app.services.analysis_workflow.CLONE_BASE_DIR", test_clone_dir), \
+         patch("app.services.llm.suggestion.CLONE_BASE_DIR", test_clone_dir), \
+         patch("app.services.github.github_client.CLONE_BASE_DIR", test_clone_dir), \
+         patch("app.services.dowloader.download_service.CLONE_BASE_DIR", test_clone_dir):
+        yield test_clone_dir
+
 # 2. Mock della Matrice di Compatibilità (Dati puri)
 @pytest.fixture
 def complex_matrix_data():

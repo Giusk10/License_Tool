@@ -1,0 +1,39 @@
+name: Python CI
+
+on:
+  # Esegui su qualsiasi push su qualsiasi branch...
+  push:
+    branches: [ "**" ]
+  # ...MA esegui sulle Pull Request SOLO se vanno verso il main
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Scarica il repository
+      - name: Checkout del codice
+        uses: actions/checkout@v4
+
+      # 2. Configura Python 3.11 (versione rilevata dai tuoi file .pyc)
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip' # Cacha i pacchetti pip per velocizzare le esecuzioni future
+
+      # 3. Installa dipendenze
+      - name: Installa dipendenze
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Installa pytest e le librerie di test se non sono nel requirements.txt
+          pip install pytest pytest-asyncio httpx pytest-mock
+
+      # 4. Esegue i test
+      # Grazie al tuo file 'pytest.ini', il comando è semplicissimo.
+      # Pytest userà automaticamente 'pythonpath = .' e cercherà in 'tests/'
+      - name: Esegui Pytest
+        run: pytest

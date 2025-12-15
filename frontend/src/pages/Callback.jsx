@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import TripleToggleSwitch from '../components/TripleToggleSwitch';
 import axios from 'axios';
 import {
     CheckCircle,
@@ -30,7 +31,7 @@ const Callback = () => {
     const [isRegenerating, setIsRegenerating] = useState(false);
     const [error, setError] = useState('');
     const [source, setSource] = useState('clone'); // clone or upload
-    const [filterState, setFilterState] = useState(2); // 1: Incompatible, 2: All, 3: Compatible
+    const [filterState, setFilterState] = useState(2); // 1: Compatible, 2: All, 3: Incompatible
 
     // Simulated progress for analysis
     const [progressStep, setProgressStep] = useState(0);
@@ -185,21 +186,23 @@ const Callback = () => {
         return (
             <div className="container">
                 <div className="glass-panel" style={{ padding: '3rem', width: '100%', maxWidth: '600px', textAlign: 'center' }}>
-                    <div style={{ marginBottom: '2rem' }}>
-                        <GitBranch size={64} color="#4caf50" />
+                    <div style={{ marginBottom: '1rem', marginTop: '0.5.rem' }}>
+                        <GitBranch size={70} color="#219625ff" />
                     </div>
                     <h2 style={{ marginBottom: '1rem' }}>
                         {source === 'upload' ? 'Repository Uploaded Successfully!' : 'Repository Cloned Successfully!'}
                     </h2>
 
                     <div className="glass-panel" style={{
+                        background: 'rgba(49, 24, 82, 0.2)',
+                        borderColor: '#444bcc3f',
                         padding: '1.5rem',
-                        marginBottom: '2rem',
+                        marginBottom: '2.6rem',
                         textAlign: 'left'
                     }}>
-                        <p><strong>Owner:</strong> {cloneData.owner}</p>
-                        <p><strong>Repository:</strong> {cloneData.repo}</p>
-                        <p><strong>Local Path:</strong> <span style={{ fontSize: '0.85rem', opacity: 0.7 }}>{cloneData.local_path}</span></p>
+                        <p><strong>Owner :</strong> {cloneData.owner}</p>
+                        <p><strong>Repository :</strong> {cloneData.repo}</p>
+                        <p><strong>Local Path :</strong> <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>{cloneData.local_path}</span></p>
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
@@ -237,12 +240,12 @@ const Callback = () => {
                                 }}>
                                     <div style={{
                                         width: '32px', height: '32px', borderRadius: '50%',
-                                        background: isCompleted ? '#4caf50' : (isActive ? 'rgba(100, 108, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)'),
+                                        background: isCompleted ? '#219625ff' : (isActive ? 'rgba(100, 108, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)'),
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         border: isActive ? '1px solid #646cff' : 'none'
                                     }}>
-                                        {isCompleted ? <CheckCircle size={18} color="#fff" /> :
-                                            isActive ? <div className="spin" style={{ width: 18, height: 18 }} /> :
+                                        {isCompleted ? <CheckCircle size={20} color="#fff" /> :
+                                            isActive ? <div className="spin" style={{ width: 20, height: 20 }} /> :
                                                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }} />}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -286,7 +289,7 @@ const Callback = () => {
                     </button>
                     <h2>Analysis Report {isComparisonMode ? '(Regenerated)' : ''}</h2>
                     <div style={{ display: 'flex', gap: '1rem' }}>
-                        {!isComparisonMode && displayData.issues.some(i => !i.compatible && !/\.(md|txt|rst)$/i.test(i.file_path)) && (
+                        {displayData.issues.some(i => !i.compatible && !/\.(md|txt|rst|THIRD_PARTY_NOTICE|NOTICE)$/i.test(i.file_path)) && (   //{!isComparisonMode && displayData.issues.some(i => !i.compatible) && (
                             <button onClick={handleRegenerate} className="glass-button" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'rgba(100, 108, 255, 0.2)' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <RefreshCw size={16} /> Regenerate
@@ -323,12 +326,12 @@ const Callback = () => {
                     <div style={{ textAlign: 'left' }}>
                         {/* Header Info */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <span style={{ opacity: 0.7, fontSize: '0.9rem' }}>Repository</span>
+                            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background:'rgba(21, 28, 51, 0.18)' }}>
+                                <span style={{ opacity: 0.7, fontSize: '1rem' }}>Repository</span>
                                 <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{displayData.repository}</span>
                             </div>
-                            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <span style={{ opacity: 0.7, fontSize: '0.9rem' }}>Main License</span>
+                            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(21, 28, 51, 0.18)' }}>
+                                <span style={{ opacity: 0.7, fontSize: '1rem' }}>Main License</span>
                                 <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#646cff' }}>{displayData.main_license || 'Unknown'}</span>
                             </div>
                         </div>
@@ -336,43 +339,33 @@ const Callback = () => {
                         {/* Issues List */}
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <AlertTriangle size={20} /> License Issues & Compatibility
+                                <h3 style={{ marginLeft: 3, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <AlertTriangle size={25} /> License Issues & Compatibility
                                 </h3>
 
-                                <div className="toggle-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                                    <span style={{
-                                        fontSize: '0.8rem',
-                                        opacity: filterState === 1 ? 1 : 0.5,
-                                        color: filterState === 1 ? '#f44336' : 'inherit',
-                                        fontWeight: filterState === 1 ? 'bold' : 'normal'
-                                    }}>Incompatible</span>
-
-                                    <input
-                                        type="range"
-                                        min="1"
-                                        max="3"
-                                        step="1"
-                                        value={filterState}
-                                        onChange={(e) => setFilterState(parseInt(e.target.value))}
-                                        className={`tgl-def state-${filterState}`}
+                                <div className="toggle-wrapper" style={{ minWidth: '300px', height: '60px', position: 'relative' }}>
+                                    <TripleToggleSwitch
+                                        labels={{
+                                            left: { title: "✓", value: "left" },
+                                            center: { title: "All", value: "center" },
+                                            right: { title: "✗", value: "right" }
+                                        }}
+                                        value={filterState === 1 ? 'left' : filterState === 3 ? 'right' : 'center'}
+                                        onChange={(val) => {
+                                            if (val === 'left') setFilterState(1);
+                                            if (val === 'center') setFilterState(2);
+                                            if (val === 'right') setFilterState(3);
+                                        }}
                                     />
-
-                                    <span style={{
-                                        fontSize: '0.8rem',
-                                        opacity: filterState === 3 ? 1 : 0.5,
-                                        color: filterState === 3 ? '#4caf50' : 'inherit',
-                                        fontWeight: filterState === 3 ? 'bold' : 'normal'
-                                    }}>Compatible</span>
                                 </div>
                             </div>
 
                             {/* Filter Logic */}
                             {(() => {
                                 const issuesToRender = displayData.issues.filter(issue => {
-                                    if (filterState === 1) return !issue.compatible; // Show only incompatible
-                                    if (filterState === 3) return issue.compatible;  // Show only compatible
-                                    return true; // Show all (State 2)
+                                    if (filterState === 1) return issue.compatible; // State 1: Show only Compatible
+                                    if (filterState === 3) return !issue.compatible;  // State 3: Show only Incompatible
+                                    return true; // State 2: Show all
                                 });
 
                                 if (issuesToRender.length > 0) {
@@ -386,8 +379,9 @@ const Callback = () => {
 
                                                 return (
                                                     <div key={idx} className="glass-panel" style={{
+                                                        background: 'rgba(21, 28, 51, 0.18)',
                                                         padding: '1.5rem',
-                                                        borderLeft: `4px solid ${issue.compatible ? '#4caf50' : '#f44336'}`
+                                                        borderLeft: `4px solid ${issue.compatible ? '#219625ff' : '#f44336'}`
                                                     }}>
                                                         {/* Container Flex principale */}
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
@@ -407,20 +401,20 @@ const Callback = () => {
                                                                     <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
                                                                         <span style={{ opacity: 0.6, textDecoration: 'line-through' }}>{originalIssue.detected_license}</span>
                                                                         <ArrowRight size={14} />
-                                                                        <span style={{ padding: '0.2rem 0.6rem', borderRadius: '4px', background: 'rgba(76, 175, 80, 0.2)', color: '#4caf50', fontWeight: 'bold' }}>
-                                                                        {issue.detected_license} (Regenerated)
+                                                                        <span style={{ padding: '0.2rem 0.6rem', borderRadius: '4px', background: 'rgba(76, 175, 80, 0.2)', color: '#219625ff', fontWeight: 'bold' }}>
+                                                                            {issue.detected_license} (Regenerated)
                                                                         </span>
                                                                     </div>
                                                                 ) : (
                                                                     <span style={{ fontSize: '0.9rem', padding: '0.2rem 0.6rem', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', marginTop: '0.5rem', display: 'inline-block' }}>
-                                                                    Detected: {issue.detected_license}
+                                                                        Detected: {issue.detected_license}
                                                                     </span>
                                                                 )}
                                                             </div>
 
                                                             {/* Parte destra (Icona e Status) - Aggiunto 'flexShrink: 0' per evitare che si schiacci */}
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: issue.compatible ? '#4caf50' : '#f44336', fontWeight: 'bold', flexShrink: 0 }}>
-                                                                {issue.compatible ? <CheckCircle size={18} /> : <XCircle size={18} />}
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: issue.compatible ? '#219625ff' : '#f44336', fontWeight: 'bold', flexShrink: 0 }}>
+                                                                {issue.compatible ? <CheckCircle size={22} /> : <XCircle size={22} />}
                                                                 {issue.compatible ? 'Compatible' : 'Incompatible'}
                                                             </div>
                                                         </div>
@@ -447,8 +441,8 @@ const Callback = () => {
                                                         {issue.suggestion && (
                                                             <div style={{ background: 'rgba(100, 108, 255, 0.05)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid rgba(100, 108, 255, 0.2)' }}>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#646cff' }}>
-                                                                    <Lightbulb size={18} />
-                                                                    <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Suggerimenti di Risoluzione</span>
+                                                                    <Lightbulb size={22} />
+                                                                    <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>Suggerimenti di Risoluzione</span>
                                                                 </div>
 
                                                                 {issue.suggestion
@@ -463,7 +457,7 @@ const Callback = () => {
                                                                             margin: 0,
                                                                             marginBottom: '0.8rem',
                                                                             paddingLeft: '0.5rem',
-                                                                            fontSize: '0.9rem',
+                                                                            fontSize: '1rem',
                                                                             color: '#e0e0e0',
                                                                             listStyleType: 'none'
                                                                         }}>
@@ -504,9 +498,9 @@ const Callback = () => {
                                     );
                                 } else {
                                     return (
-                                        <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>
+                                        <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', opacity: 0.7, background: 'rgba(21, 28, 51, 0.18)' }}>
                                             <CheckCircle size={32} style={{ marginBottom: '1rem' }} />
-                                            <p>No issues found matching the selected filter.</p>
+                                            <p>No issues found matching the selected filter. </p>
                                         </div>
                                     );
                                 }

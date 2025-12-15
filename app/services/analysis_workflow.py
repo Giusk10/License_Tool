@@ -19,6 +19,7 @@ from app.services.scanner.filter import filter_licenses
 from app.services.compatibility import check_compatibility
 from app.services.llm.suggestion import enrich_with_llm_suggestions
 from app.utility.config import CLONE_BASE_DIR
+from app.services.llm.code_generator import regenerate_code
 import os
 
 def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
@@ -197,7 +198,7 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
         if not issue.compatible:
             fpath = issue.file_path
             # Esempio filtro estensioni
-            if fpath.endswith(('.md', '.txt', '.rst')):
+            if fpath.endswith(('.md', '.txt', '.rst', 'THIRD-PARTY-NOTICE', 'NOTICE')):
                 continue
             files_to_regenerate.append(issue)
 
@@ -206,7 +207,6 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
         print(f"Found {len(files_to_regenerate)} incompatible files that have to be regenerated...")
         from app.services.code_generator import regenerate_code
         print(f"Trovati {len(files_to_regenerate)} file incompatibili da rigenerare...")
-        from services.llm.code_generator import regenerate_code
 
         for issue in files_to_regenerate:
             fpath = issue.file_path

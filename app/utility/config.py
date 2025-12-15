@@ -15,8 +15,8 @@ OLLAMA_HOST_TAGS = os.getenv("OLLAMA_HOST_TAGS")
 
 # directories and scancode
 SCANCODE_BIN = os.getenv("SCANCODE_BIN")
-CLONE_BASE_DIR = os.getenv("CLONE_BASE_DIR")
-OUTPUT_BASE_DIR = os.getenv("OUTPUT_BASE_DIR")
+CLONE_BASE_DIR = os.getenv("CLONE_BASE_DIR", "./cloned_repos")
+OUTPUT_BASE_DIR = os.getenv("OUTPUT_BASE_DIR", "./output")
 MINIMAL_JSON_BASE_DIR = os.getenv("MINIMAL_JSON_BASE_DIR")
 
 # Database settings and encryption

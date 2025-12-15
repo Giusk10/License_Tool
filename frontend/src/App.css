@@ -11,17 +11,20 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -41,54 +44,71 @@
   color: #888;
 }
 
-/* 3-State Toggle Switch */
+
 .toggle-wrapper {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 10px;
 }
 
 .tgl-def {
   -webkit-appearance: none;
   appearance: none;
-  height: 20px;
-  width: 40px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  padding: 0 2px;
+  height: 24px;
+  width: 50px;
+  border-radius: 25px;
+  padding: 0 4px;
   margin: 0;
   cursor: pointer;
-  transition: background-color 0.25s ease-in-out;
   outline: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: background-color 0.25s ease-in-out;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .tgl-def::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background-color: #646cff; /* Default color (Middle/All) */
+  background-color: #fff;
   cursor: pointer;
-  transition: background-color 0.25s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s ease-in-out;
 }
 
-/* Custom colors based on value */
-/* Note: We will handle the color changes dynamically in React or use data-attributes if possible,
-   but specific classes for values might be harder with just a range input directly.
-   Actually, the CodePen used JS to filter, but we want visual feedback.
-   We can use a class on the input based on React state.
-*/
-
-.tgl-def.state-1::-webkit-slider-thumb {
-  background-color: #f44336; /* Incompatible - Red */
+/* Firefox compatibility for thumb */
+.tgl-def::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #ffffff10;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s ease-in-out;
 }
 
-.tgl-def.state-2::-webkit-slider-thumb {
-  background-color: #646cff; /* All - Blue/Primary */
+/* State 1: Compatible (Green) - Left */
+.tgl-def.state-1 {
+  background-color: #219625ff;
 }
 
-.tgl-def.state-3::-webkit-slider-thumb {
-  background-color: #4caf50; /* Compatible - Green */
+/* State 2: All (Gray) - Center */
+.tgl-def.state-2 {
+  background-color: #d0d0d0;
 }
+
+/* State 3: Incompatible (Red) - Right */
+.tgl-def.state-3 {
+  background-color: #f44336;
+}
+
+.toggle-label {
+  font-weight: bold;
+  font-size: 0.9rem;
+  transition: color 0.25s ease-in-out;
+}
+
