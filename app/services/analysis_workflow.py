@@ -1,3 +1,4 @@
+import json
 import shutil
 import tempfile
 import zipfile
@@ -110,14 +111,16 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
 
     # 4) Filtro LLM
     llm_clean = filter_licenses(scan_raw, main_license, path_license)
+    print(json.dumps(llm_clean, indent=2))
     file_licenses = extract_file_licenses(llm_clean)
+    print(json.dumps(llm_clean, indent=2))
 
 
-    # 5) Compatibilità (Prima Passata)
+# 5) Compatibilità (Prima Passata)
     compatibility = check_compatibility(main_license, file_licenses)
-   
+    print(json.dumps(compatibility, indent=2))
 
-    # 6) Suggerimenti AI (senza rigenerazione per ora)
+# 6) Suggerimenti AI (senza rigenerazione per ora)
     # Passiamo una mappa vuota perché non abbiamo ancora rigenerato nulla
     enriched_issues = enrich_with_llm_suggestions(main_license, compatibility["issues"], {})
 

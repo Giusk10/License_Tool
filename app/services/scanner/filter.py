@@ -17,9 +17,9 @@ def filter_licenses(scancode_data: dict, main_spdx: str, path: str) -> dict:
     else:
         regex_filtered = regex_filter(scan_clean, detected_main_spdx=False)
 
-    #post_regex_cleaning = remove_mainspdx_from_filespdx(regex_filtered, main_spdx)
-    #return post_regex_cleaning
-    return regex_filtered
+    uniques = check_license_spdx_duplicates(regex_filtered)
+
+    return uniques
 
 def build_minimal_json(scancode_data: dict) -> dict:
     """
@@ -269,4 +269,85 @@ def regex_filter(data: dict, detected_main_spdx: bool) -> dict:
         json.dump(filtered_files, f, indent=4, ensure_ascii=False)
 
     return filtered_files
+
+def check_license_spdx_duplicates(licenses: dict) -> dict:
+    """
+    Controlla se ci sono duplicati di licenze SPDX nel JSON di ScanCode.
+    Ritorna il dizionario delle licenze senza duplicati.
+    """
+    uniques = {"files": []}
+
+    for file_entry in licenses.get("files", []):
+        seen_spdx = set()
+        spdx_counts = []
+
+        for match in file_entry.get("matches", []):
+            raw_spdx = match.get("license_spdx")
+
+            if not raw_spdx:
+                continue
+
+            # Normalizza per il confronto (strip e lower)
+            spdx_clean = str(raw_spdx).strip()
+            spdx_key = spdx_clean.lower()
+
+            if spdx_key not in seen_spdx:
+                seen_spdx.add(spdx_key)
+                spdx_counts.append({
+                    "license_spdx": spdx_clean,
+                    "matched_text": match.get("matched_text")
+                })
+
+        spdx_uniques = filter_contained_licenses(spdx_counts)
+
+        if spdx_uniques:
+            uniques["files"].append({
+                "path": file_entry.get("path"),
+                "matches": spdx_uniques,
+                "score": file_entry.get("score")
+            })
+
+    return uniques
+
+def filter_contained_licenses(spdx_items: list[dict]) -> list[dict]:
+    """
+    Rimuove un elemento dalla lista se il suo 'license_spdx' è contenuto
+    interamente nel 'license_spdx' di un altro elemento.
+
+    Esempio: Se ho [{'license_spdx': 'MIT'}, {'license_spdx': 'Apache-2.0 AND MIT'}],
+    rimuove l'elemento che contiene solo 'MIT'.
+    """
+    n = len(spdx_items)
+    to_remove = set()
+
+    for i in range(n):
+        # Otteniamo la licenza dell'elemento corrente (il candidato ad essere rimosso)
+        item_i = spdx_items[i]
+        spdx_i = str(item_i.get("license_spdx", "")).strip()
+
+        # Se la stringa è vuota o l'abbiamo già marcata per la rimozione, saltiamo
+        if not spdx_i or i in to_remove:
+            continue
+
+        for j in range(n):
+            if i == j:
+                continue
+
+            # Otteniamo la licenza dell'elemento di confronto (il contenitore)
+            item_j = spdx_items[j]
+            spdx_j = str(item_j.get("license_spdx", "")).strip()
+
+            # Logica: Se spdx_i è più corto di spdx_j, controlliamo se è contenuto dentro
+            if len(spdx_i) < len(spdx_j):
+                # Regex boundary: assicura che matchiamo "MIT" ma non "LIMIT" o "SMITH"
+                # (?<!...) è un negative lookbehind, (?!...) è un negative lookahead
+                # Includiamo ., - e alfanumerici nei boundary per gestire versioni (es. GPL-3.0)
+                pattern = r"(?<![a-zA-Z0-9.\-])" + re.escape(spdx_i) + r"(?![a-zA-Z0-9.\-])"
+
+                if re.search(pattern, spdx_j, re.IGNORECASE):
+                    to_remove.add(i)
+                    break # Abbiamo trovato un contenitore, inutile controllare altri j
+
+    # Ritorna la lista filtrata
+    return [item for k, item in enumerate(spdx_items) if k not in to_remove]
 
