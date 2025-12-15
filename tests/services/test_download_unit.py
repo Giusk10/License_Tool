@@ -167,3 +167,4 @@ class TestPerformDownload:
             assert os.path.isdir(extracted_repo_path)
             # Verifica che sia vuota
             assert len(os.listdir(extracted_repo_path)) == 0
+
