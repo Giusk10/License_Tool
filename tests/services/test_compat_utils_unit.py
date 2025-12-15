@@ -1,6 +1,5 @@
 """
-tests/unit/test_compat_utils.py
-
+test: services/compatibility/compat_utils.py
 Unit tests per `app.services.compatibility.compat_utils`.
 Verificano il comportamento di `normalize_symbol` e `extract_symbols` su casi normali e edge-case.
 """
