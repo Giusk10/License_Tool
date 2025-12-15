@@ -30,20 +30,20 @@ class TestDecriptaDatoSingolo:
             assert result == original_data
 
     def test_decripta_dato_singolo_invalid_token(self):
-        """Test con token non valido (solleva eccezione)"""
+        """Test con token non valido (restituisce None)"""
         test_key = Fernet.generate_key()
 
         with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
-            with pytest.raises(Exception):
-                decripta_dato_singolo("invalid_encrypted_data")
+            result = decripta_dato_singolo("invalid_encrypted_data")
+            assert result is None
 
     def test_decripta_dato_singolo_empty_string(self):
         """Test con stringa vuota"""
         test_key = Fernet.generate_key()
 
         with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
-            with pytest.raises(Exception):
-                decripta_dato_singolo("")
+            result = decripta_dato_singolo("")
+            assert result == ""
 
     def test_decripta_dato_singolo_special_characters(self):
         """Test decrittazione con caratteri speciali"""
@@ -222,7 +222,7 @@ class TestGithubAuthCredentials:
 
             result = github_auth_credentials("CLIENT_ID")
 
-            assert result is None
+            assert result == "not a json string"
             mock_client.close.assert_called_once()
 
     def test_github_auth_credentials_missing_key_in_json(self):
@@ -319,3 +319,83 @@ class TestGithubAuthCredentials:
             mock_client.__getitem__.assert_called_once_with(test_db_name)
             mock_db.__getitem__.assert_called_once_with(test_collection_name)
 
+    def test_github_auth_credentials_missing_encrypted_data(self):
+        """Test quando il documento esiste ma manca la chiave 'encrypted_data'"""
+        mock_collection = MagicMock()
+        mock_collection.find_one.return_value = {
+            "service_name": "CLIENT_ID"
+            # encrypted_data mancante
+        }
+
+        mock_db = MagicMock()
+        mock_db.__getitem__.return_value = mock_collection
+
+        mock_client = MagicMock()
+        mock_client.__getitem__.return_value = mock_db
+        mock_client.close = MagicMock()
+
+        with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client):
+            result = github_auth_credentials("CLIENT_ID")
+
+            assert result is None
+            mock_client.close.assert_called_once()
+
+    def test_github_auth_credentials_decryption_returns_empty(self):
+        """Test quando la decrittazione restituisce una stringa vuota"""
+        test_key = Fernet.generate_key()
+        fernet = Fernet(test_key)
+
+        # Crittografa una stringa vuota
+        empty_data = ""
+        encrypted_data = fernet.encrypt(empty_data.encode('utf-8')).decode('utf-8')
+
+        mock_collection = MagicMock()
+        mock_collection.find_one.return_value = {
+            "service_name": "CLIENT_ID",
+            "encrypted_data": encrypted_data
+        }
+
+        mock_db = MagicMock()
+        mock_db.__getitem__.return_value = mock_collection
+
+        mock_client = MagicMock()
+        mock_client.__getitem__.return_value = mock_db
+        mock_client.close = MagicMock()
+
+        with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
+             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+
+            result = github_auth_credentials("CLIENT_ID")
+
+            assert result is None
+            mock_client.close.assert_called_once()
+
+    def test_github_auth_credentials_valid_json_not_dict(self):
+        """Test quando il JSON è valido ma non è un dizionario (es. lista)"""
+        test_key = Fernet.generate_key()
+        fernet = Fernet(test_key)
+
+        # JSON valido ma lista
+        json_data = json.dumps(["client_id", "secret"])
+        encrypted_data = fernet.encrypt(json_data.encode('utf-8')).decode('utf-8')
+
+        mock_collection = MagicMock()
+        mock_collection.find_one.return_value = {
+            "service_name": "CLIENT_ID",
+            "encrypted_data": encrypted_data
+        }
+
+        mock_db = MagicMock()
+        mock_db.__getitem__.return_value = mock_collection
+
+        mock_client = MagicMock()
+        mock_client.__getitem__.return_value = mock_db
+        mock_client.close = MagicMock()
+
+        with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
+             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+
+            result = github_auth_credentials("CLIENT_ID")
+
+            assert result == str(["client_id", "secret"])
+            mock_client.close.assert_called_once()
