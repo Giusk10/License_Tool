@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import tempfile
 
 load_dotenv()
+
 # authentication
 CALLBACK_URL = os.getenv("CALLBACK_URL") # Nota il /api se usi il prefix
 
