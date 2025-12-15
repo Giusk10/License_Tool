@@ -289,10 +289,12 @@ const Callback = () => {
                     </button>
                     <h2>Analysis Report {isComparisonMode ? '(Regenerated)' : ''}</h2>
                     <div style={{ display: 'flex', gap: '1rem' }}>
-                        {displayData.issues.some(i => !i.compatible && !/\.(md|txt|rst)$/i.test(i.file_path)) && (   //{!isComparisonMode && displayData.issues.some(i => !i.compatible) && (
+                        {displayData.issues.some(i =>
+                            !i.compatible &&
+                            !/(\.(md|txt|rst)|THIRD_PARTY_NOTICE|NOTICE)$/i.test(i.file_path)) && (
                             <button onClick={handleRegenerate} className="glass-button" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'rgba(100, 108, 255, 0.2)' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <RefreshCw size={16} /> Regenerate
+                                <RefreshCw size={16} /> Regenerate
                                 </span>
                             </button>
                         )}
@@ -447,8 +449,8 @@ const Callback = () => {
 
                                                                 {issue.suggestion
                                                                     // 1. SPLIT CORRETTO: Cerca numero seguito da parentesi ")"
-                                                                    // La regex (?=\d+\)) usa un "lookahead" per trovare "1)", "2)" ecc.
-                                                                    .split(/(?=\d+\))/)
+                                                                    // Suddivide il testo in base ai numeri seguiti da "§"
+                                                                    .split(/(?=\d+§)/)
 
                                                                     .filter(line => line && line.trim() !== '')
                                                                     .map((line, index) => (
@@ -473,9 +475,9 @@ const Callback = () => {
                                                                                 </span>
 
                                                                                 <div style={{ whiteSpace: 'pre-wrap' }}>
-                                                                                    {/* 2. PULIZIA TESTO: Rimuove "1)", "2)" originali dall'inizio della stringa */}
+                                                                                    {/* 2. PULIZIA TESTO: Rimuove "1§", "2§" originali dall'inizio della stringa */}
                                                                                     {/* Nota il \) che indica la parentesi chiusa */}
-                                                                                    {line.replace(/^\d+\)\s*/, '').trim()}
+                                                                                    {line.replace(/^\d+§\s*/, '').trim()}
                                                                                 </div>
                                                                             </li>
                                                                         </ul>
