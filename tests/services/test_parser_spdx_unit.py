@@ -1,4 +1,8 @@
 """
+test: services/compatibility/parser_spdx.py
+"""
+
+"""
 Modulo `parser_spdx` — parser semplice per espressioni SPDX.
 
 Supporta:

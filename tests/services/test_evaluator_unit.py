@@ -1,6 +1,5 @@
-# python
 """
-Module: tests/test_evaluator.py
+test: services/compatibility/evaluator.py
 
 This module contains unit tests for the license compatibility evaluator engine.
 It verifies the logic for determining compatibility between license expressions

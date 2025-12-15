@@ -65,7 +65,12 @@ def mock_env_vars():
         "OLLAMA_HOST_TAGS": "http://mock-ollama:11434/tags",
         "SCANCODE_BIN": "scancode",
         "CLONE_BASE_DIR": "./test_clones",
-        "OUTPUT_BASE_DIR": "./test_output"
+        "OUTPUT_BASE_DIR": "./test_output",
+        # Variabili per MongoDB e encryption
+        "MONGO_URI": "mongodb://test:27017",
+        "DATABASE_NAME": "test_db",
+        "COLLECTION_NAME": "test_collection",
+        "ENCRYPTION_KEY": "test_encryption_key_32_bytes_long=="
     }):
         yield
 
@@ -86,12 +91,27 @@ def patch_config_variables(tmp_path):
     os.makedirs(test_clone_dir, exist_ok=True)
     os.makedirs(test_output_dir, exist_ok=True)
 
+    # Configurazioni MongoDB e encryption per i test
+    test_mongo_uri = "mongodb://test:27017"
+    test_db_name = "test_db"
+    test_collection_name = "test_collection"
+    from cryptography.fernet import Fernet
+    test_encryption_key = Fernet.generate_key()
+
     # Patch in tutti i moduli che importano CLONE_BASE_DIR direttamente
     with patch("app.utility.config.CLONE_BASE_DIR", test_clone_dir), \
          patch("app.utility.config.OUTPUT_BASE_DIR", test_output_dir), \
+         patch("app.utility.config.MONGO_URI", test_mongo_uri), \
+         patch("app.utility.config.DATABASE_NAME", test_db_name), \
+         patch("app.utility.config.COLLECTION_NAME", test_collection_name), \
+         patch("app.utility.config.ENCRYPTION_KEY", test_encryption_key), \
          patch("app.services.analysis_workflow.CLONE_BASE_DIR", test_clone_dir), \
          patch("app.services.llm.suggestion.CLONE_BASE_DIR", test_clone_dir), \
          patch("app.services.github.github_client.CLONE_BASE_DIR", test_clone_dir), \
+         patch("app.services.github.Encrypted_Auth_Info.MONGO_URI", test_mongo_uri), \
+         patch("app.services.github.Encrypted_Auth_Info.DATABASE_NAME", test_db_name), \
+         patch("app.services.github.Encrypted_Auth_Info.COLLECTION_NAME", test_collection_name), \
+         patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_encryption_key), \
          patch("app.services.dowloader.download_service.CLONE_BASE_DIR", test_clone_dir):
         yield test_clone_dir
 

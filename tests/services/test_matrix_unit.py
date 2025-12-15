@@ -1,4 +1,6 @@
-# tests/test_matrix.py
+"""
+test: services/compatibility/matrix.py
+"""
 
 import pytest
 from unittest.mock import MagicMock
