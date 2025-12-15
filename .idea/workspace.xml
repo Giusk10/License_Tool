@@ -113,11 +113,11 @@
       <recent name="$PROJECT_DIR$/app/models" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\vitto\PycharmProjects\License_Tool\" />
+      <recent name="C:\Users\vitto\PycharmProjects\License_Tool\app" />
+      <recent name="$PROJECT_DIR$/app" />
       <recent name="C:\Users\vitto\PycharmProjects\License_Tool\tests\unit" />
       <recent name="$PROJECT_DIR$/app/services/compatibility" />
-      <recent name="$PROJECT_DIR$/app/services" />
-      <recent name="$PROJECT_DIR$/app" />
-      <recent name="$PROJECT_DIR$" />
     </key>
   </component>
   <component name="RunManager">
@@ -632,7 +632,39 @@
       <option name="project" value="LOCAL" />
       <updated>1765560575738</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="Pre pull commit">
+      <option name="closed" value="true" />
+      <created>1765636636866</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1765636636866</updated>
+    </task>
+    <task id="LOCAL-00046" summary="Up to date changes">
+      <option name="closed" value="true" />
+      <created>1765637221068</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1765637221068</updated>
+    </task>
+    <task id="LOCAL-00047" summary="Up to date changes">
+      <option name="closed" value="true" />
+      <created>1765640336942</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1765640336942</updated>
+    </task>
+    <task id="LOCAL-00048" summary="Up to date changes">
+      <option name="closed" value="true" />
+      <created>1765641401267</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1765641401267</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -656,8 +688,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Update OLLAMA model environment variable and enhance ScanCode execution feedback" />
-    <MESSAGE value="Add compatibility evaluation package with SPDX parsing and matrix support" />
     <MESSAGE value="Implement OAuth authentication flow for GitHub in analysis API and refactor repository cloning logic" />
     <MESSAGE value="chore: Update environment configuration for Windows paths and add VCS settings" />
     <MESSAGE value="chore: Update environment configuration for Windows paths and enhance repository cloning logic" />
@@ -676,12 +706,14 @@
     <MESSAGE value="Merged with tests from Lucia2" />
     <MESSAGE value="Removed test_spdx" />
     <MESSAGE value="Added support for italian assert in test_evaluator.py" />
-    <MESSAGE value="Pre pull commit" />
     <MESSAGE value="New changes" />
     <MESSAGE value="Merged with new changes" />
     <MESSAGE value="Merge branch 'Version_14' of https://github.com/Giusk10/License_Tool into vittoria&#10;&#10;# Conflicts:&#10;#&#9;app/services/analysis_workflow.py" />
     <MESSAGE value="Added new tests" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added new tests" />
+    <MESSAGE value="Pre pull commit" />
+    <MESSAGE value="Merge branch 'Lucia2' of https://github.com/Giusk10/License_Tool into vittoria&#10;&#10;# Conflicts:&#10;#&#9;.idea/workspace.xml&#10;#&#9;app/services/analysis_workflow.py&#10;#&#9;app/services/scancode_service.py&#10;#&#9;app/services/suggestion.py&#10;#&#9;tests/api/test_analysis_integrations.py&#10;#&#9;tests/unit/test_endpoints.py" />
+    <MESSAGE value="Up to date changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="Up to date changes" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
