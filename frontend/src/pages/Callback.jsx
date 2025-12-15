@@ -289,7 +289,7 @@ const Callback = () => {
                     </button>
                     <h2>Analysis Report {isComparisonMode ? '(Regenerated)' : ''}</h2>
                     <div style={{ display: 'flex', gap: '1rem' }}>
-                        {displayData.issues.some(i => !i.compatible && !/\.(md|txt|rst)$/i.test(i.file_path)) && (   //{!isComparisonMode && displayData.issues.some(i => !i.compatible) && (
+                        {displayData.issues.some(i => !i.compatible && !/\.(md|txt|rst|THIRD_PARTY_NOTICE|NOTICE)$/i.test(i.file_path)) && (   //{!isComparisonMode && displayData.issues.some(i => !i.compatible) && (
                             <button onClick={handleRegenerate} className="glass-button" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'rgba(100, 108, 255, 0.2)' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <RefreshCw size={16} /> Regenerate
