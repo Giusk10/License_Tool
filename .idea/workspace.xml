@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="fix: frontend icon aligning">
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="minor adjustments and visual fixes: addition of the regeneration button in the event of further incompatibilities after the first regeneration">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/unit/test_checker.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_checker.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/unit/test_spdx.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,6 +88,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python tests.pytest for unit.test_checker.test_check_compatibility_success.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -507,7 +506,55 @@
       <option name="project" value="LOCAL" />
       <updated>1764780285466</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="update: env">
+      <option name="closed" value="true" />
+      <created>1765641049406</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1765641049406</updated>
+    </task>
+    <task id="LOCAL-00026" summary="update: frontend toggle switch (beta)">
+      <option name="closed" value="true" />
+      <created>1765647980720</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1765647980720</updated>
+    </task>
+    <task id="LOCAL-00027" summary="update: frontend toggle switch (beta)">
+      <option name="closed" value="true" />
+      <created>1765647987023</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1765647987023</updated>
+    </task>
+    <task id="LOCAL-00028" summary="update: frontend toggle switch (final)">
+      <option name="closed" value="true" />
+      <created>1765648942612</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1765648942612</updated>
+    </task>
+    <task id="LOCAL-00029" summary="minor update: label color">
+      <option name="closed" value="true" />
+      <created>1765710133551</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1765710133551</updated>
+    </task>
+    <task id="LOCAL-00030" summary="minor adjustments and visual fixes: addition of the regeneration button in the event of further incompatibilities after the first regeneration">
+      <option name="closed" value="true" />
+      <created>1765722161183</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1765722161183</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -546,10 +593,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Add license compatibility checker with analysis and reporting features" />
-    <MESSAGE value="Refactor license analysis and compatibility checking logic" />
-    <MESSAGE value="Enhance ScanCode processing with LLM-based license filtering and JSON cleanup" />
-    <MESSAGE value="Refactor license extraction to utilize LLM filtering and improve JSON handling" />
     <MESSAGE value="Enhance LLM filtering by removing main license references from ScanCode JSON" />
     <MESSAGE value="Clear GITHUB_TOKEN in .env for security reasons" />
     <MESSAGE value="Update GITHUB_TOKEN in .env for access configuration" />
@@ -570,7 +613,12 @@
     <MESSAGE value="fix: path error fixed" />
     <MESSAGE value="Merge remote-tracking branch 'origin/Versione_11' into Ell" />
     <MESSAGE value="fix: frontend icon aligning" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix: frontend icon aligning" />
+    <MESSAGE value="update: env" />
+    <MESSAGE value="update: frontend toggle switch (beta)" />
+    <MESSAGE value="update: frontend toggle switch (final)" />
+    <MESSAGE value="minor update: label color" />
+    <MESSAGE value="minor adjustments and visual fixes: addition of the regeneration button in the event of further incompatibilities after the first regeneration" />
+    <option name="LAST_COMMIT_MESSAGE" value="minor adjustments and visual fixes: addition of the regeneration button in the event of further incompatibilities after the first regeneration" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
