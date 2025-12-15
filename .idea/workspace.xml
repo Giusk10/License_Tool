@@ -4,11 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="test: Refactor and enhance test suite for authentication and analysis endpoints">
-      <change afterPath="$PROJECT_DIR$/tests/api/test_regenerate_download_integration.py" afterDir="false" />
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="fix regeneration: Rename .env file and update import for code regeneration">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/api/test_analysis_integrations.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/api/test_analysis_integrations.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/api/test_regenerate_download.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,12 +62,20 @@
     &quot;assignee&quot;: &quot;Giusk10&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/Giusk10/License_Tool.git&quot;,
-    &quot;accountId&quot;: &quot;a346d737-40fa-44e0-b091-8c8112097959&quot;
+  <component name="GithubProjectSettings">
+    <option name="branchProtectionPatterns">
+      <list>
+        <option value="main" />
+        <option value="Gius" />
+      </list>
+    </option>
+  </component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Giusk10/License_Tool.git",
+    "accountId": "4cc6ef95-7a41-4b08-9d24-d772378c9a5e"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 3
 }</component>
@@ -77,56 +84,68 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python tests.Python tests for api.test_zip_analyze_endopoint.test_analyze_on_empty_repository.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.Python tests in test_regeneration_manual.py.executor&quot;: &quot;Coverage&quot;,
-    &quot;Python tests.pytest in tests.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;Lucia2&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/gius03/Progetti/License Checker/app/api&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15906128&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python tests.Python tests for api.test_zip_analyze_endopoint.test_analyze_on_empty_repository.executor": "Run",
+    "Python tests.Python tests in test_regeneration_manual.py.executor": "Coverage",
+    "Python tests.pytest in tests.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "Gius",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/gius03/Progetti/License Checker/app/api",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.15906128",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;GitStage.ChangesTree.GroupingKeys&quot;: [
-      &quot;directory&quot;,
-      &quot;module&quot;,
-      &quot;repository&quot;
+  "keyToStringList": {
+    "GitStage.ChangesTree.GroupingKeys": [
+      "directory",
+      "module",
+      "repository"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/app/api" />
       <recent name="$PROJECT_DIR$/app/models" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
       <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\tests\unit" />
       <recent name="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\tests" />
       <recent name="$PROJECT_DIR$/app/services/compatibility" />
       <recent name="$PROJECT_DIR$/app/services" />
-      <recent name="$PROJECT_DIR$/app" />
     </key>
   </component>
   <component name="RunManager" selected="Python tests.Python tests for api.test_zip_analyze_endopoint.test_analyze_on_empty_repository">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="License Checker" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="License Checker" />
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
     <configuration default="true" type="PyBehaveRunConfigurationType" factoryName="Behave">
       <module name="License Checker" />
       <option name="ENV_FILES" value="" />
@@ -139,17 +158,6 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="ADDITIONAL_ARGS" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration default="true" type="JetRunConfigurationType">
-      <module name="License Checker" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
-      <module name="License Checker" />
-      <option name="filePath" />
       <method v="2" />
     </configuration>
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
@@ -254,7 +262,7 @@
       <option name="USE_PATTERN" value="false" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest in tests" type="tests" factoryName="py.test" nameIsGenerated="true">
+    <configuration name="pytest in C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool\tests" type="tests" factoryName="py.test" nameIsGenerated="true">
       <module name="License_Tool" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -263,7 +271,6 @@
         <env name="PYTHONPATH" value="C:\Users\lucia.LUCIA\Documents\MAGISTRALE\1 ANNO\1 Semestre\Ingegneria del software\License_Tool" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="SDK_NAME" value="Python 3.13" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
@@ -289,14 +296,15 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python tests.Python tests for api.test_zip_analyze_endopoint.test_analyze_on_empty_repository" />
+        <item itemvalue="Python tests.Python tests for api.test_zip_analyze_endopoint.test_analyze_on_empty_repository" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.27397.103" />
-        <option value="bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-IU-252.27397.103" />
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.29188.11" />
+        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-IU-251.29188.11" />
       </set>
     </attachedChunks>
   </component>
@@ -352,14 +360,7 @@
       <workItem from="1764862826287" duration="3709000" />
       <workItem from="1764868401224" duration="5290000" />
       <workItem from="1765551252759" duration="7247000" />
-    </task>
-    <task id="LOCAL-00010" summary="Refactor compatibility matrix loading to use professional matrix and improve SPDX expression handling">
-      <option name="closed" value="true" />
-      <created>1763398558320</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1763398558320</updated>
+      <workItem from="1765753696495" duration="670000" />
     </task>
     <task id="LOCAL-00011" summary="Enhance license matching logic in scancode_service.py to include license_spdx validation and improve filtering criteria">
       <option name="closed" value="true" />
@@ -745,7 +746,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765559599983</updated>
     </task>
-    <option name="localTasksCounter" value="59" />
+    <task id="LOCAL-00059" summary="fix regeneration: Rename .env file and update import for code regeneration">
+      <option name="closed" value="true" />
+      <created>1765704609885</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1765704609886</updated>
+    </task>
+    <option name="localTasksCounter" value="60" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -769,7 +778,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: Update README.md and add THRID_PART_NOTICE for licensing information" />
     <MESSAGE value="feat: Refactor README.md and workspace.xml for improved licensing clarity" />
     <MESSAGE value="feat: Add global test configuration and mock data for improved testing framework" />
     <MESSAGE value="feat: Update pytest.ini and workspace.xml for enhanced test configuration and coverage reporting" />
@@ -794,18 +802,8 @@
     <MESSAGE value="fix: correct logo hover effect filter for consistent styling" />
     <MESSAGE value="fix: update workspace configuration for improved XML formatting and readability" />
     <MESSAGE value="test: Refactor and enhance test suite for authentication and analysis endpoints" />
-    <option name="LAST_COMMIT_MESSAGE" value="test: Refactor and enhance test suite for authentication and analysis endpoints" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/app/services/analysis_workflow.py</url>
-          <line>4</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="fix regeneration: Rename .env file and update import for code regeneration" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix regeneration: Rename .env file and update import for code regeneration" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
