@@ -606,7 +606,7 @@ def test_run_analysis_repository_not_found():
     response = client.post('/api/analyze', json=payload)
 
     assert response.status_code == 400
-    assert 'non trovata' in response.json()['detail'].lower() or 'couldn\'t find' in response.json()['detail'].lower()
+    assert 'non trovata' in response.json()['detail'].lower() or 'not found' in response.json()['detail'].lower()
 
 
 def test_run_analysis_with_special_characters_in_params():
@@ -1167,8 +1167,7 @@ def test_download_repo_success_integration(create_test_repo, cleanup_test_repos)
         readme_content = zip_file.read('downloadowner_downloadrepo/README.md').decode('utf-8')
         assert '# Download Test' in readme_content
 
-
-def test_download_repo_repository_not_found():
+def test_download_repo_repository_not_found(_msg_matches):
     """
     Test di integrazione: tentativo di download di repository non esistente.
     Verifica l'integrazione endpoint → service → file system check.
@@ -1179,8 +1178,11 @@ def test_download_repo_repository_not_found():
     )
 
     assert response.status_code == 400
-    assert "Repository not found" in response.json()["detail"]
-
+    assert _msg_matches(
+        response.json()["detail"],
+        "Repository not found",
+        "Repository non trovata"
+    )
 
 def test_download_repo_missing_parameters():
     """

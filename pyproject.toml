@@ -9,7 +9,7 @@ description = "Tool per l'analisi e la compatibilità delle licenze software"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-    { name = "Il Tuo Nome", email = "tuo.email@example.com" },
+    { name = "Riccio Giuseppe, Simeone Lucia, Medugno Vittoria, Capone Antonella, Liparulo Elisa"},
 ]
 # Correzione License Warning: usiamo il campo 'license' invece del classifier
 license = { file = "LICENSE" }

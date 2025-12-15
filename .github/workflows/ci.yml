@@ -1,10 +1,8 @@
 name: Python CI
 
 on:
-  # Esegui su qualsiasi push su qualsiasi branch...
   push:
     branches: [ "**" ]
-  # ...MA esegui sulle Pull Request SOLO se vanno verso il main
   pull_request:
     branches: [ "main" ]
 
@@ -17,23 +15,23 @@ jobs:
       - name: Checkout del codice
         uses: actions/checkout@v4
 
-      # 2. Configura Python 3.13 (versione rilevata dai tuoi file .pyc)
+      # 2. Configura Python 3.13
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-          cache: 'pip' # Cacha i pacchetti pip per velocizzare le esecuzioni future
+          cache: 'pip'
 
-      # 3. Installa dipendenze
-      - name: Installa dipendenze
+      # 3. Installa dipendenze dal pyproject.toml
+      # L'opzione ".[dev]" dice a pip:
+      # "Installa il pacchetto corrente (.) e anche le dipendenze opzionali chiamate 'dev'"
+      # (quindi installerà sia FastAPI/Mongo che Pytest/Black/Isort in un colpo solo)
+      - name: Installa progetto e dipendenze di sviluppo
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          # Installa pytest e le librerie di test se non sono nel requirements.txt
-          pip install pytest pytest-asyncio httpx pytest-mock
+          pip install -e .[dev]
 
       # 4. Esegue i test
-      # Grazie al tuo file 'pytest.ini', il comando è semplicissimo.
-      # Pytest userà automaticamente 'pythonpath = .' e cercherà in 'tests/'
+      # Non servono argomenti extra: Pytest legge tutto (addopts, testpaths) dal pyproject.toml
       - name: Esegui Pytest
         run: pytest
