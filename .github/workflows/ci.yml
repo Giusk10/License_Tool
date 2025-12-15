@@ -11,27 +11,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Scarica il repository
+      # 1. Scarica il codice
       - name: Checkout del codice
         uses: actions/checkout@v4
 
-      # 2. Configura Python 3.13
+      # 2. Prepara Python
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: 'pip'
 
-      # 3. Installa dipendenze dal pyproject.toml
-      # L'opzione ".[dev]" dice a pip:
-      # "Installa il pacchetto corrente (.) e anche le dipendenze opzionali chiamate 'dev'"
-      # (quindi installerà sia FastAPI/Mongo che Pytest/Black/Isort in un colpo solo)
-      - name: Installa progetto e dipendenze di sviluppo
+      # 3. Installa il tuo progetto + pytest
+      # (Legge tutto dal tuo pyproject.toml aggiornato)
+      - name: Installa progetto e dipendenze
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
 
-      # 4. Esegue i test
-      # Non servono argomenti extra: Pytest legge tutto (addopts, testpaths) dal pyproject.toml
+      # 4. Lancia i test
       - name: Esegui Pytest
         run: pytest
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installa dipendenze Frontend
+        run: npm ci
+
+      - name: Build Frontend
+        run: npm run build
