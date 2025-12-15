@@ -63,7 +63,7 @@ class TestPerformDownload:
             with pytest.raises(ValueError) as exc_info:
                 perform_download(owner, repo)
 
-            expected_error = f"Repository not found at {os.path.join(clone_base_dir, f'{owner}_{repo}')}. Please clone it first."
+            expected_error = f"Repository non trovata in {os.path.join(clone_base_dir, f'{owner}_{repo}')}. Esegui prima la clonazione."
             assert str(exc_info.value) == expected_error
 
     def test_perform_download_creates_zip_with_correct_name(self, tmp_path):

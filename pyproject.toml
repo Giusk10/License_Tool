@@ -7,9 +7,9 @@ name = "license-tool"
 version = "0.1.0"
 description = "Tool per l'analisi e la compatibilità delle licenze software"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 authors = [
-    { name = "Il Tuo Nome", email = "tuo.email@example.com" },
+    { name = "Riccio Giuseppe, Simeone Lucia, Medugno Vittoria, Capone Antonella, Liparulo Elisa"},
 ]
 # Correzione License Warning: usiamo il campo 'license' invece del classifier
 license = { file = "LICENSE" }
@@ -42,8 +42,6 @@ dev = [
     "pytest-cov~=7.0.0",
     "pytest-mock~=3.15.1",
     "pytest-asyncio~=1.3.0",
-    "black",
-    "isort",
 ]
 
 # --- NUOVA SEZIONE FONDAMENTALE ---
@@ -60,13 +58,3 @@ addopts = "-v --cov=app"
 testpaths = ["tests"]
 python_files = "test_*.py"
 pythonpath = "."
-
-# --- Configurazione Formatter ---
-[tool.black]
-line-length = 88
-target-version = ['py310']
-include = '\.pyi?$'
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
