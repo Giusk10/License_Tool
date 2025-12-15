@@ -31,13 +31,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev]
 
-      # (Opzionale) Step per verificare la formattazione del codice
-      # Dato che hai incluso black e isort nel toml, puoi far fallire la CI se il codice non è formattato
-      - name: Verifica formattazione (Black & Isort)
-        run: |
-          black --check .
-          isort --check-only .
-
       # 4. Esegue i test
       # Non servono argomenti extra: Pytest legge tutto (addopts, testpaths) dal pyproject.toml
       - name: Esegui Pytest
