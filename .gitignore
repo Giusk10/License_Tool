@@ -31,3 +31,6 @@ __pycache__/
 venv/
 .idea/
 *.iml
+
+.coverage
+.iml
