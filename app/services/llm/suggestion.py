@@ -114,7 +114,7 @@ def enrich_with_llm_suggestions(main_spdx : str, issues: List[Dict], regenerated
                 "regenerated_code_path": regenerated_map.get(issue["file_path"]),
             })
         else:
-            if not file_path.endswith(('.md', '.txt', '.rst')):
+            if not file_path.endswith(('.md', '.txt', '.rst', 'THIRD-PARTY-NOTICE', 'NOTICE')):
                 licenses = ask_llm_for_suggestions(issue, main_spdx)
 
                 enriched.append({

@@ -169,7 +169,7 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
         if not issue.compatible:
             fpath = issue.file_path
             # Esempio filtro estensioni
-            if fpath.endswith(('.md', '.txt', '.rst')):
+            if fpath.endswith(('.md', '.txt', '.rst', 'THIRD-PARTY-NOTICE', 'NOTICE')):
                 continue
             files_to_regenerate.append(issue)
 

@@ -82,15 +82,16 @@ const Home = () => {
     return (
         <div className="container">
             <div className="glass-panel form-group">
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-                    <Github size={48} color="#fff" />
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.2rem', marginTop: '1rem' }}>
+                    <Github size={62} color="#fff" />
                 </div>
-                <h1>License Checker</h1>
-                <p>Analyze GitHub repositories for license compatibility.</p>
+                <h1 style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>License Checker</h1>
+                <p style={{ fontSize: '1.12rem', marginBottom: '2rem' }}>Analyze GitHub repositories for license compatibility.</p>
 
                 <form onSubmit={handleAnalyze} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
                     <input
                         type="text"
+                        size={13}
                         placeholder="GitHub Owner (e.g. facebook)"
                         value={owner}
                         onChange={(e) => setOwner(e.target.value)}
@@ -99,6 +100,7 @@ const Home = () => {
                     />
                     <input
                         type="text"
+                        size={13}
                         placeholder="Repository Name (e.g. react)"
                         value={repo}
                         onChange={(e) => setRepo(e.target.value)}
@@ -114,7 +116,7 @@ const Home = () => {
                         onChange={handleFileChange}
                     />
 
-                    <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                         <button type="submit" className="glass-button" style={{ flex: 1 }} disabled={loading}>
                             {loading ? 'Redirecting...' : (
                                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
