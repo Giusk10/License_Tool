@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="fix regeneration: Rename .env file and update import for code regeneration">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-    </list>
+    <list default="true" id="2344456b-b77b-43a2-9bcd-4bdc11d12b4a" name="Changes" comment="update: Change Python SDK version to 3.11 and update project settings" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -360,23 +356,7 @@
       <workItem from="1764862826287" duration="3709000" />
       <workItem from="1764868401224" duration="5290000" />
       <workItem from="1765551252759" duration="7247000" />
-      <workItem from="1765753696495" duration="670000" />
-    </task>
-    <task id="LOCAL-00011" summary="Enhance license matching logic in scancode_service.py to include license_spdx validation and improve filtering criteria">
-      <option name="closed" value="true" />
-      <created>1763458036618</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1763458036618</updated>
-    </task>
-    <task id="LOCAL-00012" summary="Add comments to scancode_service.py for improved code clarity and organization">
-      <option name="closed" value="true" />
-      <created>1763464800057</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1763464800057</updated>
+      <workItem from="1765753696495" duration="1039000" />
     </task>
     <task id="LOCAL-00013" summary="Refactor configuration management in multiple files to use environment variables for GitHub token, ScanCode binary, and output directories">
       <option name="closed" value="true" />
@@ -754,7 +734,23 @@
       <option name="project" value="LOCAL" />
       <updated>1765704609886</updated>
     </task>
-    <option name="localTasksCounter" value="60" />
+    <task id="LOCAL-00060" summary="update: Rename .gitignore and add Python-related exclusions">
+      <option name="closed" value="true" />
+      <created>1765788174797</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1765788174797</updated>
+    </task>
+    <task id="LOCAL-00061" summary="update: Change Python SDK version to 3.11 and update project settings">
+      <option name="closed" value="true" />
+      <created>1765788411445</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1765788411446</updated>
+    </task>
+    <option name="localTasksCounter" value="62" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -778,8 +774,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: Refactor README.md and workspace.xml for improved licensing clarity" />
-    <MESSAGE value="feat: Add global test configuration and mock data for improved testing framework" />
     <MESSAGE value="feat: Update pytest.ini and workspace.xml for enhanced test configuration and coverage reporting" />
     <MESSAGE value="feat: Add initial test suite for API endpoints with mock data and error handling, da Fixare" />
     <MESSAGE value="feat: Refactor authentication handling to use environment variables and add MongoDB integration for GitHub credentials" />
@@ -803,7 +797,9 @@
     <MESSAGE value="fix: update workspace configuration for improved XML formatting and readability" />
     <MESSAGE value="test: Refactor and enhance test suite for authentication and analysis endpoints" />
     <MESSAGE value="fix regeneration: Rename .env file and update import for code regeneration" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix regeneration: Rename .env file and update import for code regeneration" />
+    <MESSAGE value="update: Rename .gitignore and add Python-related exclusions" />
+    <MESSAGE value="update: Change Python SDK version to 3.11 and update project settings" />
+    <option name="LAST_COMMIT_MESSAGE" value="update: Change Python SDK version to 3.11 and update project settings" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
