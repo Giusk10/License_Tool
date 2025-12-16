@@ -5,16 +5,16 @@ from app.services.llm.ollama_api import call_ollama_deepseek
 from app.utility.config import CLONE_BASE_DIR
 
 
-def ask_llm_for_suggestions(issue: dict , main_spdx: str) -> str:
+def ask_llm_for_suggestions(issue: dict, main_spdx: str) -> str:
 
     prompt = (
-        f"Sei un esperto di licenze software. Un file nel progetto presenta un conflitto di licenza.\n"
-        f"Il file '{issue['file_path']}' è rilasciato sotto la licenza '{issue['detected_license']}', "
-        f"che è incompatibile con la licenza {main_spdx}.\n"
-        f"Motivo del conflitto: {issue['reason']}\n\n"
-        f"Fornisci **SOLO** le licenze alternative compatibili con la licenza {main_spdx} che potrebbero essere adottate per risolvere il conflitto. "
-        f"**NON** fornire analisi, spiegazioni, intestazioni o testo aggiuntivo. "
-        f"Rispondi esattamente con il seguente formato: 'Licenza1, Licenza2, Licenza3'"
+        f"You are a software license expert. A file in the project has a license conflict.\n"
+        f"The file '{issue['file_path']}' is released under the license '{issue['detected_license']}', "
+        f"which is incompatible with the license {main_spdx}.\n"
+        f"Reason for the conflict: {issue['reason']}\n\n"
+        f"Provide **ONLY** alternative licenses compatible with the license {main_spdx} that could be adopted to resolve the conflict. "
+        f"**DO NOT** provide analysis, explanations, headers, or additional text. "
+        f"Respond exactly in the following format: 'License1, License2, License3'"
     )
 
     suggestion = call_ollama_deepseek(prompt)
@@ -23,39 +23,39 @@ def ask_llm_for_suggestions(issue: dict , main_spdx: str) -> str:
 
 def review_document(issue: dict, main_spdx: str, licenses: str) -> str:
     file_path = issue["file_path"]
-    # Assicurati che CLONE_BASE_DIR sia definito globalmente o passato come argomento
+    # Ensure that CLONE_BASE_DIR is defined globally or passed as an argument
     abs_path = os.path.join(CLONE_BASE_DIR, file_path)
 
     try:
         with open(abs_path, "r", encoding="utf-8") as f:
             document_content = f.read()
     except Exception as e:
-        print(f"Errore lettura file {file_path}: {e}")
+        print(f"Error reading file {file_path}: {e}")
         return None
 
     print(f"Reviewing document: {file_path}")
 
     prompt = (
-        "### RUOLO\n"
-        "Agisci come un Senior Open Source Compliance Officer.\n\n"
+        "### ROLE\n"
+        "Act as a Senior Open Source Compliance Officer.\n\n"
 
-        "### DATI\n"
-        f"1. Licenza Rilevata (Incompatibile): '{issue['detected_license']}'\n"
-        f"2. Licenza del Progetto (Target): '{main_spdx}'\n"
-        f"3. Licenze alternative accettate: {licenses}\n"
-        f"4. Contenuto/Snippet sotto esame:\n'''\n{document_content}\n'''\n\n"
+        "### DATA\n"
+        f"1. Detected License (Incompatible): '{issue['detected_license']}'\n"
+        f"2. Project License (Target): '{main_spdx}'\n"
+        f"3. Accepted Alternative Licenses: {licenses}\n"
+        f"4. Content/Snippet under review:\n'''\n{document_content}\n'''\n\n"
 
-        "### OBIETTIVO\n"
-        "Analizzare il conflitto legale e fornire una raccomandazione strategica per risolverlo.\n\n"
+        "### OBJECTIVE\n"
+        "Analyze the legal conflict and provide a strategic recommendation to resolve it.\n\n"
 
-        "### ISTRUZIONI\n"
-        "1. NON riscrivere il codice o il testo del documento.\n"
-        "2. Spiega sinteticamente l'azione necessaria per risolvere l'incompatibilità (es. 'Richiedere dual-licensing all'autore', 'Isolare il componente', 'Rilasciare sotto licenza X invece di Y').\n"
-        "3. Sii diretto e pragmatico.\n\n"
+        "### INSTRUCTIONS\n"
+        "1. DO NOT rewrite the code or the document text.\n"
+        "2. Briefly explain the necessary action to resolve the incompatibility (e.g., 'Request dual-licensing from the author', 'Isolate the component', 'Release under X license instead of Y').\n"
+        "3. Be direct and pragmatic.\n\n"
 
-        "### FORMATO DI OUTPUT (OBBLIGATORIO)\n"
-        "La tua risposta deve essere STRETTAMENTE in questo formato, senza markdown (```) e senza altro testo:\n"
-        "<advice>Il tuo suggerimento operativo qui.</advice>"
+        "### OUTPUT FORMAT (MANDATORY)\n"
+        "Your response must STRICTLY follow this format, without markdown (```) and without any additional text:\n"
+        "<advice>Your operational suggestion here.</advice>"
     )
 
     try:
@@ -64,32 +64,32 @@ def review_document(issue: dict, main_spdx: str, licenses: str) -> str:
         if not response:
             return None
 
-        # --- LOGICA DI ESTRAZIONE MIGLIORATA (REGEX) ---
-        # Cerca tutto ciò che è compreso tra <advice> e </advice>.
-        # re.DOTALL permette al punto (.) di includere anche le nuove righe.
-        # re.IGNORECASE rende il tag case-insensitive (es. <Advice>).
+        # --- IMPROVED EXTRACTION LOGIC (REGEX) ---
+        # Searches for everything between <advice> and </advice>.
+        # re.DOTALL allows the dot (.) to include newlines.
+        # re.IGNORECASE makes the tag case-insensitive (e.g., <Advice>).
         match = re.search(r"<advice>(.*?)</advice>", response, re.DOTALL | re.IGNORECASE)
 
         if match:
-            # Restituisce solo il contenuto pulito dentro i tag
+            # Returns only the clean content inside the tags
             return match.group(1).strip()
         else:
-            # Fallback: Se il modello non usa i tag, prova a restituire tutto pulito
-            # o None se vuoi essere severo. Qui logghiamo l'errore per debug.
-            print(f"Warning: Formato <advice> non trovato nella risposta per {file_path}")
+            # Fallback: If the model does not use the tags, try to return everything clean
+            # or None if you want to be strict. Here we log the error for debugging.
+            print(f"Warning: <advice> tag format not found in response for {file_path}")
             return None
 
     except Exception as e:
-        print(f"Errore durante la chiamata LLM: {e}")
+        print(f"Error during LLM call: {e}")
         return None
 
-def enrich_with_llm_suggestions(main_spdx : str, issues: List[Dict], regenerated_map: Dict[str, str] = None) -> List[Dict]:
+def enrich_with_llm_suggestions(main_spdx: str, issues: List[Dict], regenerated_map: Dict[str, str] = None) -> List[Dict]:
     """
-    Per ogni issue ritorna un dizionario con campi:
+    For each issue, returns a dictionary with fields:
       - file_path, detected_license, compatible, reason
-      - suggestion: testo suggerito
-      - regenerated_code_path: codice rigenerato se presente in `regenerated_map`
-    `regenerated_map` è opzionale.
+      - suggestion: suggested text
+      - regenerated_code_path: regenerated code if present in `regenerated_map`
+    `regenerated_map` is optional.
     """
     if regenerated_map is None:
         regenerated_map = {}
@@ -108,9 +108,9 @@ def enrich_with_llm_suggestions(main_spdx : str, issues: List[Dict], regenerated
                 "detected_license": issue["detected_license"],
                 "compatible": issue["compatible"],
                 "reason": issue["reason"],
-                "suggestion": "Il file è compatibile con la licenza principale del progetto. Nessuna azione necessaria.",
-                # Se il file è stato rigenerato, inseriamo il codice qui
-                licenses:"",
+                "suggestion": "The file is compatible with the project's main license. No action needed.",
+                # If the file was regenerated, insert the code here
+                "licenses": "",
                 "regenerated_code_path": regenerated_map.get(issue["file_path"]),
             })
         else:
@@ -122,12 +122,12 @@ def enrich_with_llm_suggestions(main_spdx : str, issues: List[Dict], regenerated
                     "detected_license": issue["detected_license"],
                     "compatible": issue["compatible"],
                     "reason": issue["reason"],
-                    "suggestion": f"1§ Valuta la possibilità di cambiare la licenza principale del progetto per adottare "
-                                  f"la licenza '{detected_license}' (o una compatibile), così da risolvere il conflitto.\n"
-                                  f"2§ Cerca un componente alternativo o una libreria diversa che implementi la logica di "
-                                  f"'{file_path}' ma che sia rilasciata con una licenza compatibile rispetto a quella attuale del progetto."
-                                  f"\n3§ Ecco alcune licenze alternative compatibili che potresti considerare: {licenses}",
-                    # Se il file è stato rigenerato, inseriamo il codice qui
+                    "suggestion": f"1§ Consider changing the project's main license to adopt "
+                                  f"the license '{detected_license}' (or a compatible one) to resolve the conflict.\n"
+                                  f"2§ Look for an alternative component or a different library that implements the logic of "
+                                  f"'{file_path}' but is released under a license compatible with the project's current license."
+                                  f"\n3§ Here are some alternative compatible licenses you might consider: {licenses}",
+                    # If the file was regenerated, insert the code here
                     "licenses": licenses,
                     "regenerated_code_path": regenerated_map.get(issue["file_path"]),
                 })
@@ -141,12 +141,12 @@ def enrich_with_llm_suggestions(main_spdx : str, issues: List[Dict], regenerated
                     "detected_license": issue["detected_license"],
                     "compatible": issue["compatible"],
                     "reason": issue["reason"],
-                    "suggestion": f"1§ Valuta la possibilità di cambiare la licenza principale del progetto per adottare "
-                                  f"la licenza '{detected_license}' (o una compatibile), così da risolvere il conflitto.\n"
-                                  f"2§ Cerca un componente alternativo o una libreria diversa che implementi la logica di "
-                                  f"'{file_path}' ma che sia rilasciata con una licenza compatibile rispetto a quella attuale del progetto."
+                    "suggestion": f"1§ Consider changing the project's main license to adopt "
+                                  f"the license '{detected_license}' (or a compatible one) to resolve the conflict.\n"
+                                  f"2§ Look for an alternative component or a different library that implements the logic of "
+                                  f"'{file_path}' but is released under a license compatible with the project's current license."
                                   f"\n3§{suggestion}",
-                    # Se il file è stato rigenerato, inseriamo il codice qui
+                    # If the file was regenerated, insert the code here
                     "licenses": licenses,
                     "regenerated_code_path": regenerated_map.get(issue["file_path"]),
                 })

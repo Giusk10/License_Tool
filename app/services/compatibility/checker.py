@@ -1,22 +1,22 @@
 """
-Modulo `checker` — entry point pubblico per il controllo di compatibilità.
+Module `checker` — public entry point for compatibility checking.
 
-Funzione principale:
+Main function:
 - check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> dict
 
-Comportamento:
-- Normalizza la licenza principale
-- Carica la matrice professionale (tramite `matrix.get_matrix`)
-- Per ogni file, parse dell'espressione SPDX tramite `parser_spdx.parse_spdx`
-  e valutazione tramite `evaluator.eval_node`
-- Produce una lista di issue con i seguenti campi per ogni file:
-  - file_path: percorso del file
-  - detected_license: stringa dell'espressione rilevata
-  - compatible: booleano (True se esito finale è yes)
-  - reason: stringa con la trace dettagliata (utile per report + LLM)
+Behavior:
+- Normalizes the main license
+- Loads the professional matrix (via `matrix.get_matrix`)
+- For each file, parses the SPDX expression via `parser_spdx.parse_spdx`
+  and evaluates via `evaluator.eval_node`
+- Produces a list of issues with the following fields for each file:
+  - file_path: file path
+  - detected_license: detected expression string
+  - compatible: boolean (True if final outcome is yes)
+  - reason: string with detailed trace (useful for report + LLM)
 
-Nota: in caso di matrici non disponibili o licenza principale mancante, la funzione
-restituisce un set di issues con reason esplicativo.
+Note: in case of unavailable matrices or missing main license, the function
+returns a set of issues with explanatory reason.
 """
 
 from typing import Dict
@@ -37,7 +37,7 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> dic
                 "file_path": file_path,
                 "detected_license": license_expr,
                 "compatible": False,
-                "reason": "Licenza principale non rilevata o non valida (UNKNOWN/NOASSERTION/NONE)",
+                "reason": "Main license not detected or invalid (UNKNOWN/NOASSERTION/NONE)",
             })
         return {"main_license": main_license or "UNKNOWN", "issues": issues}
 
@@ -47,7 +47,7 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> dic
                 "file_path": file_path,
                 "detected_license": license_expr,
                 "compatible": False,
-                "reason": "Matrice professionale non disponibile o licenza principale non presente nella matrice",
+                "reason": "Professional matrix not available or main license not present in the matrix",
             })
         return {"main_license": main_license_n, "issues": issues}
 
@@ -65,7 +65,7 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> dic
         else:
             compatible = False
             hint = "conditional" if status == "conditional" else "unknown"
-            reason = "; ".join(trace) + f"; Esito: {hint}. Richiede verifica di conformità/manuale."
+            reason = "; ".join(trace) + f"; Outcome: {hint}. Requires compliance/manual verification."
 
         issues.append({
             "file_path": file_path,

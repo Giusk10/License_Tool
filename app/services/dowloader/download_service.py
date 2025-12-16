@@ -10,7 +10,7 @@ def perform_download(owner: str, repo: str) -> str:
     repo_path = os.path.join(CLONE_BASE_DIR, repo_dir_name)
 
     if not os.path.exists(repo_path):
-        raise ValueError(f"Repository non trovata in {repo_path}. Esegui prima la clonazione.")
+        raise ValueError(f"Repository not found at {repo_path}. Please clone it first.")
 
     # Definiamo il nome del file zip (senza estensione, shutil la aggiunge)
     zip_base_name = os.path.join(CLONE_BASE_DIR, f"{repo_dir_name}_download")

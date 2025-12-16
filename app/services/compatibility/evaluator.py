@@ -67,7 +67,7 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
     della valutazione (utile per report e debugging manuale).
     """
     if node is None:
-        return "unknown", ["Espressione mancante o non riconosciuta"]
+        return "unknown", ["Missing expression or not recognized"]
 
     if isinstance(node, Leaf):
         val = node.value
@@ -76,16 +76,16 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
             base = normalize_symbol(base)
             exc = exc.strip()
             status = _lookup_status(main_license, base)
-            reason = f"{base} (with exception: {exc}) → {status} rispetto a {main_license}"
+            reason = f"{base} (with exception: {exc}) → {status} with respect to {main_license}"
             if exc:
                 if status != "yes":
-                    reason += "; Nota: presenza di eccezione richiede verifica manuale sull'impatto dell'eccezione"
+                    reason += "; Note: exception presence requires manual verification on exception impact"
                 else:
-                    reason += "; Eccezione rilevata: verificare se l'eccezione altera la compatibilità"
+                    reason += "; Exception detected: verify if the exception alters compatibility"
             return status, [reason]
         else:
             status = _lookup_status(main_license, val)
-            reason = f"{val} → {status} rispetto a {main_license}"
+            reason = f"{val} → {status} with respect to {main_license}"
             return status, [reason]
 
     if isinstance(node, And):
@@ -94,7 +94,7 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
         combined = _combine_and(ls, rs)
 
         def _collect_leaves(n: Node) -> List[str]:
-            """Estrae le licenze base da un sotto-albero (rimuove la parte WITH se presente)."""
+            """Extracts base licenses from a sub-tree (removes the WITH part if present)."""
             vals: List[str] = []
             if isinstance(n, Leaf):
                 v = n.value
@@ -114,7 +114,7 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
         for L in left_leaves:
             for R in right_leaves:
                 st_lr = _lookup_status(L, R)
-                cross_checks.append(f"Compatibilità incrociata: {L} rispetto a {R} → {st_lr}")
+                cross_checks.append(f"Cross compatibility: {L} with respect to {R} → {st_lr}")
 
         trace = ltrace + rtrace + cross_checks
         return combined, trace
@@ -126,4 +126,4 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
         trace = ltrace + rtrace + [f"OR ⇒ {combined}"]
         return combined, trace
 
-    return "unknown", ["Nodo non riconosciuto"]
+    return "unknown", ["Unrecognized node"]

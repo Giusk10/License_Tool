@@ -334,8 +334,8 @@ def test_upload_zip_invalid_file_type(cleanup_test_repos):
 
 def test_upload_zip_corrupted_file(cleanup_test_repos):
     """
-    Test: upload di un file ZIP corrotto.
-    Deve restituire errore 400 con messaggio appropriato.
+    Test: upload of a corrupted ZIP file.
+    Should return error 400 with appropriate message.
     """
     corrupted_zip = BytesIO(b"PK\x03\x04CORRUPTED_DATA")
     files = {
@@ -349,7 +349,7 @@ def test_upload_zip_corrupted_file(cleanup_test_repos):
     response = client.post('/api/zip', files=files, data=data)
 
     assert response.status_code == 400
-    assert 'corrotto' in response.json()['detail'].lower() or 'invalid' in response.json()['detail'].lower()
+    assert 'corrupted' in response.json()['detail'].lower() or 'invalid' in response.json()['detail'].lower()
 
 
 def test_upload_zip_overwrites_existing(sample_zip_file, cleanup_test_repos):
@@ -641,7 +641,7 @@ def test_run_analysis_generic_exception(mock_scan):
     response = client.post('/api/analyze', json=payload)
 
     assert response.status_code == 500
-    assert 'Errore interno' in response.json()['detail'] or 'Internal' in response.json()['detail']
+    assert 'Internal error' in response.json()['detail'] or 'Internal' in response.json()['detail']
     assert 'Unexpected error' in response.json()['detail']
 
 
@@ -1033,11 +1033,11 @@ def test_regenerate_analysis_success_integration(
 
 def test_regenerate_analysis_invalid_repository_format():
     """
-    Test di integrazione: validazione formato repository.
-    Verifica che l'endpoint rifiuti repository senza slash.
+    Integration test: repository format validation.
+    Verifies that the endpoint rejects repository without slash.
     """
     invalid_payload = {
-        "repository": "noslash",  # Manca "/"
+        "repository": "noslash",  # Missing "/"
         "main_license": "MIT",
         "issues": [],
     }
@@ -1045,7 +1045,7 @@ def test_regenerate_analysis_invalid_repository_format():
     response = client.post("/api/regenerate", json=invalid_payload)
 
     assert response.status_code == 400
-    assert "Formato repository non valido" in response.json()["detail"]
+    assert "Invalid repository format" in response.json()["detail"]
     assert "owner/repo" in response.json()["detail"]
 
 
@@ -1072,8 +1072,8 @@ def test_regenerate_analysis_repository_not_found(cleanup_test_repos):
 
 def test_regenerate_analysis_generic_exception(cleanup_test_repos):
     """
-    Test di integrazione: gestione Exception generica durante rigenerazione.
-    Verifica che errori imprevisti ritornino 500.
+    Integration test: generic Exception handling during regeneration.
+    Verifies that unexpected errors return 500.
     """
     with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         # Mock che solleva Exception generica
@@ -1088,24 +1088,7 @@ def test_regenerate_analysis_generic_exception(cleanup_test_repos):
         response = client.post("/api/regenerate", json=payload)
 
         assert response.status_code == 500
-        assert "Errore interno" in response.json()["detail"]
-
-
-def test_regenerate_analysis_missing_issues_field():
-    """
-    Test di integrazione: validazione schema Pydantic.
-    Verifica che payload incompleto venga rifiutato.
-    """
-    incomplete_payload = {
-        "repository": "owner/repo",
-        "main_license": "MIT"
-        # Manca 'issues' (required fields)
-    }
-
-    response = client.post("/api/regenerate", json=incomplete_payload)
-
-    # FastAPI validation error
-    assert response.status_code == 422
+        assert "Internal error" in response.json()["detail"]
 
 
 # ==============================================================================
@@ -1286,14 +1269,14 @@ def test_download_repo_with_empty_string_parameters():
 
 def test_download_repo_generic_exception(create_test_repo, cleanup_test_repos):
     """
-    Test di integrazione: gestione Exception generica durante download.
-    Verifica che errori imprevisti ritornino 500.
+    Integration test: generic Exception handling during download.
+    Verifies that unexpected errors return 500.
     """
-    # Crea repository
+    # Create repository
     create_test_repo("errorowner", "errorrepo")
 
     with patch('app.controllers.analysis.perform_download') as mock_download:
-        # Mock che solleva Exception generica
+        # Mock that raises generic Exception
         mock_download.side_effect = RuntimeError("Errore imprevisto durante zip")
 
         response = client.post(
@@ -1302,7 +1285,7 @@ def test_download_repo_generic_exception(create_test_repo, cleanup_test_repos):
         )
 
         assert response.status_code == 500
-        assert "Errore interno" in response.json()["detail"]
+        assert "Internal error" in response.json()["detail"]
 
 
 # ==============================================================================

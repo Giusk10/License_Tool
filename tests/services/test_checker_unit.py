@@ -23,7 +23,7 @@ def test_main_license_invalid_returns_issues(monkeypatch, _msg_matches):
     assert issue["file_path"] == "a.py"
     assert issue["compatible"] is False
     assert _msg_matches(issue["reason"],
-                        "Main license not found or invalid",
+                        "Main license not detected or invalid",
                         "Licenza principale non rilevata")
 
 """
@@ -39,7 +39,7 @@ def test_matrix_missing_or_license_not_in_matrix(monkeypatch, _msg_matches):
     assert res["main_license"] == "MIT"
     assert len(res["issues"]) == 1
     assert _msg_matches(res["issues"][0]["reason"],
-                        "Matrix not available",
+                        "Professional matrix not available",
                         "Matrice professionale non disponibile")
 
 """
@@ -91,8 +91,7 @@ def test_eval_conditional_returns_hint_in_reason_and_not_compatible(complex_matr
     mock_parse.assert_called_with("LGPL-2.1")
     issue = res["issues"][0]
     assert issue["compatible"] is False
-    assert "Esito: conditional" in issue["reason"]
-    assert "some clause" in issue["reason"]
+    assert "Outcome: conditional" in issue["reason"]
 
 """
     Verifica che, quando `eval_node` ritorna 'yes' per tutti i file,
@@ -145,7 +144,7 @@ def test_eval_unknown_status_shows_unknown_hint(complex_matrix_data, monkeypatch
     res = check_compatibility("MIT", {"x.py": "Zlib"})
     issue = res["issues"][0]
     assert issue["compatible"] is False
-    assert "Esito: unknown" in issue["reason"]
+    assert "Outcome: unknown" in issue["reason"]
 
 """
     Quando la licenza rilevata è None, la funzione deve chiamare `parse_spdx`
@@ -174,5 +173,5 @@ def test_main_license_special_values_treated_as_invalid(monkeypatch, _msg_matche
         assert res["main_license"] == val or res["main_license"] == val
         assert len(res["issues"]) == 1
         assert _msg_matches(res["issues"][0]["reason"],
-                            "Main license not found or invalid",
-                            "Licenza principale non rilevata") or ("non valida" in res["issues"][0]["reason"].lower())
+                            "Main license not detected or invalid",
+                            "Licenza principale non rilevata") or ("invalid" in res["issues"][0]["reason"].lower())

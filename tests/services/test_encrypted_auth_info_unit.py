@@ -102,7 +102,7 @@ class TestGithubAuthCredentials:
         mock_client.close = MagicMock()
 
         with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
-             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
 
             result = github_auth_credentials("CLIENT_ID")
 
@@ -133,7 +133,7 @@ class TestGithubAuthCredentials:
         mock_client.close = MagicMock()
 
         with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
-             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
 
             result = github_auth_credentials("CLIENT_SECRET")
 
@@ -188,7 +188,7 @@ class TestGithubAuthCredentials:
         mock_client.close = MagicMock()
 
         with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
-             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
 
             result = github_auth_credentials("CLIENT_ID")
 
@@ -218,7 +218,7 @@ class TestGithubAuthCredentials:
         mock_client.close = MagicMock()
 
         with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
-             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
 
             result = github_auth_credentials("CLIENT_ID")
 
@@ -248,7 +248,7 @@ class TestGithubAuthCredentials:
         mock_client.close = MagicMock()
 
         with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
-             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
 
             result = github_auth_credentials("CLIENT_ID")
 
@@ -277,7 +277,7 @@ class TestGithubAuthCredentials:
         mock_client.close = MagicMock()
 
         with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
-             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
 
             github_auth_credentials("CLIENT_ID")
 
@@ -309,9 +309,9 @@ class TestGithubAuthCredentials:
         test_collection_name = "test_collection"
 
         with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
-             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key), \
-             patch("app.services.github.Encrypted_Auth_Info.DATABASE_NAME", test_db_name), \
-             patch("app.services.github.Encrypted_Auth_Info.COLLECTION_NAME", test_collection_name):
+                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key), \
+                patch("app.services.github.Encrypted_Auth_Info.DATABASE_NAME", test_db_name), \
+                patch("app.services.github.Encrypted_Auth_Info.COLLECTION_NAME", test_collection_name):
 
             github_auth_credentials("CLIENT_ID")
 
@@ -363,7 +363,7 @@ class TestGithubAuthCredentials:
         mock_client.close = MagicMock()
 
         with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
-             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
 
             result = github_auth_credentials("CLIENT_ID")
 
@@ -393,7 +393,7 @@ class TestGithubAuthCredentials:
         mock_client.close = MagicMock()
 
         with patch("app.services.github.Encrypted_Auth_Info.MongoClient", return_value=mock_client), \
-             patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
 
             result = github_auth_credentials("CLIENT_ID")
 

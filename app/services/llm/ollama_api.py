@@ -6,11 +6,11 @@ import time
 from app.utility.config import OLLAMA_URL, OLLAMA_GENERAL_MODEL, OLLAMA_HOST_VERSION, OLLAMA_CODING_MODEL, \
     OLLAMA_HOST_TAGS, MINIMAL_JSON_BASE_DIR
 
-# Controlla se il servizio Ollama risponde entro il timeout indicato.
+# Checks if the Ollama service responds within the specified timeout.
 def _is_ollama_running(timeout: float = 2.0) -> bool:
     """
-    Effettua una GET a `OLLAMA_HOST_VERSION` per verificare che l'API sia attiva.
-    Ritorna True se la richiesta va a buon fine, False altrimenti.
+    Performs a GET request to `OLLAMA_HOST_VERSION` to verify that the API is active.
+    Returns True if the request is successful, False otherwise.
     """
     try:
         requests.get(f"{OLLAMA_HOST_VERSION}", timeout=timeout)
@@ -18,19 +18,19 @@ def _is_ollama_running(timeout: float = 2.0) -> bool:
     except Exception:
         return False
 
-# Avvia il processo `ollama serve` in background e attende che l'API sia pronta.
+# Starts the `ollama serve` process in the background and waits for the API to be ready.
 def _start_ollama(wait_seconds: float = 10.0) -> bool:
     """
-    Avvia `ollama serve` in background (stdout/stderr silenziati).
-    Attende fino a `wait_seconds` che l'endpoint di versione risponda.
-    Ritorna True se il servizio è pronto, False altrimenti.
+    Starts `ollama serve` in the background (stdout/stderr silenced).
+    Waits up to `wait_seconds` for the version endpoint to respond.
+    Returns True if the service is ready, False otherwise.
     """
     try:
         subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         return False
 
-    # retry loop fino alla scadenza
+    # retry loop until deadline
     deadline = time.time() + wait_seconds
     while time.time() < deadline:
         if _is_ollama_running(1.0):
@@ -38,11 +38,11 @@ def _start_ollama(wait_seconds: float = 10.0) -> bool:
         time.sleep(0.5)
     return False
 
-# Verifica se un modello specifico è installato su Ollama.
+# Verifies if a specific model is installed on Ollama.
 def _is_model_installed(model_name: str) -> bool:
     """
-    Interroga `OLLAMA_HOST_TAGS` per ottenere la lista dei modelli installati.
-    Restituisce True se `model_name` è presente nella lista.
+    Queries `OLLAMA_HOST_TAGS` to get the list of installed models.
+    Returns True if `model_name` is present in the list.
     """
     try:
         res = requests.get(f"{OLLAMA_HOST_TAGS}", timeout=3).json()
@@ -51,34 +51,34 @@ def _is_model_installed(model_name: str) -> bool:
     except Exception:
         return False
 
-# Scarica un modello usando `ollama pull` e attende il completamento.
+# Downloads a model using `ollama pull` and waits for completion.
 def _pull_model(model_name: str, timeout: int = 600) -> None:
     """
-    Esegue `ollama pull MODEL_NAME` e attende (blocking) fino a `timeout` secondi.
-    Genera eccezione se il comando fallisce o scade il timeout.
+    Executes `ollama pull MODEL_NAME` and waits (blocking) up to `timeout` seconds.
+    Raises an exception if the command fails or the timeout expires.
     """
     p = subprocess.Popen(["ollama", "pull", model_name])
     p.wait(timeout=timeout)
 
-# Garantisce che Ollama sia in esecuzione e che il modello richiesto sia presente.
+# Ensures that Ollama is running and that the requested model is present.
 def ensure_ollama_ready(model_name: str, start_if_needed: bool = True, pull_if_needed: bool = True) -> None:
     """
-    Garantisce che Ollama sia in esecuzione e che il modello sia presente.
-    Lancia RuntimeError se non è possibile rendere l'ambiente pronto.
+    Ensures that Ollama is running and that the model is present.
+    Raises RuntimeError if the environment cannot be made ready.
     """
     if not _is_ollama_running():
         if not start_if_needed or not _start_ollama():
-            raise RuntimeError("Ollama non è in esecuzione e non è stato possibile avviarlo.")
+            raise RuntimeError("Ollama is not running and could not be started.")
     if not _is_model_installed(model_name):
         if not pull_if_needed:
-            raise RuntimeError(f"Modello {model_name} non installato.")
+            raise RuntimeError(f"Model {model_name} not installed.")
         _pull_model(model_name)
 
-# Chiamata sincrona semplice all'API Ollama per uso "coding".
+# Simple synchronous call to the Ollama API for "coding" use.
 def call_ollama_qwen3_coder(prompt: str) -> str:
     """
-    Effettua una chiamata POST a `OLLAMA_URL` usando il modello di coding.
-    Ritorna la chiave 'response' dal JSON di risposta o stringa vuota.
+    Performs a POST request to `OLLAMA_URL` using the coding model.
+    Returns the 'response' key from the response JSON or an empty string.
     """
     ensure_ollama_ready(model_name=OLLAMA_CODING_MODEL)
     payload = {
@@ -100,8 +100,8 @@ def call_ollama_qwen3_coder(prompt: str) -> str:
 
 def call_ollama_deepseek(prompt: str) -> str:
     """
-    Effettua una chiamata POST a `OLLAMA_URL` usando il modello generale.
-    Maggior timeout per risposte più lunghe.
+    Performs a POST request to `OLLAMA_URL` using the general model.
+    Higher timeout for longer responses.
     """
     ensure_ollama_ready(model_name=OLLAMA_GENERAL_MODEL)
     payload = {
@@ -113,7 +113,7 @@ def call_ollama_deepseek(prompt: str) -> str:
     resp.raise_for_status()
     data = resp.json()
 
-    # Assicura che la cartella esista e scrive il JSON minimale invece di leggerlo
+    # Ensures the folder exists and writes the minimal JSON instead of reading it
     os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)
     output_minimal = os.path.join(MINIMAL_JSON_BASE_DIR, "model_output.json")
 

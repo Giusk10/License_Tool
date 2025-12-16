@@ -1,16 +1,16 @@
 """
-Modulo `matrix` — caricamento e normalizzazione della matrice di compatibilità.
+Module `matrix` — loading and normalization of the compatibility matrix.
 
-Questo modulo cerca il file `matrixseqexpl.json` nello stesso package e lo trasforma
-in una mappa {main_license: {dep_license: status}} dove status è uno di
+This module looks for the `matrixseqexpl.json` file in the same package and transforms it
+into a map {main_license: {dep_license: status}} where status is one of
 "yes" | "no" | "conditional".
 
-Supporta diversi formati di input per essere robusto rispetto a versioni diverse
-della matrice (vecchio formato con chiave "matrix", nuova lista di entry, o
-struttura con chiave "licenses").
+It supports different input formats to be robust against different versions
+of the matrix (old format with "matrix" key, new list of entries, or
+structure with "licenses" key).
 
-La funzione pubblica principale è `get_matrix()` che restituisce la matrice già
-normalizzata (caricata una sola volta all'import).
+The main public function is `get_matrix()` which returns the already
+normalized matrix (loaded once at import).
 """
 
 import os
@@ -19,26 +19,26 @@ import logging
 from typing import Dict
 from .compat_utils import normalize_symbol
 
-# path relativo della matrice dentro lo stesso package
+# relative path of the matrix inside the same package
 _MATRIXSEQEXPL_PATH = os.path.join(os.path.dirname(__file__), "matrixseqexpl.json")
 
 logger = logging.getLogger(__name__)
 
 
 def _read_matrix_json() -> dict | None:
-    """Prova a leggere il file JSON dalla posizione filesystem, altrimenti
-    prova a caricarlo come risorsa del package (importlib.resources).
+    """Tries to read the JSON file from filesystem location, otherwise
+    tries to load it as a package resource (importlib.resources).
 
-    Restituisce il contenuto JSON come dict/list o None se non è disponibile.
+    Returns the JSON content as dict/list or None if not available.
     """
     try:
         if os.path.exists(_MATRIXSEQEXPL_PATH):
             with open(_MATRIXSEQEXPL_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
-        logger.exception("Errore leggendo %s dal filesystem", _MATRIXSEQEXPL_PATH)
+        logger.exception("Error reading %s from filesystem", _MATRIXSEQEXPL_PATH)
 
-    # Fallback: proviamo a caricare la risorsa dal package
+    # Fallback: try to load the resource from the package
     try:
         try:
             # Python 3.9+
@@ -48,7 +48,7 @@ def _read_matrix_json() -> dict | None:
 
         if resources is not None and __package__:
             try:
-                # importlib.resources.files è preferibile
+                # importlib.resources.files is preferred
                 files = getattr(resources, "files", None)
                 if files is not None:
                     text = files(__package__).joinpath("matrixseqexpl.json").read_text(encoding="utf-8")
@@ -57,20 +57,20 @@ def _read_matrix_json() -> dict | None:
                     text = resources.open_text(__package__, "matrixseqexpl.json").read()
                 return json.loads(text)
             except FileNotFoundError:
-                # risorsa non presente
+                # resource not present
                 return None
             except Exception:
-                logger.exception("Errore leggendo matrixseqexpl.json come risorsa di package %s", __package__)
+                logger.exception("Error reading matrixseqexpl.json as package resource %s", __package__)
                 return None
     except Exception:
-        # non vogliamo mai propagare eccezioni qui
-        logger.exception("Errore inatteso durante il fallback per la lettura della matrice")
+        # we never want to propagate exceptions here
+        logger.exception("Unexpected error during fallback for matrix reading")
 
     return None
 
 
 def _coerce_status(status_raw: str) -> str:
-    """Normalizza lo status proveniente dal file verso 'yes'|'no'|'conditional'|'unknown'."""
+    """Normalizes the status from the file to 'yes'|'no'|'conditional'|'unknown'."""
     if not isinstance(status_raw, str):
         return "unknown"
     s = status_raw.strip().lower()
@@ -85,15 +85,15 @@ def _coerce_status(status_raw: str) -> str:
 
 def load_professional_matrix() -> Dict[str, Dict[str, str]]:
     """
-    Carica e normalizza la matrice professionale in una mappa {main: {dep: status}}
+    Loads and normalizes the professional matrix into a map {main: {dep: status}}
     """
     try:
         data = _read_matrix_json()
         if not data:
-            logger.info("File matrixseqexpl.json non trovato o vuoto. Path cercato: %s", _MATRIXSEQEXPL_PATH)
+            logger.info("File matrixseqexpl.json not found or empty. Path searched: %s", _MATRIXSEQEXPL_PATH)
             return {}
 
-        # struttura old: {"matrix": {...}}
+        # old structure: {"matrix": {...}}
         if isinstance(data, dict) and "matrix" in data and isinstance(data["matrix"], dict):
             matrix = data["matrix"]
             normalized = {}
@@ -109,7 +109,7 @@ def load_professional_matrix() -> Dict[str, Dict[str, str]]:
             if normalized:
                 return normalized
 
-        # struttura nuova: lista di entry {name, compatibilities}
+        # new structure: list of entries {name, compatibilities}
         elif isinstance(data, list):
             normalized = {}
             for entry in data:
@@ -132,7 +132,7 @@ def load_professional_matrix() -> Dict[str, Dict[str, str]]:
             if normalized:
                 return normalized
 
-        # struttura con key 'licenses'
+        # structure with 'licenses' key
         elif isinstance(data, dict) and "licenses" in data and isinstance(data["licenses"], list):
             normalized = {}
             for entry in data["licenses"]:
@@ -156,17 +156,17 @@ def load_professional_matrix() -> Dict[str, Dict[str, str]]:
                 return normalized
 
     except Exception:
-        logger.exception("Errore durante la normalizzazione della matrice di compatibilità")
+        logger.exception("Error during compatibility matrix normalization")
     return {}
 
 
-# carica una sola volta
+# load once
 _PRO_MATRIX = load_professional_matrix()
 
 
 def get_matrix() -> Dict[str, Dict[str, str]]:
     """
-    Restituisce la matrice normalizzata (può essere vuota se il file non è presente).
+    Returns the normalized matrix (may be empty if the file is not present).
     """
     return _PRO_MATRIX
 
