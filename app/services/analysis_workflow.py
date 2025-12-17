@@ -25,7 +25,7 @@ def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
     clone_result = clone_repo(owner, repo, oauth_token)
     if not clone_result.success:
         raise ValueError(f"Errore clonazione: {clone_result.error}")
-    
+
     return clone_result.repo_path
 
 def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
@@ -98,13 +98,13 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     """
     # Ricostruiamo il path (assumendo che la repo sia lì)
     repo_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
-    
+
     if not os.path.exists(repo_path):
         raise ValueError(f"Repository not found at {repo_path}. Please clone it first.")
 
     # 2) Esegui ScanCode
     scan_raw = run_scancode(repo_path)
-    
+
 
     # 3) Main License
     main_license, path_license = detect_main_license_scancode(scan_raw)
@@ -113,10 +113,10 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     llm_clean = filter_licenses(scan_raw, main_license, path_license)
     file_licenses = extract_file_licenses(llm_clean)
 
-# 5) Compatibilità (Prima Passata)
+    # 5) Compatibilità (Prima Passata)
     compatibility = check_compatibility(main_license, file_licenses)
 
-# 6) Suggerimenti AI (senza rigenerazione per ora)
+    # 6) Suggerimenti AI (senza rigenerazione per ora)
     # Passiamo una mappa vuota perché non abbiamo ancora rigenerato nulla
     enriched_issues = enrich_with_llm_suggestions(main_license, compatibility["issues"], {})
 
