@@ -17,7 +17,6 @@ from app.utility.config import CLONE_BASE_DIR
 from app.services.llm.code_generator import regenerate_code
 import os
 
-
 def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
     """
     Esegue SOLO la clonazione del repository.
@@ -26,9 +25,8 @@ def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
     clone_result = clone_repo(owner, repo, oauth_token)
     if not clone_result.success:
         raise ValueError(f"Errore clonazione: {clone_result.error}")
-
+    
     return clone_result.repo_path
-
 
 def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
     """
@@ -94,19 +92,19 @@ def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
 
     return os.path.abspath(target_dir)
 
-
 def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     """
     Esegue la scansione su una repo GIÀ clonata (da perform_cloning).
     """
     # Ricostruiamo il path (assumendo che la repo sia lì)
     repo_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
-
+    
     if not os.path.exists(repo_path):
         raise ValueError(f"Repository not found at {repo_path}. Please clone it first.")
 
     # 2) Esegui ScanCode
     scan_raw = run_scancode(repo_path)
+    
 
     # 3) Main License
     main_license, path_license = detect_main_license_scancode(scan_raw)
@@ -115,10 +113,10 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     llm_clean = filter_licenses(scan_raw, main_license, path_license)
     file_licenses = extract_file_licenses(llm_clean)
 
-    # 5) Compatibilità (Prima Passata)
+# 5) Compatibilità (Prima Passata)
     compatibility = check_compatibility(main_license, file_licenses)
 
-    # 6) Suggerimenti AI (senza rigenerazione per ora)
+# 6) Suggerimenti AI (senza rigenerazione per ora)
     # Passiamo una mappa vuota perché non abbiamo ancora rigenerato nulla
     enriched_issues = enrich_with_llm_suggestions(main_license, compatibility["issues"], {})
 
@@ -143,7 +141,6 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
         main_license=main_license,
         issues=license_issue_models,
     )
-
 
 def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeResponse) -> AnalyzeResponse:
     """
@@ -198,7 +195,7 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
                         code_content=original_content,
                         main_license=main_license,
                         detected_license=issue.detected_license,
-                        licenses=issue.licenses
+                        licenses= issue.licenses
                     )
 
                     if new_code and len(new_code.strip()) > 10:
@@ -218,7 +215,7 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
             print("Re-running post-regeneration scan...")
             scan_raw = run_scancode(repo_path)
 
-            main_license, path = detect_main_license_scancode(scan_raw)  # Main license non dovrebbe cambiare
+            main_license, path = detect_main_license_scancode(scan_raw) # Main license non dovrebbe cambiare
 
             llm_clean = filter_licenses(scan_raw, main_license, path)
 
