@@ -28,7 +28,6 @@ def test_perform_cloning_failure():
         with pytest.raises(ValueError, match="Errore clonazione: Repo not found"):
             perform_cloning("owner", "repo", "token")
 
-
 # --- TESTS PER PERFORM_UPLOAD_ZIP ---
 
 def test_perform_upload_zip_invalid_extension():
