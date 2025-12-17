@@ -20,6 +20,19 @@ import app.services.scanner.filter as filter_module
 
 # --- FIXTURES ---
 
+@pytest.fixture(autouse=True)
+def setup_filter_test_env():
+    """
+    Configura l'ambiente per tutti i test di questo modulo.
+    1. Imposta MINIMAL_JSON_BASE_DIR a un valore fittizio.
+    2. Mocka os.makedirs per evitare errori su Windows (WinError 3) e
+       impedire la creazione di cartelle reali durante i test.
+    """
+    with patch("app.services.scanner.filter.MINIMAL_JSON_BASE_DIR", "/mock/dir"), \
+            patch("os.makedirs"):
+        yield
+
+
 @pytest.fixture
 def mock_scancode_data():
     """Dati di esempio grezzi da Scancode."""
@@ -96,11 +109,13 @@ def mock_rules_json():
 
 def test_build_minimal_json(mock_scancode_data):
     """Testa la creazione standard del JSON minimale."""
+    # Mockiamo di nuovo os.makedirs localmente per poter fare l'assert sulla chiamata
     with patch("builtins.open", mock_open()) as mocked_file, \
-            patch("os.makedirs") as mock_makedirs, \
-            patch("app.services.scanner.filter.MINIMAL_JSON_BASE_DIR", "/tmp/test"):
+            patch("os.makedirs") as mock_makedirs:
         result = build_minimal_json(mock_scancode_data)
-        mock_makedirs.assert_called_with("/tmp/test", exist_ok=True)
+
+        # Verifica che usi il path fittizio definito nella fixture autouse
+        mock_makedirs.assert_called_with("/mock/dir", exist_ok=True)
 
         files = result["files"]
         assert len(files) == 2
@@ -130,8 +145,7 @@ def test_build_minimal_json_edge_cases():
         ]
     }
     with patch("builtins.open", mock_open()), \
-            patch("os.makedirs"), \
-            patch("app.services.scanner.filter.MINIMAL_JSON_BASE_DIR", "/tmp"):
+            patch("os.makedirs"):
         res = build_minimal_json(data)
         assert len(res["files"]) == 0
 
@@ -360,26 +374,29 @@ def test_regex_filter_changelog_discard(mock_rules_json):
 def test_regex_filter_globals_fallback(mock_rules_json):
     """
     Testa il fallback di globals().get('MINIMAL_JSON_BASE_DIR', './output').
-    Rimuoviamo temporaneamente la variabile dal modulo per forzare l'uso del default.
     """
+    # Salviamo il valore corrente (che sarà quello della fixture: /mock/dir)
     original_var = getattr(filter_module, 'MINIMAL_JSON_BASE_DIR', None)
 
+    # Cancelliamo l'attributo per forzare l'uso del default nel codice './output'
     if hasattr(filter_module, 'MINIMAL_JSON_BASE_DIR'):
         delattr(filter_module, 'MINIMAL_JSON_BASE_DIR')
 
     data = {"files": []}
 
     try:
+        # Mockiamo nuovamente os.makedirs per intercettare la chiamata specifica
         with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
                 patch("os.path.exists", return_value=True), \
                 patch("os.makedirs") as mock_makedirs:
 
             regex_filter(data, False)
+            # Verifica che usi il default './output' hardcodato nella funzione
             mock_makedirs.assert_called_with("./output", exist_ok=True)
 
     finally:
-        if original_var is not None:
-            setattr(filter_module, 'MINIMAL_JSON_BASE_DIR', original_var)
+        # CORREZIONE: Ripristina SEMPRE l'attributo
+        setattr(filter_module, 'MINIMAL_JSON_BASE_DIR', original_var)
 
 
 # --- TEST UNITARI: check_license_spdx_duplicates ---
@@ -424,9 +441,8 @@ def test_check_license_spdx_duplicates_deduplication():
 def test_filter_licenses_integration(mock_scancode_data, mock_rules_json):
     """Testa il flusso completo."""
     with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
-            patch("os.path.exists", return_value=True), \
-            patch("os.makedirs"), \
-            patch("app.services.scanner.filter.MINIMAL_JSON_BASE_DIR", "/tmp/test"):
+            patch("os.path.exists", return_value=True):
+        # Non serve patchare os.makedirs qui, ci pensa la fixture autouse
         result = filter_licenses(mock_scancode_data, main_spdx="UNKNOWN", path="")
         assert len(result["files"]) == 1
         assert result["files"][0]["path"] == "file1.py"
@@ -435,8 +451,6 @@ def test_filter_licenses_integration(mock_scancode_data, mock_rules_json):
 def test_filter_licenses_integration_with_main_detected(mock_scancode_data, mock_rules_json):
     """Testa il flusso quando viene passato un main_spdx valido."""
     with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
-            patch("os.path.exists", return_value=True), \
-            patch("os.makedirs"), \
-            patch("app.services.scanner.filter.MINIMAL_JSON_BASE_DIR", "/tmp/test"):
+            patch("os.path.exists", return_value=True):
         result = filter_licenses(mock_scancode_data, main_spdx="Apache-2.0", path="dummy")
         assert len(result["files"]) == 1
