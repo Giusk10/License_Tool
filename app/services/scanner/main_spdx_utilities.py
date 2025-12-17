@@ -37,25 +37,23 @@ def _extract_first_valid_spdx(entry: Dict[str, Any]) -> Optional[Tuple[str, str]
 
     return None
 
-def _pick_best_spdx(entries: List[Dict[str, Any]]) -> Optional[Tuple[str, str]]:
-    """
-    Ordina i file più vicini alla root (minore profondità del path) e
-    ritorna la prima licenza SPDX valida trovata.
 
-    Ritorna: (spdx_expression, path) o None.
-    """
+def _pick_best_spdx(entries: List[Dict[str, Any]]) -> Optional[Tuple[str, str]]:
     if not entries:
         return None
 
-    # Ordina: usa la profondità del path (conteggio degli "/") come chiave
-    # Più basso è il conteggio, più vicino è alla root.
-    sorted_entries = sorted(entries, key=lambda e: (e.get("path", "") or "").count("/"))
+    valid_entries = [entry for entry in entries if isinstance(entry, dict)]
+    if not valid_entries:
+        return None
+
+    sorted_entries = sorted(
+        valid_entries,
+        key=lambda e: (e.get("path", "") or "").count("/")
+    )
 
     for entry in sorted_entries:
         res = _extract_first_valid_spdx(entry)
         if res:
-            # res è già una tupla (spdx, path)
             return res
 
     return None
-
