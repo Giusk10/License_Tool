@@ -606,7 +606,7 @@ def test_run_analysis_repository_not_found():
     response = client.post('/api/analyze', json=payload)
 
     assert response.status_code == 400
-    assert 'non trovata' in response.json()['detail'].lower() or 'couldn\'t find' in response.json()['detail'].lower()
+    assert 'non trovata' in response.json()['detail'].lower() or 'not found' in response.json()['detail'].lower()
 
 
 def test_run_analysis_with_special_characters_in_params():
