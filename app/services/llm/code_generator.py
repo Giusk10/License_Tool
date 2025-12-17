@@ -1,3 +1,8 @@
+"""
+This module interacts with the LLM (Ollama) to rewrite source code that violates
+license compatibility.
+"""
+
 from typing import Optional
 from app.services.llm.ollama_api import call_ollama_qwen3_coder  # if you want to make it public, move it
 
@@ -8,7 +13,22 @@ def regenerate_code(
     licenses: str
 ) -> Optional[str]:
     """
-    Asks Ollama to regenerate a code block with a compatible license.
+    Requests the LLM to regenerate a code block under a compatible license.
+
+    The prompt instructs the model to:
+    1. Analyze the original code and its incompatible license.
+    2. Rewrite the logic to be functionally equivalent but compliant with the `main_license`
+       (preferring permissive licenses like MIT/Apache-2.0 if possible).
+    3. Ensure no original restricted code (strong copyleft) is verbatim copied if it violates terms.
+
+    Args:
+        code_content (str): The original source code that violates license compatibility.
+        main_license (str): The primary license of the project (e.g., "MIT", "Apache-2.0").
+        detected_license (str): The license detected in the original code (e.g., "GPL-3.0").
+        language (str): The programming language of the code snippet (default is "python").
+
+    Returns:
+        Optional[str]: The clean, extracted source code string, or None if generation fails.
     """
     prompt = (
         f"You are a software licensing and refactoring expert. "
@@ -24,8 +44,8 @@ def regenerate_code(
         response = call_ollama_qwen3_coder(prompt)
         if not response:
             return None
-            
-        # Clean Markdown if present
+
+        # Clean up the response to remove markdown formatting if present
         clean_response = response.strip()
         if clean_response.startswith("```"):
             # Remove the first line (```python or similar)
@@ -33,7 +53,7 @@ def regenerate_code(
             # Remove the last line (```)
             if clean_response.endswith("```"):
                 clean_response = clean_response.rsplit("\n", 1)[0]
-        
+
         return clean_response.strip()
     except Exception:
         return None

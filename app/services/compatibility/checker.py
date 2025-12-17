@@ -1,9 +1,11 @@
 """
-Module `checker` — public entry point for compatibility checking.
+This module provides the public interface for verifying license compatibility.
 
-Main function:
-- check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> dict
-
+Main Responsibility:
+- Orchestrates the normalization of the main license.
+- Loads the compatibility matrix.
+- Parses SPDX expressions for each file into an evaluation tree.
+- Evaluates the tree against the matrix to determine compliance.
 Behavior:
 - Normalizes the main license
 - Loads the professional matrix (via `matrix.get_matrix`)
@@ -27,6 +29,24 @@ from .matrix import get_matrix
 
 
 def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> dict:
+    """
+    Evaluates the compatibility of file-level licenses against the main project license.
+
+    Process:
+    1. Normalizes the main license symbol.
+    2. Retrieves the compatibility matrix.
+    3. Iterates over each file's license expression:
+       - Parses the SPDX string into a logical tree (Node).
+       - Evaluates the tree using `eval_node` to get a status (yes/no/conditional) and a trace.
+
+    Args:
+        main_license (str): The main license symbol of the project.
+        file_licenses (Dict[str, str]): A dictionary mapping file paths to their detected license expressions.
+
+    Returns:
+        dict: A dictionary containing the normalized main license and a list of 'issues'
+              (compatibility results for each file).
+    """
     issues = []
     main_license_n = normalize_symbol(main_license)
     matrix = get_matrix()

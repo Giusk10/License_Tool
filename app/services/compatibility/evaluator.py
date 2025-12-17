@@ -1,20 +1,14 @@
 """
-Modulo `evaluator` — valutazione ricorsiva dell'albero SPDX.
+This module implements a recursive evaluation engine for SPDX license trees.
+It uses a Tri-State logic (Yes | No | Conditional/Unknown) to determine compatibility.
 
-Questo modulo implementa la valutazione tri-stato (Tri = "yes" | "no" | "conditional" | "unknown")
-contro la matrice professionale fornita dal modulo `matrix`.
-
-Comportamento chiave:
-- Leaf: se il valore contiene "WITH" viene considerata la licenza base per il lookup
-  (l'eccezione viene annotata nella trace).
-- AND: valuta i due rami e combina gli esiti con una regola conservativa; inoltre esegue
-  controlli incrociati tra le leaves dei due rami (L->R e R->L) per rilevare incompatibilità
-  reciproche.
-- OR: se almeno un ramo è 'yes' allora il risultato finale è 'yes', altrimenti se entrambi
-  sono 'no' restituisce 'no', altrimenti 'conditional'.
-
-La funzione pubblica principale è `eval_node(main_license, node)` che restituisce
-una tupla (stato, traccia) dove traccia è una lista di stringhe descrittive per report.
+Key Logic:
+- **Leaf Nodes**: Looked up directly in the compatibility matrix. Exceptions (WITH clause)
+  are noted in the trace.
+- **AND Operators**: Evaluated conservatively. Both branches must be compatible.
+  Cross-checks between left and right branches are performed to detect mutual incompatibilities.
+- **OR Operators**: Evaluated such that if at least one branch is compatible,
+  the result is compatible.
 """
 
 from typing import List, Optional, Tuple
@@ -26,7 +20,10 @@ Tri = str
 
 
 def _lookup_status(main_license: str, dep_license: str) -> Tri:
-    """Effettua il lookup della compatibilità nella matrice considerata (tri-state)."""
+    """
+    Looks up the compatibility status of `dep_license` against `main_license`
+    in the compatibility matrix.
+    """
     matrix = get_matrix()
     if not matrix:
         return "unknown"
@@ -42,7 +39,9 @@ def _lookup_status(main_license: str, dep_license: str) -> Tri:
 
 
 def _combine_and(a: Tri, b: Tri) -> Tri:
-    """Combina due risultati tri-stato per l'operatore AND usando una regola conservativa."""
+    """
+    Combines two results for the AND operator (conservative rule).
+    """
     if a == "no" or b == "no":
         return "no"
     if a == "yes" and b == "yes":
@@ -51,7 +50,9 @@ def _combine_and(a: Tri, b: Tri) -> Tri:
 
 
 def _combine_or(a: Tri, b: Tri) -> Tri:
-    """Combina due risultati per l'operatore OR (regola conservativa)."""
+    """
+    Combines two results for the OR operator (conservative rule).
+    """
     if a == "yes" or b == "yes":
         return "yes"
     if a == "no" and b == "no":
@@ -61,10 +62,13 @@ def _combine_or(a: Tri, b: Tri) -> Tri:
 
 def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
     """
-    Valuta ricorsivamente `node` rispetto alla licenza principale `main_license`.
+    Recursively evaluates an SPDX node against the `main_license`.
 
-    Restituisce (status, trace) dove trace è una lista di stringhe che spiegano i passaggi
-    della valutazione (utile per report e debugging manuale).
+    Returns:
+        Tuple[Tri, List[str]]:
+            - Tri: The status ("yes", "no", "conditional", "unknown").
+            - List[str]: A trace of strings explaining the derivation of the result,
+              useful for reporting and debugging.
     """
     if node is None:
         return "unknown", ["Missing expression or not recognized"]
@@ -94,7 +98,9 @@ def eval_node(main_license: str, node: Optional[Node]) -> Tuple[Tri, List[str]]:
         combined = _combine_and(ls, rs)
 
         def _collect_leaves(n: Node) -> List[str]:
-            """Extracts base licenses from a sub-tree (removes the WITH part if present)."""
+            """
+            Extracts all leaf license values from a subtree (removes WITH parts).
+            """
             vals: List[str] = []
             if isinstance(n, Leaf):
                 v = n.value

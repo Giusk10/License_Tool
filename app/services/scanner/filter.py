@@ -1,3 +1,8 @@
+"""
+This module handles the interaction with the ScanCode Toolkit CLI for raw license detection
+and implements a post-processing layer using an LLM to filter false positives.
+"""
+
 import os
 import json
 import re
@@ -5,8 +10,10 @@ from app.utility.config import MINIMAL_JSON_BASE_DIR
 
 def filter_licenses(scancode_data: dict, main_spdx: str, path: str) -> dict:
     """
-    Filters ScanCode results using an LLM to remove
-    false positives based on the detected license text.
+    Filters ScanCode results using an LLM to remove false positives.
+
+    It constructs a minimal JSON representation of the file matches and asks the LLM
+    to validate the 'matched_text' against known license patterns.
     """
     minimal = build_minimal_json(scancode_data)
     #print(json.dumps(minimal, indent=4))
@@ -23,13 +30,13 @@ def filter_licenses(scancode_data: dict, main_spdx: str, path: str) -> dict:
 
 def build_minimal_json(scancode_data: dict) -> dict:
     """
-    Builds a minimal JSON grouped by file.
+    Builds a minimal JSON structure from the ScanCode data.
     Instead of using the global 'license_detections' list (which requires the LLM to group),
-    we directly iterate over files and collect their matches.
+    we iterate directly over files and collect their matches.
     """
     minimal = {"files": []}
 
-    # Iterate over files (already filtered by _remove_main_license_from_scancode)
+    # Iterate over files (which have already been filtered by remove_main_license)
     for file_entry in scancode_data.get("files", []):
         path = file_entry.get("path")
         legal = file_entry.get("is_legal")

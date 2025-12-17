@@ -6,11 +6,10 @@ into a map {main_license: {dep_license: status}} where status is one of
 "yes" | "no" | "conditional".
 
 It supports different input formats to be robust against different versions
-of the matrix (old format with "matrix" key, new list of entries, or
-structure with "licenses" key).
+of the matrix (old format with "matrix" key, new list of entries, or structure with "licenses" key).
 
-The main public function is `get_matrix()` which returns the already
-normalized matrix (loaded once at import).
+The main public function is `get_matrix()`, which returns the matrix already
+normalized (loaded once at import).
 """
 
 import os
@@ -19,26 +18,27 @@ import logging
 from typing import Dict
 from .compat_utils import normalize_symbol
 
-# relative path of the matrix inside the same package
+# Relative path to the matrix file within the package
 _MATRIXSEQEXPL_PATH = os.path.join(os.path.dirname(__file__), "matrixseqexpl.json")
 
 logger = logging.getLogger(__name__)
 
 
 def _read_matrix_json() -> dict | None:
-    """Tries to read the JSON file from filesystem location, otherwise
+    """
+    Attempts to read the JSON file from the filesystem location; otherwise,
     tries to load it as a package resource (importlib.resources).
 
-    Returns the JSON content as dict/list or None if not available.
+    Returns the JSON content as dict/list or None if unavailable.
     """
     try:
         if os.path.exists(_MATRIXSEQEXPL_PATH):
             with open(_MATRIXSEQEXPL_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
-        logger.exception("Error reading %s from filesystem", _MATRIXSEQEXPL_PATH)
+        logger.exception("An error occurred trying to read %s from filesystem", _MATRIXSEQEXPL_PATH)
 
-    # Fallback: try to load the resource from the package
+    # Fallback: try loading the resource from the package
     try:
         try:
             # Python 3.9+
@@ -70,7 +70,9 @@ def _read_matrix_json() -> dict | None:
 
 
 def _coerce_status(status_raw: str) -> str:
-    """Normalizes the status from the file to 'yes'|'no'|'conditional'|'unknown'."""
+    """
+    Normalizes the status from the file to 'yes'|'no'|'conditional'|'unknown'.
+    """
     if not isinstance(status_raw, str):
         return "unknown"
     s = status_raw.strip().lower()
@@ -85,7 +87,7 @@ def _coerce_status(status_raw: str) -> str:
 
 def load_professional_matrix() -> Dict[str, Dict[str, str]]:
     """
-    Loads and normalizes the professional matrix into a map {main: {dep: status}}
+    Loads and normalizes the professional matrix into a map {main: {dep: status}}.
     """
     try:
         data = _read_matrix_json()
@@ -160,7 +162,7 @@ def load_professional_matrix() -> Dict[str, Dict[str, str]]:
     return {}
 
 
-# load once
+# Load only once
 _PRO_MATRIX = load_professional_matrix()
 
 
