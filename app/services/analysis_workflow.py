@@ -232,11 +232,11 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
             # Per coerenza, se non cambia nulla, teniamo quelle di prima ma convertite in dict se serve
             # Ma qui sotto ci aspettiamo di dover chiamare enrich_with_llm_suggestions che vuole LISTA DI DICT
             # Quindi convertiamo i Pydantic in dict
-            current_issues_dicts = [i.dict() for i in previous_analysis.issues]
+            current_issues_dicts = [i.model_dump() for i in previous_analysis.issues]
 
     else:
         # Nessun file da rigenerare
-        current_issues_dicts = [i.dict() for i in previous_analysis.issues]
+        current_issues_dicts = [i.model_dump() for i in previous_analysis.issues]
 
     # 6) Suggerimenti AI (con mappa rigenerati)
     # enrich_with_llm_suggestions si aspetta una lista di DICT
