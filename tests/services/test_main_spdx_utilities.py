@@ -1,6 +1,32 @@
 # tests/services/scanner/test_main_spdx_utilities.py
-
 from app.services.scanner import main_spdx_utilities as util
+
+def test_extract_skips_invalid_spdx_values_before_falling_back():
+    entry = {
+        "path": "dist/LICENSE",
+        "detected_license_expression_spdx": "UNKNOWN",
+        "license_detections": [
+            {"license_expression_spdx": ""},
+            {"license_expression_spdx": "MPL-2.0"}
+        ],
+        "licenses": [{"spdx_license_key": "Apache-2.0"}]
+    }
+    assert util._extract_first_valid_spdx(entry) == ("MPL-2.0", "dist/LICENSE")
+
+
+def test_pick_best_returns_none_for_empty_entries():
+    assert util._pick_best_spdx([]) is None
+    assert util._pick_best_spdx(None) is None
+
+
+def test_pick_best_skips_non_mapping_entries():
+    entries = [
+        None,
+        "not-a-dict",
+        {"path": "LICENSE", "licenses": [{"spdx_license_key": "Apache-2.0"}]},
+        {"path": "components/lib/LICENSE", "detected_license_expression_spdx": "MIT"}
+    ]
+    assert util._pick_best_spdx(entries) == ("Apache-2.0", "LICENSE")
 
 
 def test_is_valid_filters_none_empty_unknown():
@@ -44,11 +70,13 @@ def test_extract_returns_none_for_invalid_entry():
     assert util._extract_first_valid_spdx("not-a-dict") is None
     assert util._extract_first_valid_spdx({"path": "file"}) is None
 
+
 def test_extract_returns_empty_path_when_missing():
     entry = {
         "detected_license_expression_spdx": "CC0-1.0"
     }
     assert util._extract_first_valid_spdx(entry) == ("CC0-1.0", "")
+
 
 def test_extract_prefers_detected_expression_over_other_fields():
     entry = {
@@ -58,7 +86,6 @@ def test_extract_prefers_detected_expression_over_other_fields():
         "licenses": [{"spdx_license_key": "Apache-2.0"}]
     }
     assert util._extract_first_valid_spdx(entry) == ("AGPL-3.0-only", "component/LICENSE")
-
 
 
 def test_pick_best_prefers_shallow_path():
@@ -103,3 +130,4 @@ def test_pick_best_keeps_order_for_same_depth():
         {"path": "B", "detected_license_expression_spdx": "LGPL-3.0"}
     ]
     assert util._pick_best_spdx(entries) == ("EPL-2.0", "A")
+from app.services.scanner import main_spdx_utilities as util
