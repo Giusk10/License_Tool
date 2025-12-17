@@ -19,7 +19,7 @@ def start_analysis(owner: str, repo: str):
     Esempio: /api/auth/start?owner=facebook&repo=react
     """
     # Impacchettiamo i due dati in una stringa unica per il viaggio
-    state_data = f"{owner}:{repo}"
+    state_data = f"{owner.strip()}:{repo.strip()}"
 
     # Recupera le credenziali GitHub
     GITHUB_CLIENT_ID = github_auth_credentials("CLIENT_ID")
@@ -57,12 +57,12 @@ async def auth_callback(code: str, state: str):
         async with httpx.AsyncClient() as client:
             # 2. Otteniamo il Token dell'utente che sta facendo la richiesta
             token_resp = await client.post(
-            "https://github.com/login/oauth/access_token",
-            json={
-                "client_id": GITHUB_CLIENT_ID,
-                "client_secret": GITHUB_CLIENT_SECRET,
-                "code": code
-            },
+                "https://github.com/login/oauth/access_token",
+                json={
+                    "client_id": GITHUB_CLIENT_ID,
+                    "client_secret": GITHUB_CLIENT_SECRET,
+                    "code": code
+                },
                 headers={"Accept": "application/json"}
             )
             token_data = token_resp.json()
