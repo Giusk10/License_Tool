@@ -266,11 +266,11 @@ def perform_regeneration(owner: str, repo: str, previous_analysis: AnalyzeRespon
         else:
             # If no files were actually regenerated, keep previous issues
             # We convert Pydantic models back to dicts for consistency with the enrichment function
-            current_issues_dicts = [i.dict() for i in previous_analysis.issues]
+            current_issues_dicts = [i.model_dump() for i in previous_analysis.issues]
 
     else:
         # If no incompatible files were found, keep previous issues
-        current_issues_dicts = [i.dict() for i in previous_analysis.issues]
+        current_issues_dicts = [i.model_dump() for i in previous_analysis.issues]
 
     # 6) Suggerimenti AI (con mappa rigenerati)
     # enrich_with_llm_suggestions si aspetta una lista di DICT
