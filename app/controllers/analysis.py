@@ -19,7 +19,7 @@ def start_analysis(owner: str, repo: str):
     Esempio: /api/auth/start?owner=facebook&repo=react
     """
     # Impacchettiamo i due dati in una stringa unica per il viaggio
-    state_data = f"{owner}:{repo}"
+    state_data = f"{owner.strip()}:{repo.strip()}"
 
     # Recupera le credenziali GitHub
     GITHUB_CLIENT_ID = github_auth_credentials("CLIENT_ID")
