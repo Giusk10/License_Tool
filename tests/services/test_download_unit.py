@@ -52,7 +52,7 @@ class TestPerformDownload:
             assert os.path.exists(os.path.join(extracted_repo_path, "test.txt"))
 
     def test_perform_download_repository_not_found(self, tmp_path):
-        """Test che solleva ValueError quando il repository non esiste"""
+        """Test that raises ValueError when the repository does not exist"""
         clone_base_dir = str(tmp_path / "clones")
         os.makedirs(clone_base_dir, exist_ok=True)
 
@@ -63,7 +63,7 @@ class TestPerformDownload:
             with pytest.raises(ValueError) as exc_info:
                 perform_download(owner, repo)
 
-            expected_error = f"Repository non trovata in {os.path.join(clone_base_dir, f'{owner}_{repo}')}. Esegui prima la clonazione."
+            expected_error = f"Repository not found at {os.path.join(clone_base_dir, f'{owner}_{repo}')}. Please clone it first."
             assert str(exc_info.value) == expected_error
 
     def test_perform_download_creates_zip_with_correct_name(self, tmp_path):

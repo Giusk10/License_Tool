@@ -62,8 +62,8 @@ def run_scancode(repo_path: str) -> dict:
         repo_path,
     ])
 
-    print(f"🚀 Avvio ScanCode su: {repo_name}")
-    print(f"📂 Output su: {output_file}")
+    print(f"🚀 Starting ScanCode on: {repo_name}")
+    print(f"📂 Output file: {output_file}")
 
     # ⬇ Stampa in tempo reale (NO capture_output)
     process = subprocess.Popen(cmd)
@@ -73,13 +73,13 @@ def run_scancode(repo_path: str) -> dict:
 
     # Gestione errori secondo le regole reali di ScanCode
     if returncode > 1:
-        raise RuntimeError(f"Errore ScanCode (exit {returncode})")
+        raise RuntimeError(f"ScanCode error (exit {returncode})")
 
     if returncode == 1:
-        print("⚠ ScanCode ha completato con errori non fatali (exit 1).")
+        print("⚠ ScanCode completed with non-fatal errors (exit 1).")
 
     if not os.path.exists(output_file):
-        raise RuntimeError("ScanCode non ha generato il file JSON")
+        raise RuntimeError("ScanCode did not generate the JSON file")
 
     # 1. Carica il JSON generato
     with open(output_file, "r", encoding="utf-8") as f:
@@ -93,7 +93,7 @@ def run_scancode(repo_path: str) -> dict:
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(scancode_data, f, indent=4, ensure_ascii=False)
 
-    print("✅ ScanCode completato e JSON processato.")
+    print("✅ ScanCode completed and JSON processed.")
 
     # 3. Ritorna i dati modificati
     return scancode_data

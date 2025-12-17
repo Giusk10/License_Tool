@@ -3,61 +3,61 @@ import os
 from unittest.mock import patch
 
 """
-Helper condivisi per i test: funzioni di utilità (es. _msg_matches) e fixture comuni.
-- `_msg_matches` fixture helper per confronto lingua-indipendente
-- `_default_patches` autouse fixture che imposta patch di default per
-  `normalize_symbol` e `get_matrix` nei moduli principali della compatibilità
-  per ridurre duplicazione nei test.
-- fixture `MockNode`, `MockLeaf`, `MockAnd`, `MockOr` che forniscono classi
-  mock riutilizzabili nelle suite di test.
+Shared helpers for tests: utility functions (e.g., _msg_matches) and common fixtures.
+- `_msg_matches` fixture helper for language-independent comparison
+- `_default_patches` autouse fixture that sets default patches for
+  `normalize_symbol` and `get_matrix` in the main compatibility modules
+  to reduce duplication in tests.
+- fixtures `MockNode`, `MockLeaf`, `MockAnd`, `MockOr` that provide
+  reusable mock classes in test suites.
 """
 
 def msg_matches_helper(s: str, en: str, it: str) -> bool:
     """
-    Restituisce True se `s` contiene la variante inglese `en` oppure italiana `it`.
-    Evita duplicazione dell'helper in più file di test.
+    Returns True if `s` contains the English variant `en` or Italian variant `it`.
+    Avoids duplicating the helper across multiple test files.
     """
     if s is None:
         return False
     return (en in s) or (it in s)
 
-# Rende disponibile la funzione come fixture opzionale
+# Makes the function available as an optional fixture
 @pytest.fixture
 def _msg_matches():
     return msg_matches_helper
 
 
-# Autouse fixture: patch di default per normalize_symbol/get_matrix in moduli target
+# Autouse fixture: default patches for normalize_symbol/get_matrix in target modules
 @pytest.fixture(autouse=True)
 def _default_patches(monkeypatch, complex_matrix_data):
     """
-    Applica patch di default per le funzioni di normalizzazione e per la
-    funzione `get_matrix` usata dal codice (restituisce `complex_matrix_data`).
+    Applies default patches for normalization functions and for the
+    `get_matrix` function used by the code (returns `complex_matrix_data`).
 
-    I test possono sovrascrivere questi patch localmente quando necessario.
+    Tests can override these patches locally when needed.
     """
-    # Default normalize: identity/strip per evitare ripetizione
+    # Default normalize: identity/strip to avoid repetition
     monkeypatch.setattr("app.services.compatibility.evaluator.normalize_symbol", lambda s: s.strip() if isinstance(s, str) else s)
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: s.strip() if isinstance(s, str) else s)
     monkeypatch.setattr("app.services.compatibility.parser_spdx.normalize_symbol", lambda s: s.strip() if isinstance(s, str) else s)
 
-    # Default get_matrix: restituisce la fixture complex_matrix_data
+    # Default get_matrix: returns the complex_matrix_data fixture
     monkeypatch.setattr("app.services.compatibility.evaluator.get_matrix", lambda: complex_matrix_data)
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: complex_matrix_data)
 
     yield
 
 
-# 1. Mock delle variabili d'ambiente (Session Scope: eseguito una volta sola)
+# 1. Mock environment variables (Session Scope: executed only once)
 @pytest.fixture(scope="session", autouse=True)
 def mock_env_vars():
-    """Imposta variabili d'ambiente fittizie per evitare errori di configurazione."""
+    """Sets dummy environment variables to avoid configuration errors."""
     with patch.dict(os.environ, {
         "GITHUB_CLIENT_ID": "test_id",
         "GITHUB_CLIENT_SECRET": "test_secret",
         "CALLBACK_URL": "http://localhost:8000/callback",
         "OLLAMA_HOST": "http://mock-ollama:11434",
-        # Imposta variabili critiche per Pydantic Settings
+        # Set critical variables for Pydantic Settings
         "OLLAMA_URL": "http://mock-ollama:11434",
         "OLLAMA_CODING_MODEL": "test-model",
         "OLLAMA_GENERAL_MODEL": "test-model",
@@ -66,7 +66,7 @@ def mock_env_vars():
         "SCANCODE_BIN": "scancode",
         "CLONE_BASE_DIR": "./test_clones",
         "OUTPUT_BASE_DIR": "./test_output",
-        # Variabili per MongoDB e encryption
+        # Variables for MongoDB and encryption
         "MONGO_URI": "mongodb://test:27017",
         "DATABASE_NAME": "test_db",
         "COLLECTION_NAME": "test_collection",
@@ -75,30 +75,30 @@ def mock_env_vars():
         yield
 
 
-# Patch diretto delle variabili nel modulo config (autouse per applicarlo a tutti i test)
+# Direct patch of variables in config module (autouse to apply to all tests)
 @pytest.fixture(autouse=True)
 def patch_config_variables(tmp_path):
     """
-    Patch diretto delle variabili di configurazione nel modulo config e in tutti
-    i moduli che le importano direttamente.
-    Questo è necessario perché config.py carica le variabili d'ambiente all'import,
-    prima che mock_env_vars possa intervenire.
+    Direct patch of configuration variables in the config module and in all
+    modules that import them directly.
+    This is necessary because config.py loads environment variables at import,
+    before mock_env_vars can intervene.
     """
     test_clone_dir = str(tmp_path / "test_clones")
     test_output_dir = str(tmp_path / "test_output")
 
-    # Crea le directory di test
+    # Create test directories
     os.makedirs(test_clone_dir, exist_ok=True)
     os.makedirs(test_output_dir, exist_ok=True)
 
-    # Configurazioni MongoDB e encryption per i test
+    # MongoDB and encryption configurations for tests
     test_mongo_uri = "mongodb://test:27017"
     test_db_name = "test_db"
     test_collection_name = "test_collection"
     from cryptography.fernet import Fernet
     test_encryption_key = Fernet.generate_key()
 
-    # Patch in tutti i moduli che importano CLONE_BASE_DIR direttamente
+    # Patch in all modules that import CLONE_BASE_DIR directly
     with patch("app.utility.config.CLONE_BASE_DIR", test_clone_dir), \
          patch("app.utility.config.OUTPUT_BASE_DIR", test_output_dir), \
          patch("app.utility.config.MONGO_URI", test_mongo_uri), \
@@ -115,31 +115,31 @@ def patch_config_variables(tmp_path):
          patch("app.services.dowloader.download_service.CLONE_BASE_DIR", test_clone_dir):
         yield test_clone_dir
 
-# 2. Mock della Matrice di Compatibilità (Dati puri)
+# 2. Mock Compatibility Matrix (Pure Data)
 @pytest.fixture
 def complex_matrix_data():
     """
-    Restituisce un dizionario che simula la matrice JSON.
-    Copre le casistiche: YES, NO, CONDITIONAL.
+    Returns a dictionary that simulates the JSON matrix.
+    Covers the cases: YES, NO, CONDITIONAL.
     """
     return {
         "MIT": {
             "MIT": "yes",
             "Apache-2.0": "yes",
-            "GPL-3.0": "no",            # MIT è permissiva, ma se includi GPL diventa GPL
+            "GPL-3.0": "no",            # MIT is permissive, but if you include GPL it becomes GPL
             "GPL-3.0-or-later": "no",
             "LGPL-2.1": "conditional",
             "Proprietary": "no"
         },
         "GPL-3.0": {
-            "MIT": "yes",               # GPL può includere MIT
+            "MIT": "yes",               # GPL can include MIT
             "GPL-3.0": "yes",
-            "Apache-2.0": "no",         # Spesso incompatibili v2 vs v3, mettiamo NO per test
+            "Apache-2.0": "no",         # Often incompatible v2 vs v3, set NO for test
             "Proprietary": "no"
         }
     }
 
-# 3. Mock node classes come fixture per riuso
+# 3. Mock node classes as fixtures for reuse
 @pytest.fixture
 def MockNode():
     from app.services.compatibility import parser_spdx

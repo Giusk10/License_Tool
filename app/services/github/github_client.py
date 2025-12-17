@@ -53,4 +53,4 @@ def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
         safe_error = str(e).replace(oauth_token, "***")
         return CloneResult(success=False, error=safe_error)
     except OSError as e:
-        return CloneResult(success=False, error=f"Errore filesystem: {e}")
+        return CloneResult(success=False, error=f"Filesystem error: {e}")

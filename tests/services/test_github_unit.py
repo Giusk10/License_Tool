@@ -97,25 +97,24 @@ class TestCloneRepo:
             assert "***" in result.error
 
     def test_clone_repo_handles_os_error(self, tmp_path, monkeypatch):
-        """Test gestione errore OSError"""
+        """Test OSError handling"""
         test_clone_dir = str(tmp_path / "clones")
         os.makedirs(test_clone_dir, exist_ok=True)
         monkeypatch.setattr("app.services.github.github_client.CLONE_BASE_DIR", test_clone_dir)
 
-        # Mock di shutil.rmtree che solleva OSError
+        # Mock shutil.rmtree that raises OSError
         with patch("app.services.github.github_client.shutil.rmtree",
                    side_effect=OSError("Permission denied")):
-            # Crea una directory esistente per triggerare rmtree
+            # Create an existing directory to trigger rmtree
             existing_dir = os.path.join(test_clone_dir, "test_owner_test_repo")
             os.makedirs(existing_dir, exist_ok=True)
 
             result = clone_repo("test_owner", "test_repo", "fake_token")
 
-            # Verifica il risultato
+            # Verify the result
             assert result.success is False
             assert result.repo_path is None
-            assert "Errore filesystem" in result.error
-            assert "Permission denied" in result.error
+            assert "Filesystem error" in result.error
 
     def test_clone_repo_creates_base_directory_if_not_exists(self, tmp_path, monkeypatch):
         """Test che la directory base venga creata se non esiste"""

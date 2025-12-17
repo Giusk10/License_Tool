@@ -47,7 +47,7 @@ async def auth_callback(code: str, state: str):
     try:
         target_owner, target_repo = state.split(":")
     except ValueError:
-        raise HTTPException(status_code=400, detail="Stato non valido. Formato atteso 'owner:repo'")
+        raise HTTPException(status_code=400, detail="Invalid state. Expected format 'owner:repo'")
 
     # Recupera le credenziali GitHub
     GITHUB_CLIENT_ID = github_auth_credentials("CLIENT_ID")
@@ -94,14 +94,14 @@ async def auth_callback(code: str, state: str):
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 # ------------------------------------------------------------------
 # 2.1 ZIP: Endpoint per testare lo zip (opzionale)
 # ------------------------------------------------------------------
 @router.post("/zip")
 def upload_zip(
-        # Form(...) è obbligatorio quando si usa File(...) nello stesso endpoint
+        # Form(...) is required when using File(...) in the same endpoint
         owner: str = Form(...),
         repo: str = Form(...),
         uploaded_file: UploadFile = File(...)
@@ -121,32 +121,32 @@ def upload_zip(
         }
 
     except HTTPException:
-        # Se perform_upload_zip lancia già un 400 o 500 specifico,
-        # lo rilanciamo così com'è senza modificarlo.
+        # If perform_upload_zip already throws a specific 400 or 500,
+        # we re-raise it as-is without modification.
         raise
 
     except ValueError as ve:
-        # Se il service lancia ValueError (non gestito come HTTP), diventa un 400
+        # If the service throws ValueError (not handled as HTTP), it becomes a 400
         raise HTTPException(status_code=400, detail=str(ve))
 
     except Exception as e:
-        # Solo gli errori imprevisti diventano 500
-        print(f"Errore critico in upload_zip: {e}") # Logga l'errore vero per debug
-        raise HTTPException(status_code=500, detail=f"Errore interno imprevisto: {str(e)}")
+        # Only unexpected errors become 500
+        print(f"Critical Error in upload_zip: {e}") # Logga l'errore vero per debug
+        raise HTTPException(status_code=500, detail=f"Internal Error: {str(e)}")
 # ------------------------------------------------------------------
-# 3. ANALYZE: Endpoint per lanciare l'analisi (dopo clonazione)
+# 3. ANALYZE: Endpoint for running the analysis (after cloning)
 # ------------------------------------------------------------------
 @router.post("/analyze", response_model=AnalyzeResponse)
 def run_analysis(payload: dict = Body(...)):
     """
-    Esegue l'analisi su una repo già clonata.
-    Payload atteso: {"owner": "...", "repo": "..."}
+    Runs the analysis on an already cloned repo.
+    Expected payload: {"owner": "...", "repo": "..."}
     """
     owner = payload.get("owner")
     repo = payload.get("repo")
 
     if not owner or not repo:
-        raise HTTPException(status_code=400, detail="Owner e Repo obbligatori")
+        raise HTTPException(status_code=400, detail="Owner and Repo are required")
 
     try:
         result = perform_initial_scan(owner=owner, repo=repo)
@@ -154,21 +154,21 @@ def run_analysis(payload: dict = Body(...)):
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 # ------------------------------------------------------------------
-# 4. REGENERATE: Endpoint per lanciare la rigenerazione
+# 4. REGENERATE: Endpoint for running regeneration
 # ------------------------------------------------------------------
 @router.post("/regenerate", response_model=AnalyzeResponse)
 def regenerate_analysis(previous_analysis: AnalyzeResponse = Body(...)):
     """
-    Lancia la rigenerazione su una repo già clonata.
-    Riceve il risultato della scansione precedente (AnalyzeResponse) per evitare di rifarla.
+    Runs regeneration on an already cloned repo.
+    Receives the previous scan result (AnalyzeResponse) to avoid re-scanning.
     """
     try:
-        # Estraiamo owner e repo dalla stringa "owner/repo"
+        # Extract owner and repo from the "owner/repo" string
         if "/" not in previous_analysis.repository:
-            raise ValueError("Formato repository non valido. Atteso 'owner/repo'")
+            raise ValueError("Invalid repository format. Expected 'owner/repo'")
 
         owner, repo = previous_analysis.repository.split("/", 1)
 
@@ -177,28 +177,28 @@ def regenerate_analysis(previous_analysis: AnalyzeResponse = Body(...)):
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
 # ------------------------------------------------------------------
-# 5. DOWNLOAD: Endpoint per scaricare lo zip della repo
+# 5. DOWNLOAD: Endpoint to download the repo zip
 # ------------------------------------------------------------------
 @router.post("/download")
 def download_repo(payload: dict = Body(...)):
     """
-    Scarica lo zip della repository clonata.
-    Payload atteso: {"owner": "...", "repo": "..."}
+    Downloads the zip of the cloned repository.
+    Expected payload: {"owner": "...", "repo": "..."}
     """
     owner = payload.get("owner")
     repo = payload.get("repo")
 
     if not owner or not repo:
-        raise HTTPException(status_code=400, detail="Owner e Repo obbligatori")
+        raise HTTPException(status_code=400, detail="Owner and Repo are required")
 
     try:
         zip_path = perform_download(owner=owner, repo=repo)
 
-        # Ritorniamo il file. filename imposta il nome del file scaricato dal browser
+        # Return the file. filename sets the name of the downloaded file in the browser
         return FileResponse(
             path=zip_path,
             filename=f"{owner}_{repo}.zip",
@@ -207,4 +207,4 @@ def download_repo(payload: dict = Body(...)):
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

@@ -6,10 +6,11 @@ into a map {main_license: {dep_license: status}} where status is one of
 "yes" | "no" | "conditional".
 
 It supports different input formats to be robust against different versions
-of the matrix (old format with "matrix" key, new list of entries, or structure with "licenses" key).
+of the matrix (old format with "matrix" key, new list of entries, or
+structure with "licenses" key).
 
-The main public function is `get_matrix()`, which returns the matrix already
-normalized (loaded once at import).
+The main public function is `get_matrix()` which returns the already
+normalized matrix (loaded once at import).
 """
 
 import os
@@ -18,27 +19,26 @@ import logging
 from typing import Dict
 from .compat_utils import normalize_symbol
 
-# Relative path to the matrix file within the package
+# relative path of the matrix inside the same package
 _MATRIXSEQEXPL_PATH = os.path.join(os.path.dirname(__file__), "matrixseqexpl.json")
 
 logger = logging.getLogger(__name__)
 
 
 def _read_matrix_json() -> dict | None:
-    """
-    Attempts to read the JSON file from the filesystem location; otherwise,
+    """Tries to read the JSON file from filesystem location, otherwise
     tries to load it as a package resource (importlib.resources).
 
-    Returns the JSON content as dict/list or None if unavailable.
+    Returns the JSON content as dict/list or None if not available.
     """
     try:
         if os.path.exists(_MATRIXSEQEXPL_PATH):
             with open(_MATRIXSEQEXPL_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
-        logger.exception("An error occurred trying to read %s from filesystem", _MATRIXSEQEXPL_PATH)
+        logger.exception("Error reading %s from filesystem", _MATRIXSEQEXPL_PATH)
 
-    # Fallback: try loading the resource from the package
+    # Fallback: try to load the resource from the package
     try:
         try:
             # Python 3.9+
@@ -60,7 +60,7 @@ def _read_matrix_json() -> dict | None:
                 # resource not present
                 return None
             except Exception:
-                logger.exception("An error occurred trying to read matrixseqexpl.json as a resource for package %s", __package__)
+                logger.exception("Error reading matrixseqexpl.json as package resource %s", __package__)
                 return None
     except Exception:
         # we never want to propagate exceptions here
@@ -70,9 +70,7 @@ def _read_matrix_json() -> dict | None:
 
 
 def _coerce_status(status_raw: str) -> str:
-    """
-    Normalizes the status from the file to 'yes'|'no'|'conditional'|'unknown'.
-    """
+    """Normalizes the status from the file to 'yes'|'no'|'conditional'|'unknown'."""
     if not isinstance(status_raw, str):
         return "unknown"
     s = status_raw.strip().lower()
@@ -87,12 +85,12 @@ def _coerce_status(status_raw: str) -> str:
 
 def load_professional_matrix() -> Dict[str, Dict[str, str]]:
     """
-    Loads and normalizes the professional matrix into a map {main: {dep: status}}.
+    Loads and normalizes the professional matrix into a map {main: {dep: status}}
     """
     try:
         data = _read_matrix_json()
         if not data:
-            logger.info("File matrixseqexpl.json not found or empty. Searched path: %s", _MATRIXSEQEXPL_PATH)
+            logger.info("File matrixseqexpl.json not found or empty. Path searched: %s", _MATRIXSEQEXPL_PATH)
             return {}
 
         # old structure: {"matrix": {...}}
@@ -158,17 +156,17 @@ def load_professional_matrix() -> Dict[str, Dict[str, str]]:
                 return normalized
 
     except Exception:
-        logger.exception("An error occurred during the normalization of the compatibility matrix")
+        logger.exception("Error during compatibility matrix normalization")
     return {}
 
 
-# Load only once
+# load once
 _PRO_MATRIX = load_professional_matrix()
 
 
 def get_matrix() -> Dict[str, Dict[str, str]]:
     """
-    Returns the normalized matrix (can be empty if the file is not present).
+    Returns the normalized matrix (may be empty if the file is not present).
     """
     return _PRO_MATRIX
 

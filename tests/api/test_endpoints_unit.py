@@ -155,10 +155,10 @@ async def test_auth_callback_network_error(mock_env_credentials, mock_httpx_clie
 
 
 def test_auth_callback_invalid_state():
-    """Testa formato stato non valido."""
+    """Tests invalid state format."""
     response = client.get("/api/callback", params={"code": "123", "state": "invalid_format"})
     assert response.status_code == 400
-    assert "Stato non valido" in response.json()["detail"]
+    assert "Invalid state" in response.json()["detail"]
 
 
 # ==================================================================================
@@ -229,13 +229,13 @@ def test_analyze_success_correct_schema(mock_scan):
 
 
 def test_analyze_internal_error(mock_scan):
-    """Se il servizio di scansione esplode, API torna 500."""
+    """If the scan service crashes, API returns 500."""
     mock_scan.side_effect = Exception("Database error")
 
     response = client.post("/api/analyze", json={"owner": "u", "repo": "r"})
 
     assert response.status_code == 500
-    assert "Errore interno" in response.json()["detail"]
+    assert "Internal error" in response.json()["detail"]
 
 
 # ==================================================================================
@@ -363,10 +363,10 @@ async def test_callback_with_token_verification(mock_creds, mock_httpx_post, moc
 
 
 def test_callback_invalid_state_no_slash():
-    """Errore se lo stato non ha i due punti."""
+    """Error if state does not have colon."""
     response = client.get("/api/callback", params={"code": "123", "state": "invalid_state"})
     assert response.status_code == 400
-    assert "Stato non valido" in response.json()["detail"]
+    assert "Invalid state" in response.json()["detail"]
 
 
 def test_analyze_with_schema_validation(mock_scan):
@@ -428,7 +428,7 @@ def test_regenerate_with_payload_validation(mock_regen):
 
 
 def test_regenerate_invalid_format():
-    """Input valido per schema, ma repository senza slash."""
+    """Valid input for schema, but repository without slash."""
     payload = {
         "repository": "noslash",
         "main_license": "N/A",
@@ -437,7 +437,7 @@ def test_regenerate_invalid_format():
     response = client.post("/api/regenerate", json=payload)
 
     assert response.status_code == 400
-    assert "Formato repository non valido" in response.json()["detail"]
+    assert "Invalid repository format" in response.json()["detail"]
 
 
 def test_download_zip_success(mock_download, tmp_path):
@@ -476,4 +476,3 @@ def test_upload_zip_with_file_validation(mock_upload_zip, tmp_path):
 
     assert response.status_code == 200
     assert response.json()["status"] == "cloned_from_zip"
-
