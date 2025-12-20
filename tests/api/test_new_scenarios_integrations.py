@@ -8,7 +8,7 @@ from app.main import app
 from app.services.github.Encrypted_Auth_Info import github_auth_credentials
 from app.services.analysis_workflow import perform_regeneration
 from app.models.schemas import AnalyzeResponse, LicenseIssue
-from app.services.dowloader.download_service import perform_download
+from app.services.downloader.download_service import perform_download
 
 
 @pytest.fixture

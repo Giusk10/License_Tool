@@ -18,7 +18,7 @@ from app.services.analysis_workflow import (
     perform_regeneration,
     perform_upload_zip
 )
-from app.services.dowloader.download_service import perform_download
+from app.services.downloader.download_service import perform_download
 from app.models.schemas import AnalyzeResponse
 from app.services.github.Encrypted_Auth_Info import github_auth_credentials
 
