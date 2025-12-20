@@ -4,7 +4,7 @@ test: services/github/github_client.py
 import os
 from unittest.mock import patch, MagicMock
 from git import GitCommandError
-from app.services.github.github_client import clone_repo, handle_remove_readonly
+from app.services.github.github_client import clone_repo, _handle_remove_readonly
 
 
 class TestHandleRemoveReadonly:
@@ -23,7 +23,7 @@ class TestHandleRemoveReadonly:
         mock_func = MagicMock()
 
         # Chiama handle_remove_readonly
-        handle_remove_readonly(mock_func, str(test_file), None)
+        _handle_remove_readonly(mock_func, str(test_file), None)
 
         # Verifica che la funzione sia stata chiamata con il path
         mock_func.assert_called_once_with(str(test_file))
