@@ -1,20 +1,20 @@
+default_install_hook_types: [pre-commit, pre-push]
+
 repos:
   - repo: local
     hooks:
+      # Pylint: gira ad ogni commit (pre-commit è il default)
       - id: pylint
         name: pylint
         entry: pylint
         language: system
         types: [python]
-        # Esegue pylint solo sulla cartella 'app'
-        # Se hai configurato [tool.pylint.main] nel toml, puoi rimuovere 'app' da qui
         args: ["app", "--errors-only"]
 
-  # (Opzionale ma consigliato) Altri check rapidi standard
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: trailing-whitespace   # Rimuove spazi inutili a fine riga
-      - id: end-of-file-fixer     # Assicura che ci sia una riga vuota alla fine
-      - id: check-yaml            # Controlla se i file YAML sono validi
-      - id: check-added-large-files # Evita di committare file giganti per errore
+      # Pytest: gira SOLO quando fai 'git push'
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
