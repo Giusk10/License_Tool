@@ -1,0 +1,20 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        # Esegue pylint solo sulla cartella 'app'
+        # Se hai configurato [tool.pylint.main] nel toml, puoi rimuovere 'app' da qui
+        args: ["app", "--errors-only"]
+
+  # (Opzionale ma consigliato) Altri check rapidi standard
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace   # Rimuove spazi inutili a fine riga
+      - id: end-of-file-fixer     # Assicura che ci sia una riga vuota alla fine
+      - id: check-yaml            # Controlla se i file YAML sono validi
+      - id: check-added-large-files # Evita di committare file giganti per errore

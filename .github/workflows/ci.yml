@@ -49,7 +49,7 @@ jobs:
 
       - name: Esegui Pylint (Solo Errori)
         # --errors-only: Blocca solo su errori gravi
-        run: pylint app --errors-only
+        run: pylint app
 
   build-frontend:
     runs-on: ubuntu-latest
