@@ -9,6 +9,7 @@ repos:
         entry: pylint
         language: system
         types: [python]
+        exclude: ^tests/
         args: ["app", "--errors-only"]
 
       # Pytest: gira SOLO quando fai 'git push'
