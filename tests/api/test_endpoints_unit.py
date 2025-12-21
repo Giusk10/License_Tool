@@ -272,7 +272,7 @@ def test_regenerate_bad_repo_string(mock_regen):
         "repository": "invalid-string",
         "main_license": "MIT",
         "issues": [],
-        "regenerated_report_path": "path"
+        "report_path": "path"
     }
 
     response = client.post("/api/regenerate", json=payload)
