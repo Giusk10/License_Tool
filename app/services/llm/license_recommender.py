@@ -153,8 +153,8 @@ Respond ONLY with the JSON object, nothing else."""
             "alternatives": ["Apache-2.0", "BSD-3-Clause"]
         }
 
-#def needs_license_suggestion(main_license: str, issues: List[Dict]) -> bool:
-def needs_license_suggestion(main_license: str) -> bool:
+
+def needs_license_suggestion(main_license: str, issues: List[Dict]) -> bool:
     """
     Determines if a license suggestion is needed based on analysis results.
 
@@ -174,10 +174,10 @@ def needs_license_suggestion(main_license: str) -> bool:
         return True
 
     # Case 2: Check for unknown licenses in files
-    #for issue in issues:
+    for issue in issues:
         detected = issue.get("detected_license", "").lower()
         if "unknown" in detected or detected in ["none", ""]:
-            return True
+            return False
 
     return False
 
