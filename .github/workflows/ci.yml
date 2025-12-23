@@ -11,27 +11,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Scarica il codice
       - name: Checkout del codice
         uses: actions/checkout@v4
 
-      # 2. Prepara Python
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: 'pip'
 
-      # 3. Installa il tuo progetto + pytest
-      # (Legge tutto dal tuo pyproject.toml aggiornato)
       - name: Installa progetto e dipendenze
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
 
-      # 4. Lancia i test
       - name: Esegui Pytest
         run: pytest
+
+  static-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del codice
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: 'pip'
+
+      - name: Installa dipendenze
+        # Installa tutte le dipendenze dev definite nel pyproject.toml
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Esegui Pylint (Solo Errori)
+        # --errors-only: Blocca solo su errori gravi
+        run: pylint app
 
   build-frontend:
     runs-on: ubuntu-latest

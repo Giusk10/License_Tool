@@ -1,111 +1,178 @@
-# app/api/analysis.py
+"""
+Analysis Controller Module.
+
+This module manages the API endpoints for repository analysis.
+It includes functionality for GitHub OAuth authentication, repository cloning,
+ZIP file uploads, license analysis execution, and report regeneration.
+"""
+
+from typing import Dict
 import httpx
 from fastapi import APIRouter, HTTPException, Body, UploadFile, Form, File
 from fastapi.responses import RedirectResponse, FileResponse
+
 from app.utility.config import CALLBACK_URL
-from app.services.analysis_workflow import perform_cloning, perform_initial_scan, perform_regeneration, perform_upload_zip
-from app.services.dowloader.download_service import perform_download
+from app.services.analysis_workflow import (
+    perform_cloning,
+    perform_initial_scan,
+    perform_regeneration,
+    perform_upload_zip
+)
+from app.services.downloader.download_service import perform_download
 from app.models.schemas import AnalyzeResponse
 from app.services.github.Encrypted_Auth_Info import github_auth_credentials
 
 router = APIRouter()
 
+
 # ------------------------------------------------------------------
-# 1. START: Qui inserisci OWNER e REPO (come facevi nel JSON)
+# 1. AUTHENTICATION FLOW
 # ------------------------------------------------------------------
+
 @router.get("/auth/start")
-def start_analysis(owner: str, repo: str):
+def start_analysis(owner: str, repo: str) -> RedirectResponse:
     """
-    Esempio: /api/auth/start?owner=facebook&repo=react
+    Initiates the OAuth authentication flow with GitHub.
+
+    Constructs the GitHub authorization URL using the client ID and requested
+    repository details, then redirects the user to GitHub to approve access.
+
+    Args:
+        owner (str): The username or organization name of the repository owner.
+        repo (str): The name of the repository.
+
+    Returns:
+        RedirectResponse: A redirection to the GitHub OAuth login page.
     """
-    # Impacchettiamo i due dati in una stringa unica per il viaggio
+    # Pack data into a single string to pass through the OAuth 'state' parameter
     state_data = f"{owner.strip()}:{repo.strip()}"
 
-    # Recupera le credenziali GitHub
-    GITHUB_CLIENT_ID = github_auth_credentials("CLIENT_ID")
-
-    scope = "repo" # Serve 'repo' anche per leggere repo pubbliche senza limiti severi
+    github_client_id = github_auth_credentials("CLIENT_ID")
+    scope = "repo"  # 'repo' scope is needed even for public repos to avoid rate limits
 
     github_url = (
         f"https://github.com/login/oauth/authorize"
-        f"?client_id={GITHUB_CLIENT_ID}"
+        f"?client_id={github_client_id}"
         f"&redirect_uri={CALLBACK_URL}"
         f"&scope={scope}"
-        f"&state={state_data}"  # <--- Qui viaggiano owner e repo insieme
+        f"&state={state_data}"
     )
     return RedirectResponse(github_url)
 
-# ------------------------------------------------------------------
-# 2. CALLBACK: GitHub torna qui dopo il login
-# ------------------------------------------------------------------
+
 @router.get("/callback")
-async def auth_callback(code: str, state: str):
+async def auth_callback(code: str, state: str) -> Dict[str, str]:
     """
-    Riceve il codice e lo stato (che contiene "owner:repo").
+    Handles the GitHub OAuth callback.
+
+    Exchanges the temporary authorization code for an access token, then
+    triggers the cloning of the specified repository.
+
+    Args:
+        code (str): The temporary authorization code returned by GitHub.
+        state (str): The state parameter containing "owner:repo" passed during initiation.
+
+    Returns:
+        Dict[str, str]: A dictionary containing the cloning status and local path details.
+
+    Raises:
+        HTTPException:
+            - 400: If the state format is invalid or token exchange fails.
+            - 502/503: If there are communication errors with GitHub.
+            - 500: For generic internal server errors during cloning.
     """
-    # 1. SPACCHETTIAMO i dati originali
+    # 1. Unpack original data
     try:
         target_owner, target_repo = state.split(":")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid state. Expected format 'owner:repo'")
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid state. Expected format 'owner:repo'"
+        ) from exc
 
-    # Recupera le credenziali GitHub
-    GITHUB_CLIENT_ID = github_auth_credentials("CLIENT_ID")
-    GITHUB_CLIENT_SECRET = github_auth_credentials("CLIENT_SECRET")
+    github_client_id = github_auth_credentials("CLIENT_ID")
+    github_client_secret = github_auth_credentials("CLIENT_SECRET")
 
+    # 2. Exchange Code for Access Token
     try:
         async with httpx.AsyncClient() as client:
-            # 2. Otteniamo il Token dell'utente che sta facendo la richiesta
             token_resp = await client.post(
-            "https://github.com/login/oauth/access_token",
-            json={
-                "client_id": GITHUB_CLIENT_ID,
-                "client_secret": GITHUB_CLIENT_SECRET,
-                "code": code
-            },
+                "https://github.com/login/oauth/access_token",
+                json={
+                    "client_id": github_client_id,
+                    "client_secret": github_client_secret,
+                    "code": code
+                },
                 headers={"Accept": "application/json"}
             )
             token_data = token_resp.json()
             access_token = token_data.get("access_token")
 
         if not access_token:
-            print(f"DEBUG: Token exchange failed. Response: {token_data}")
-            raise HTTPException(status_code=400, detail=f"Failed login: couldn't get token. From GitHub: {token_data.get('error_description', token_data)}")
-    except httpx.RequestError as exc:
-        raise HTTPException(status_code=503, detail=f"An error occurred while trying to reach GitHub: {str(exc)}")
-    except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=502, detail=f"Unexpected GitHub error: {str(exc)}")
+            error_desc = token_data.get('error_description', token_data)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed login: couldn't get token. From GitHub: {error_desc}"
+            )
 
-    # 3. ESEGUE SOLO LA CLONAZIONE
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"An error occurred while trying to reach GitHub: {str(exc)}"
+        ) from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Unexpected GitHub error: {str(exc)}"
+        ) from exc
+
+    # 3. Perform Cloning
     try:
         repo_path = perform_cloning(
             owner=target_owner,
             repo=target_repo,
             oauth_token=access_token
         )
-        # Ritorniamo info di base per permettere al frontend di chiamare /analyze
+
         return {
             "status": "cloned",
             "owner": target_owner,
             "repo": target_repo,
-            "local_path": repo_path
+            "local_path": str(repo_path)
         }
 
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}") from e
+
 
 # ------------------------------------------------------------------
-# 2.1 ZIP: Endpoint per testare lo zip (opzionale)
+# 2. FILE UPLOAD
 # ------------------------------------------------------------------
+
 @router.post("/zip")
 def upload_zip(
-        # Form(...) is required when using File(...) in the same endpoint
         owner: str = Form(...),
         repo: str = Form(...),
         uploaded_file: UploadFile = File(...)
-):
+) -> Dict[str, str]:
+    """
+    Uploads a ZIP file containing source code as an alternative to Git cloning.
+
+    Args:
+        owner (str): The name/owner to assign to the uploaded project.
+        repo (str): The repository name to assign.
+        uploaded_file (UploadFile): The ZIP file containing the source code.
+
+    Returns:
+        Dict[str, str]: A dictionary containing the upload status and local path.
+
+    Raises:
+        HTTPException:
+            - 400: If the file is invalid or processing fails.
+            - 500: If an internal server error occurs.
+    """
     try:
         repo_path = perform_upload_zip(
             owner=owner,
@@ -117,30 +184,40 @@ def upload_zip(
             "status": "cloned_from_zip",
             "owner": owner,
             "repo": repo,
-            "local_path": repo_path,
+            "local_path": str(repo_path),
         }
 
     except HTTPException:
-        # If perform_upload_zip already throws a specific 400 or 500,
-        # we re-raise it as-is without modification.
+        # Re-raise existing HTTP exceptions
         raise
-
     except ValueError as ve:
-        # If the service throws ValueError (not handled as HTTP), it becomes a 400
-        raise HTTPException(status_code=400, detail=str(ve))
-
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
-        # Only unexpected errors become 500
-        print(f"Critical Error in upload_zip: {e}") # Logga l'errore vero per debug
-        raise HTTPException(status_code=500, detail=f"Internal Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal Error: {str(e)}") from e
+
+
 # ------------------------------------------------------------------
-# 3. ANALYZE: Endpoint for running the analysis (after cloning)
+# 3. ANALYSIS & REGENERATION
 # ------------------------------------------------------------------
+
 @router.post("/analyze", response_model=AnalyzeResponse)
-def run_analysis(payload: dict = Body(...)):
+def run_analysis(payload: Dict[str, str] = Body(...)) -> AnalyzeResponse:
     """
-    Runs the analysis on an already cloned repo.
-    Expected payload: {"owner": "...", "repo": "..."}
+    Executes the initial license analysis on a prepared repository.
+
+    The repository must have been previously cloned (via /auth/start) or
+    uploaded (via /zip).
+
+    Args:
+        payload (Dict[str, str]): JSON body containing "owner" and "repo".
+
+    Returns:
+        AnalyzeResponse: The detailed analysis result.
+
+    Raises:
+        HTTPException:
+            - 400: If parameters are missing or invalid.
+            - 500: If the analysis fails.
     """
     owner = payload.get("owner")
     repo = payload.get("repo")
@@ -152,42 +229,68 @@ def run_analysis(payload: dict = Body(...)):
         result = perform_initial_scan(owner=owner, repo=repo)
         return result
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}") from e
 
-# ------------------------------------------------------------------
-# 4. REGENERATE: Endpoint for running regeneration
-# ------------------------------------------------------------------
+
 @router.post("/regenerate", response_model=AnalyzeResponse)
-def regenerate_analysis(previous_analysis: AnalyzeResponse = Body(...)):
+def regenerate_analysis(previous_analysis: AnalyzeResponse = Body(...)) -> AnalyzeResponse:
     """
-    Runs regeneration on an already cloned repo.
-    Receives the previous scan result (AnalyzeResponse) to avoid re-scanning.
+    Regenerates the analysis based on previous results.
+
+    This is typically used to apply LLM-based corrections or refine the
+    compatibility check without re-scanning the entire file system.
+
+    Args:
+        previous_analysis (AnalyzeResponse): The result of the previous scan.
+
+    Returns:
+        AnalyzeResponse: The updated analysis result.
+
+    Raises:
+        HTTPException:
+            - 400: If the repository format in the previous analysis is invalid.
+            - 500: If regeneration fails.
     """
     try:
-        # Extract owner and repo from the "owner/repo" string
+        # Extract owner and repo from the "owner/repo" string in the response object
         if "/" not in previous_analysis.repository:
             raise ValueError("Invalid repository format. Expected 'owner/repo'")
 
         owner, repo = previous_analysis.repository.split("/", 1)
 
-        result = perform_regeneration(owner=owner, repo=repo, previous_analysis=previous_analysis)
+        result = perform_regeneration(
+            owner=owner,
+            repo=repo,
+            previous_analysis=previous_analysis
+        )
         return result
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}") from e
 
 
 # ------------------------------------------------------------------
-# 5. DOWNLOAD: Endpoint to download the repo zip
+# 4. DOWNLOAD
 # ------------------------------------------------------------------
+
 @router.post("/download")
-def download_repo(payload: dict = Body(...)):
+def download_repo(payload: Dict[str, str] = Body(...)) -> FileResponse:
     """
-    Downloads the zip of the cloned repository.
-    Expected payload: {"owner": "...", "repo": "..."}
+    Generates and returns a downloadable ZIP archive of the repository.
+
+    Args:
+        payload (Dict[str, str]): JSON body containing "owner" and "repo".
+
+    Returns:
+        FileResponse: The ZIP file containing the repository.
+
+    Raises:
+        HTTPException:
+            - 400: If parameters are missing.
+            - 500: If the ZIP generation fails.
     """
     owner = payload.get("owner")
     repo = payload.get("repo")
@@ -198,13 +301,12 @@ def download_repo(payload: dict = Body(...)):
     try:
         zip_path = perform_download(owner=owner, repo=repo)
 
-        # Return the file. filename sets the name of the downloaded file in the browser
         return FileResponse(
             path=zip_path,
             filename=f"{owner}_{repo}.zip",
             media_type='application/zip'
         )
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}") from e

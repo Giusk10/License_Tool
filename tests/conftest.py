@@ -112,7 +112,7 @@ def patch_config_variables(tmp_path):
          patch("app.services.github.Encrypted_Auth_Info.DATABASE_NAME", test_db_name), \
          patch("app.services.github.Encrypted_Auth_Info.COLLECTION_NAME", test_collection_name), \
          patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_encryption_key), \
-         patch("app.services.dowloader.download_service.CLONE_BASE_DIR", test_clone_dir):
+         patch("app.services.downloader.download_service.CLONE_BASE_DIR", test_clone_dir):
         yield test_clone_dir
 
 # 2. Mock Compatibility Matrix (Pure Data)
