@@ -444,7 +444,7 @@ const Callback = () => {
                                                             <div style={{ background: 'rgba(100, 108, 255, 0.05)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid rgba(100, 108, 255, 0.2)' }}>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#646cff' }}>
                                                                     <Lightbulb size={22} />
-                                                                    <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>Suggerimenti di Risoluzione</span>
+                                                                    <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>AI Suggestions</span>
                                                                 </div>
 
                                                                 {issue.suggestion
