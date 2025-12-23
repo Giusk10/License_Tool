@@ -1,3 +1,14 @@
+"""
+Core Services Integration Test Module.
+
+This module validates the integration between the application's core services,
+including persistence (MongoDB), repository management (GitHub),
+license scanning (ScanCode), and the AI-driven code regeneration workflow.
+
+It ensures that data flows correctly between the service layers and that
+file system operations—such as cloning and code overwriting—behave as expected.
+"""
+
 import pytest
 import tempfile
 import os
@@ -5,7 +16,7 @@ import json
 from unittest.mock import patch, MagicMock, mock_open
 from fastapi.testclient import TestClient
 from app.main import app
-from app.services.github.Encrypted_Auth_Info import github_auth_credentials
+from app.services.github.encrypted_Auth_Info import github_auth_credentials
 from app.services.analysis_workflow import perform_regeneration
 from app.models.schemas import AnalyzeResponse, LicenseIssue
 from app.services.downloader.download_service import perform_download
@@ -15,15 +26,33 @@ from app.services.downloader.download_service import perform_download
 def client():
     return TestClient(app)
 
+# ==================================================================================
+#                          TEST SUITE: PERSISTENCE & SECURITY
+# ==================================================================================
 
 class TestIntegrationPersistence:
-    @patch('app.services.github.Encrypted_Auth_Info.MongoClient')
-    @patch('app.services.github.Encrypted_Auth_Info.decripta_dato_singolo')
+    """
+    Tests the secure storage and retrieval of sensitive credentials.
+    """
+    @patch('app.services.github.encrypted_Auth_Info.MongoClient')
+    @patch('app.services.github.encrypted_Auth_Info.decripta_dato_singolo')
     def test_github_token_save_and_retrieve(self, mock_decrypt, mock_mongo_client):
+        """
+        Validates the GitHub token retrieval flow through MongoDB and Decryption.
+
+        The process involves:
+        1. Mocking the MongoDB Context Manager to simulate database connectivity.
+        2. Simulating a stored encrypted record for the GITHUB_TOKEN.
+        3. Verifying that the decryption service is called with the database output.
+
+        Args:
+            mock_decrypt: Mock for the decryption utility.
+            mock_mongo_client: Mock for the MongoDB client driver.
+        """
         # Setup Mock per Context Manager (with MongoClient...)
         mock_client_instance = MagicMock()
         mock_mongo_client.return_value = mock_client_instance
-        # Quando entra nel 'with', restituisce se stesso
+        # When it enters the 'with', it returns itself
         mock_client_instance.__enter__.return_value = mock_client_instance
         mock_client_instance.__exit__.return_value = None
 
@@ -51,10 +80,22 @@ class TestIntegrationPersistence:
         assert retrieved_token == original_token
         mock_collection.find_one.assert_called_with({"service_name": "GITHUB_TOKEN"})
 
+# ==================================================================================
+#                          TEST SUITE: GITHUB & CLONING
+# ==================================================================================
 
 class TestIntegrationGitHubClient:
+    """
+    Validates the orchestration of repository management services.
+    """
     @patch('app.services.analysis_workflow.clone_repo')
     def test_parameter_passing_to_clone_repo(self, mock_clone_repo):
+        """
+        Verifies correct parameter delegation during the cloning phase.
+
+        Ensures that the internal workflow correctly passes the owner, repository name,
+        and OAuth token to the low-level Git utility.
+        """
         # Mock clone_repo to return success
         mock_clone_repo.return_value = MagicMock(success=True, repo_path="/path/to/repo")
 
@@ -67,9 +108,26 @@ class TestIntegrationGitHubClient:
         mock_clone_repo.assert_called_once_with("testowner", "testrepo", "testtoken")
         assert result == "/path/to/repo"
 
+# ==================================================================================
+#                          TEST SUITE: LICENSE SCANNING
+# ==================================================================================
 
 class TestIntegrationScanner:
+    """
+    Tests the integration with the ScanCode binary on the file system.
+    """
     def test_scancode_on_small_folder(self):
+        """
+        Executes a real license detection scan on a local temporary directory.
+
+        Process:
+        1. Creates a temporary workspace using `tempfile`.
+        2. Writes a dummy Python file containing an explicit MIT license header.
+        3. Invokes `run_scancode` to verify that the file is detected and parsed.
+
+        Note:
+            This test is skipped if the ScanCode binary is not installed in the system.
+        """
         from app.services.scanner.detection import run_scancode
 
         # Create a temporary directory with a small file
@@ -94,6 +152,9 @@ class TestIntegrationScanner:
 
 
 class TestIntegrationCodeGeneratorFileSystem:
+    """
+    Validates the full cycle of code correction and file system updates.
+    """
     @patch('app.services.analysis_workflow.detect_main_license_scancode')
     @patch('app.services.analysis_workflow.regenerate_code')
     @patch('app.services.analysis_workflow.run_scancode')
@@ -103,6 +164,18 @@ class TestIntegrationCodeGeneratorFileSystem:
     @patch('app.services.analysis_workflow.enrich_with_llm_suggestions')
     def test_full_regeneration_cycle(self, mock_enrich, mock_compat, mock_extract, mock_filter, mock_scancode,
                                      mock_regenerate, mock_detect):
+        """
+        Verifies that incompatible code is correctly overwritten on disk.
+
+        Logical Workflow:
+        1. Setup: Create a temporary repository directory and a file with GPL code.
+        2. Execution: Call `perform_regeneration` with a mock LLM response (MIT code).
+        3. Validation: Read the file from disk to confirm the content has been
+           successfully updated and the old incompatible code is gone.
+
+        Returns:
+            None: Asserts file content equality.
+        """
         # Setup mocks
         mock_regenerate.return_value = "# MIT License\n\ndef hello():\n    print('Hello MIT')\n"
         mock_scancode.return_value = {"files": []}
@@ -146,10 +219,23 @@ class TestIntegrationCodeGeneratorFileSystem:
                 assert new_content == "# MIT License\n\ndef hello():\n    print('Hello MIT')\n"
                 assert new_content != original_content
 
+# ==================================================================================
+#                       TEST SUITE: CODE REGENERATION & I/O
+# ==================================================================================
 
 class TestIntegrationErrorHandling:
+    """
+    Tests the robustness of the API when backend services fail.
+    """
     @patch('app.controllers.analysis.perform_download')
     def test_download_service_failure_propagation(self, mock_download, client):
+        """
+        Checks the mapping of service-level exceptions to HTTP responses.
+
+        Ensures that if the download service raises a `PermissionError`,
+        the API layer catches it and returns a 500 status with a clean
+        JSON error message instead of crashing.
+        """
         # Mock perform_download to raise an exception
         mock_download.side_effect = PermissionError("Permission denied")
 
