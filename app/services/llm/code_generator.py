@@ -77,10 +77,47 @@ def regenerate_code(
             if clean_response.endswith("```"):
                 clean_response = clean_response.rsplit("\n", 1)[0]
 
-        return clean_response.strip()
+        clean_response = clean_response.strip()
+
+        # Validate the generated code
+        if not validate_generated_code(clean_response):
+            logger.warning("Generated code failed validation")
+            return None
+
+        return clean_response
 
     except Exception:  # pylint: disable=broad-exception-caught
         # Broad catch is intentional here: it acts as a fail-safe to prevent
         # unpredictable LLM or network errors from crashing the entire analysis workflow.
         logger.exception("Error during code regeneration via LLM")
         return None
+
+
+def validate_generated_code(code: str, language: str = "python") -> bool:
+    """
+    Validates the generated code to ensure it's not empty, not too short,
+    and syntactically valid for the given language.
+
+    Args:
+        code (str): The generated code string.
+        language (str): The programming language (default: "python").
+
+    Returns:
+        bool: True if the code passes validation, False otherwise.
+    """
+    if not code or not isinstance(code, str):
+        return False
+
+    stripped = code.strip()
+    if len(stripped) <= 10:  # Avoid very short or empty responses
+        return False
+
+    if language.lower() == "python":
+        try:
+            compile(stripped, '<string>', 'exec')
+            return True
+        except SyntaxError:
+            return False
+
+    # For other languages, just check length for now
+    return True

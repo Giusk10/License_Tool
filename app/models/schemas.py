@@ -63,10 +63,12 @@ class AnalyzeResponse(BaseModel):
         repository (str): The full repository name (e.g., "owner/repo").
         main_license (str): The primary license identified for the project.
         issues (List[LicenseIssue]): A list of detailed compatibility issues found.
+        needs_license_suggestion (bool): Indicates if a license suggestion form should be shown.
     """
     repository: str
     main_license: str
     issues: List[LicenseIssue]
+    needs_license_suggestion: bool = False
 
 
 # ------------------------------------------------------------------
@@ -87,3 +89,51 @@ class CloneResult(BaseModel):
     success: bool
     repo_path: Optional[str] = None
     error: Optional[str] = None
+
+
+# ------------------------------------------------------------------
+# LICENSE SUGGESTION MODELS
+# ------------------------------------------------------------------
+
+class LicenseRequirementsRequest(BaseModel):
+    """
+    Represents user requirements and constraints for license suggestion.
+
+    Attributes:
+        owner (str): The repository owner.
+        repo (str): The repository name.
+        commercial_use (bool): Whether commercial use is required.
+        modification (bool): Whether modification is allowed.
+        distribution (bool): Whether distribution is allowed.
+        patent_grant (bool): Whether patent grant is needed.
+        trademark_use (bool): Whether trademark use is needed.
+        liability (bool): Whether liability protection is needed.
+        copyleft (Optional[str]): Copyleft preference: "strong", "weak", "none", or None.
+        additional_requirements (Optional[str]): Any additional free-text requirements.
+    """
+    owner: str
+    repo: str
+    commercial_use: bool = True
+    modification: bool = True
+    distribution: bool = True
+    patent_grant: bool = False
+    trademark_use: bool = False
+    liability: bool = False
+    copyleft: Optional[str] = None  # "strong", "weak", "none"
+    additional_requirements: Optional[str] = None
+
+
+class LicenseSuggestionResponse(BaseModel):
+    """
+    Represents the AI-generated license suggestion response.
+
+    Attributes:
+        suggested_license (str): The recommended license identifier.
+        explanation (str): Explanation of why this license was suggested.
+        alternatives (Optional[List[str]]): Alternative license options.
+    """
+    suggested_license: str
+    explanation: str
+    alternatives: Optional[List[str]] = None
+
+

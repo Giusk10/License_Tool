@@ -52,152 +52,6 @@ def mock_clone():
 #                          TEST SUITE: GITHUB OAUTH FLOW
 # ==================================================================================
 
-def test_start_analysis_redirect_url_parsing(mock_env_credentials):
-    """
-    Validates the GitHub OAuth authorization redirect.
-
-    Checks that the '/api/auth/start' endpoint generates a compliant
-    GitHub authorization URL with the correct 'client_id', 'scope',
-    and 'state' (owner:repo) parameters.
-    """
-    mock_env_credentials.side_effect = None
-    mock_env_credentials.return_value = "CLIENT_ID_X"
-
-    response = client.get(
-        "/api/auth/start",
-        params={"owner": "facebook", "repo": "react"},
-        follow_redirects=False
-    )
-    assert response.status_code == 307
-
-    # Parsing dell'URL per verifica precisa
-    from urllib.parse import urlparse, parse_qs
-    parsed = urlparse(response.headers["location"])
-    params = parse_qs(parsed.query)
-
-    assert parsed.scheme == "https"
-    assert parsed.netloc == "github.com"
-    assert parsed.path == "/login/oauth/authorize"
-    assert params["client_id"] == ["CLIENT_ID_X"]
-    assert params["scope"] == ["repo"]
-    assert params["state"] == ["facebook:react"]
-
-
-@pytest.mark.asyncio
-async def test_auth_callback_happy_path_verify_args(mock_env_credentials, mock_httpx_post, mock_clone):
-    """
-    Verifies the complete OAuth callback handshake.
-
-    Ensures that the code received from GitHub is exchanged for an access token,
-    and that this token is correctly delegated to the cloning service to
-    initialize the analysis workspace.
-    """
-    # Setup Mock HTTPX
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = {"access_token": "gh_token_XYZ", "token_type": "bearer"}
-    mock_httpx_post.return_value = mock_resp
-
-    # Setup Mock Clone
-    mock_clone.return_value = "/tmp/path/to/repo"
-
-    response = client.get("/api/callback", params={"code": "auth_code_123", "state": "user:repo"})
-
-    assert response.status_code == 200
-    assert response.json()["local_path"] == "/tmp/path/to/repo"
-
-    # CRUCIAL CHECK: Let's make sure we are using the token we received from GitHub to clone
-    mock_clone.assert_called_once()
-    args, _ = mock_clone.call_args
-    # Assuming the signature is perform_cloning(url, token) or similar:
-    assert "gh_token_XYZ" in str(args) or "gh_token_XYZ" in str(_)
-
-
-@pytest.mark.asyncio
-async def test_auth_callback_network_error(mock_env_credentials, mock_httpx_post):
-    """
-    Validates API resilience during external network failures.
-
-    Simulates a connection timeout or DNS error when communicating with
-    GitHub's OAuth server. The test ensures that the application catches
-    network-level exceptions and returns an appropriate error status (e.g.,
-    400, 502, or 503) with a descriptive message instead of crashing.
-    """
-    # Let's simulate a network exception thrown by httpx
-    mock_httpx_post.side_effect = httpx.RequestError("Connection timeout", request=MagicMock())
-
-    response = client.get("/api/callback", params={"code": "code", "state": "u:r"})
-
-    # The app should handle the exception and not crash (500) or return a handled 400
-    assert response.status_code in [400, 502, 503]
-    assert "errore" in response.json().get("detail", "").lower() or "connection" in response.json().get("detail",
-                                                                                                        "").lower()
-
-
-@pytest.mark.asyncio
-async def test_auth_callback_unexpected_json(mock_env_credentials, mock_httpx_post):
-    """
-    Tests handling of malformed or unexpected JSON responses from GitHub.
-
-    Verifies that the API properly validates the presence of the 'access_token'
-    in the GitHub response body. If the response is valid JSON but lacks
-    the required token field, the API must return a 400 Bad Request.
-    """
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    # Empty or unexpected response
-    mock_resp.json.return_value = {"foo": "bar"}
-    mock_httpx_post.return_value = mock_resp
-
-    response = client.get("/api/callback", params={"code": "code", "state": "u:r"})
-
-    assert response.status_code == 400
-    assert "token" in response.json().get("detail", "").lower()
-
-@patch("app.controllers.analysis.perform_cloning")
-@patch("app.controllers.analysis.github_auth_credentials")
-@patch("httpx.AsyncClient.post")
-def test_callback_success(mock_httpx_post, mock_creds, mock_clone):
-    """
-    Verifies the standard successful OAuth callback workflow.
-
-    This integration test covers the three-step handshake:
-    1. Receiving the authorization code and state from the client.
-    2. Exchanging the code for a GitHub access token (mocked).
-    3. Triggering the repository cloning service with the retrieved token.
-
-    Args:
-        mock_httpx_post: Mock for the async token exchange request.
-        mock_creds: Mock for environment credential retrieval.
-        mock_clone: Mock for the backend cloning service.
-    """
-
-    # Setup Mock
-    mock_creds.side_effect = lambda k: "fake-secret" if k == "CLIENT_SECRET" else "fake-id"
-
-    # Setup: Mock GitHub's successful token response
-    mock_httpx_post.return_value = AsyncMock(
-        json=lambda: {"access_token": "gho_fake_token"}
-    )
-
-    # Mock clone
-    mock_clone.return_value = "/tmp/cloned/path"
-
-    # API call
-    response = client.get("/api/callback?code=12345&state=giusk10:testrepo")
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "cloned"
-    assert data["local_path"] == "/tmp/cloned/path"
-
-    # Validation: Ensure the cloning service received the correct token and metadata
-    mock_clone.assert_called_with(
-        owner="giusk10",
-        repo="testrepo",
-        oauth_token="gho_fake_token"
-    )
-
 """
 API Integration Suite: Archive Lifecycle & Analysis Orchestration.
 
@@ -1471,4 +1325,472 @@ def test_complete_workflow_integration(create_test_repo, cleanup_test_repos):
     zip_path = os.path.join(config.CLONE_BASE_DIR, f'{owner}_{repo}_download.zip')
     if os.path.exists(zip_path):
         os.remove(zip_path)
+
+
+# ==================================================================================
+#                    INTEGRATION TESTS FOR /api/clone
+# ==================================================================================
+
+
+def test_clone_repository_integration_success():
+    """
+    Integration test: Clone a repository using /api/clone endpoint.
+
+    Verifies that the endpoint correctly accepts owner and repo parameters,
+    calls the cloning service, and returns proper status and path information.
+    """
+    with patch('app.controllers.analysis.perform_cloning') as mock_clone:
+        mock_clone.return_value = "/test/path/owner_repo"
+
+        response = client.post("/api/clone", json={
+            "owner": "testowner",
+            "repo": "testrepo"
+        })
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "cloned"
+        assert data["owner"] == "testowner"
+        assert data["repo"] == "testrepo"
+        assert "local_path" in data
+        assert "owner_repo" in data["local_path"]
+
+        mock_clone.assert_called_once_with(owner="testowner", repo="testrepo")
+
+
+def test_clone_repository_missing_owner():
+    """
+    Integration test: Clone endpoint rejects request without owner.
+    """
+    response = client.post("/api/clone", json={"repo": "testrepo"})
+
+    assert response.status_code == 400
+    assert "Owner and Repo are required" in response.json()["detail"]
+
+
+def test_clone_repository_missing_repo():
+    """
+    Integration test: Clone endpoint rejects request without repo.
+    """
+    response = client.post("/api/clone", json={"owner": "testowner"})
+
+    assert response.status_code == 400
+    assert "Owner and Repo are required" in response.json()["detail"]
+
+
+def test_clone_repository_both_params_missing():
+    """
+    Integration test: Clone endpoint rejects request with no parameters.
+    """
+    response = client.post("/api/clone", json={})
+
+    assert response.status_code == 400
+    assert "Owner and Repo are required" in response.json()["detail"]
+
+
+def test_clone_repository_empty_strings():
+    """
+    Integration test: Clone endpoint rejects empty string parameters.
+    """
+    response1 = client.post("/api/clone", json={"owner": "", "repo": "testrepo"})
+    assert response1.status_code == 400
+
+    response2 = client.post("/api/clone", json={"owner": "testowner", "repo": ""})
+    assert response2.status_code == 400
+
+    response3 = client.post("/api/clone", json={"owner": "", "repo": ""})
+    assert response3.status_code == 400
+
+
+def test_clone_repository_service_value_error():
+    """
+    Integration test: Clone endpoint handles service-level ValueError.
+
+    Verifies that when the cloning service raises a ValueError,
+    it's properly caught and returns a 400 status.
+    """
+    with patch('app.controllers.analysis.perform_cloning') as mock_clone:
+        mock_clone.side_effect = ValueError("Repository not found or access denied")
+
+        response = client.post("/api/clone", json={
+            "owner": "badowner",
+            "repo": "badrepo"
+        })
+
+        assert response.status_code == 400
+        assert "Repository not found" in response.json()["detail"]
+
+
+def test_clone_repository_service_generic_exception():
+    """
+    Integration test: Clone endpoint handles unexpected exceptions.
+
+    Verifies that unexpected errors are caught and return a 500 status.
+    """
+    with patch('app.controllers.analysis.perform_cloning') as mock_clone:
+        mock_clone.side_effect = Exception("Unexpected error occurred")
+
+        response = client.post("/api/clone", json={
+            "owner": "owner",
+            "repo": "repo"
+        })
+
+        assert response.status_code == 500
+        assert "Internal error" in response.json()["detail"]
+
+
+def test_clone_repository_with_special_characters():
+    """
+    Integration test: Clone with special characters in repository name.
+
+    Verifies that repositories with dots, hyphens, and underscores
+    are handled correctly.
+    """
+    with patch('app.controllers.analysis.perform_cloning') as mock_clone:
+        mock_clone.return_value = "/test/path/org-name_repo.test"
+
+        response = client.post("/api/clone", json={
+            "owner": "org-name",
+            "repo": "repo.test"
+        })
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "cloned"
+        assert data["owner"] == "org-name"
+        assert data["repo"] == "repo.test"
+
+
+def test_clone_repository_real_workflow(cleanup_test_repos):
+    """
+    Integration test: Full clone workflow with real file system operations.
+
+    This test performs actual cloning operations (mocked Git, but real filesystem)
+    and verifies the entire workflow end-to-end.
+    """
+    owner = "integration_clone"
+    repo = "clone_test"
+
+    with patch('app.services.github.github_client.Repo.clone_from'):
+        response = client.post("/api/clone", json={
+            "owner": owner,
+            "repo": repo
+        })
+
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["status"] == "cloned"
+        assert data["owner"] == owner
+        assert data["repo"] == repo
+        assert "local_path" in data
+
+        expected_path = os.path.join(config.CLONE_BASE_DIR, f"{owner}_{repo}")
+        assert expected_path in data["local_path"] or f"{owner}_{repo}" in data["local_path"]
+
+
+# ==================================================================================
+#                 INTEGRATION TESTS FOR /api/suggest-license
+# ==================================================================================
+
+
+def test_suggest_license_integration_success():
+    """
+    Integration test: Suggest license based on requirements.
+
+    Verifies that the suggest-license endpoint correctly processes
+    user requirements and returns appropriate license suggestions.
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "Apache-2.0",
+            "explanation": "Apache 2.0 is ideal for projects requiring patent protection",
+            "alternatives": ["MIT", "BSD-3-Clause"]
+        }
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "commercial_use": True,
+            "modification": True,
+            "distribution": True,
+            "patent_grant": True,
+            "trademark_use": False,
+            "liability": False,
+            "copyleft": "none",
+            "additional_requirements": "Need patent protection and commercial use"
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["suggested_license"] == "Apache-2.0"
+        assert "explanation" in data
+        assert "patent" in data["explanation"].lower()
+        assert "alternatives" in data
+        assert len(data["alternatives"]) == 2
+        assert "MIT" in data["alternatives"]
+
+        mock_suggest.assert_called_once()
+
+
+def test_suggest_license_minimal_requirements():
+    """
+    Integration test: Suggest license with only required fields.
+
+    Verifies that the endpoint works with minimal requirements (only owner and repo).
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "MIT",
+            "explanation": "MIT is a simple and permissive license",
+            "alternatives": []
+        }
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo"
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["suggested_license"] == "MIT"
+        assert "alternatives" in data
+
+
+def test_suggest_license_copyleft_requirements():
+    """
+    Integration test: Suggest license for copyleft requirements.
+
+    Verifies that strong copyleft requirements result in GPL-like suggestions.
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "GPL-3.0",
+            "explanation": "GPL-3.0 provides strong copyleft protection",
+            "alternatives": ["AGPL-3.0", "LGPL-3.0"]
+        }
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "commercial_use": False,
+            "copyleft": "strong",
+            "additional_requirements": "Need strong copyleft protection"
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "GPL" in data["suggested_license"]
+        assert len(data["alternatives"]) > 0
+
+
+def test_suggest_license_weak_copyleft():
+    """
+    Integration test: Suggest license for weak copyleft requirements.
+
+    Verifies that weak copyleft typically suggests LGPL-style licenses.
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "LGPL-3.0",
+            "explanation": "LGPL-3.0 provides weak copyleft, allowing linking with proprietary code",
+            "alternatives": ["MPL-2.0"]
+        }
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "copyleft": "weak",
+            "commercial_use": True
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["suggested_license"] in ["LGPL-3.0", "MPL-2.0", "LGPL-2.1"]
+
+
+def test_suggest_license_missing_required_fields():
+    """
+    Integration test: Suggest license endpoint validates required fields.
+
+    Verifies that missing owner or repo returns a 422 validation error.
+    """
+    response1 = client.post("/api/suggest-license", json={"owner": "testowner"})
+    assert response1.status_code == 422
+
+    response2 = client.post("/api/suggest-license", json={"repo": "testrepo"})
+    assert response2.status_code == 422
+
+    response3 = client.post("/api/suggest-license", json={})
+    assert response3.status_code == 422
+
+
+def test_suggest_license_service_exception():
+    """
+    Integration test: Suggest license handles service errors.
+
+    Verifies that when the AI service fails, a 500 error is returned
+    with an appropriate error message.
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.side_effect = Exception("AI service temporarily unavailable")
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "commercial_use": True
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 500
+        assert "Failed to generate license suggestion" in response.json()["detail"]
+
+
+def test_suggest_license_all_boolean_options():
+    """
+    Integration test: Suggest license with all boolean options set.
+
+    Verifies that complex requirement combinations are processed correctly.
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "Apache-2.0",
+            "explanation": "Apache 2.0 meets all specified requirements",
+            "alternatives": ["MIT"]
+        }
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "commercial_use": True,
+            "modification": True,
+            "distribution": True,
+            "patent_grant": True,
+            "trademark_use": True,
+            "liability": True,
+            "copyleft": "none",
+            "additional_requirements": "Enterprise-grade permissive license"
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["suggested_license"] in ["Apache-2.0", "MIT", "BSD-3-Clause"]
+
+
+def test_suggest_license_response_schema_validation():
+    """
+    Integration test: Validate response schema for suggest-license.
+
+    Ensures that the response conforms to LicenseSuggestionResponse schema.
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "MIT",
+            "explanation": "Simple permissive license",
+            "alternatives": ["BSD-2-Clause", "BSD-3-Clause", "ISC"]
+        }
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo"
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify all required fields are present
+        assert "suggested_license" in data
+        assert isinstance(data["suggested_license"], str)
+
+        assert "explanation" in data
+        assert isinstance(data["explanation"], str)
+
+        assert "alternatives" in data
+        assert isinstance(data["alternatives"], list)
+
+        # Verify alternatives are strings
+        for alt in data["alternatives"]:
+            assert isinstance(alt, str)
+
+
+def test_suggest_license_with_analyze_workflow(sample_zip_file, cleanup_test_repos):
+    """
+    Integration test: Complete workflow - upload, analyze, get suggestion.
+
+    This test verifies that after analyzing a repository with UNKNOWN license,
+    the suggest-license endpoint can provide appropriate recommendations.
+    """
+    owner = "suggest_test"
+    repo = "test_repo"
+
+    # Step 1: Upload a ZIP file (sample_zip_file is a BytesIO object)
+    sample_zip_file.seek(0)
+    upload_resp = client.post(
+        "/api/zip",
+        data={"owner": owner, "repo": repo},
+        files={"uploaded_file": ("test.zip", sample_zip_file, "application/zip")}
+    )
+
+    assert upload_resp.status_code == 200
+
+    # Step 2: Mock analysis that returns UNKNOWN license
+    with patch('app.services.analysis_workflow.run_scancode') as mock_scan, \
+         patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
+         patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
+         patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
+         patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
+         patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich, \
+         patch('app.services.analysis_workflow.needs_license_suggestion') as mock_needs:
+
+        mock_scan.return_value = {"files": []}
+        mock_detect.return_value = "UNKNOWN"
+        mock_filter.return_value = {"files": []}
+        mock_extract.return_value = {}
+        mock_compat.return_value = {"issues": []}
+        mock_enrich.return_value = []
+        mock_needs.return_value = True
+
+        analyze_resp = client.post("/api/analyze", json={"owner": owner, "repo": repo})
+        assert analyze_resp.status_code == 200
+
+        analyze_data = analyze_resp.json()
+        assert analyze_data["main_license"] == "UNKNOWN"
+        assert analyze_data["needs_license_suggestion"] is True
+
+    # Step 3: Request license suggestion
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "MIT",
+            "explanation": "MIT is recommended for this type of project",
+            "alternatives": ["Apache-2.0", "BSD-3-Clause"]
+        }
+
+        suggest_payload = {
+            "owner": owner,
+            "repo": repo,
+            "commercial_use": True,
+            "modification": True,
+            "distribution": True
+        }
+
+        suggest_resp = client.post("/api/suggest-license", json=suggest_payload)
+
+        assert suggest_resp.status_code == 200
+        suggest_data = suggest_resp.json()
+        assert suggest_data["suggested_license"] in ["MIT", "Apache-2.0", "BSD-3-Clause"]
+        assert len(suggest_data["alternatives"]) > 0
+
 

@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "license-tool"
 version = "0.1.0"
-description = "Tool per l'analisi e la compatibilità delle licenze software"
+description = "Tool for software license analysis and compatibility"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
     { name = "Riccio Giuseppe, Simeone Lucia, Medugno Vittoria, Capone Antonella, Liparulo Elisa"},
 ]
-# Correzione License Warning: usiamo il campo 'license' invece del classifier
+# License Warning Fix: using the 'license' field instead of the classifier
 license = { file = "LICENSE" }
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -46,14 +46,13 @@ dev = [
     "pre-commit",
 ]
 
-# --- NUOVA SEZIONE FONDAMENTALE ---
-# Dice a setuptools di includere solo 'app' e ignorare 'frontend'
+# Tells setuptools to include only 'app' and ignore 'frontend' and 'tests'
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["app*"]
 exclude = ["frontend*", "tests*"]
 
-# --- Configurazione Testing ---
+# --- Testing Configuration ---
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-v --cov=app"
@@ -61,14 +60,13 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 pythonpath = "."
 
-
-# --- Configurazione Static Analysis ---
+# --- Static Analysis Configuration ---
 [tool.pylint.main]
-# Cambia source-roots per puntare alla root del progetto
+# Change source-roots to point to the project root
 source-roots = ["."]
-# Aggiungi questo hook per forzare l'inclusione della directory corrente
+# Add this hook to force current directory inclusion
 init-hook = "import sys; sys.path.append('.')"
-# Per ora ignoro i test perché non sono ancora stati fattorizzati come si deve
+# Ignoring tests for now as they are not properly factored yet
 ignore = ["tests"]
 
 [tool.pylint."MESSAGES CONTROL"]

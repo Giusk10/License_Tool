@@ -108,10 +108,10 @@ def patch_config_variables(tmp_path):
          patch("app.services.analysis_workflow.CLONE_BASE_DIR", test_clone_dir), \
          patch("app.services.llm.suggestion.CLONE_BASE_DIR", test_clone_dir), \
          patch("app.services.github.github_client.CLONE_BASE_DIR", test_clone_dir), \
-         patch("app.services.github.Encrypted_Auth_Info.MONGO_URI", test_mongo_uri), \
-         patch("app.services.github.Encrypted_Auth_Info.DATABASE_NAME", test_db_name), \
-         patch("app.services.github.Encrypted_Auth_Info.COLLECTION_NAME", test_collection_name), \
-         patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_encryption_key), \
+         patch("app.services.github.encrypted_Auth_Info.MONGO_URI", test_mongo_uri), \
+         patch("app.services.github.encrypted_Auth_Info.DATABASE_NAME", test_db_name), \
+         patch("app.services.github.encrypted_Auth_Info.COLLECTION_NAME", test_collection_name), \
+         patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_encryption_key), \
          patch("app.services.downloader.download_service.CLONE_BASE_DIR", test_clone_dir):
         yield test_clone_dir
 

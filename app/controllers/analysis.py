@@ -19,125 +19,52 @@ from app.services.analysis_workflow import (
     perform_upload_zip
 )
 from app.services.downloader.download_service import perform_download
-from app.models.schemas import AnalyzeResponse
-from app.services.github.Encrypted_Auth_Info import github_auth_credentials
+from app.models.schemas import (
+    AnalyzeResponse,
+    LicenseRequirementsRequest,
+    LicenseSuggestionResponse
+)
+from app.services.github.encrypted_Auth_Info import github_auth_credentials
+from app.services.llm.license_recommender import suggest_license_based_on_requirements
 
 router = APIRouter()
 
-
 # ------------------------------------------------------------------
-# 1. AUTHENTICATION FLOW
+# 1. CLONING FLOW
 # ------------------------------------------------------------------
 
-@router.get("/auth/start")
-def start_analysis(owner: str, repo: str) -> RedirectResponse:
+@router.post("/clone")
+def clone_repository(payload: Dict[str, str] = Body(...)) -> Dict[str, str]:
     """
-    Initiates the OAuth authentication flow with GitHub.
-
-    Constructs the GitHub authorization URL using the client ID and requested
-    repository details, then redirects the user to GitHub to approve access.
+    Clones a GitHub repository.
 
     Args:
-        owner (str): The username or organization name of the repository owner.
-        repo (str): The name of the repository.
-
-    Returns:
-        RedirectResponse: A redirection to the GitHub OAuth login page.
-    """
-    # Pack data into a single string to pass through the OAuth 'state' parameter
-    state_data = f"{owner.strip()}:{repo.strip()}"
-
-    github_client_id = github_auth_credentials("CLIENT_ID")
-    scope = "repo"  # 'repo' scope is needed even for public repos to avoid rate limits
-
-    github_url = (
-        f"https://github.com/login/oauth/authorize"
-        f"?client_id={github_client_id}"
-        f"&redirect_uri={CALLBACK_URL}"
-        f"&scope={scope}"
-        f"&state={state_data}"
-    )
-    return RedirectResponse(github_url)
-
-
-@router.get("/callback")
-async def auth_callback(code: str, state: str) -> Dict[str, str]:
-    """
-    Handles the GitHub OAuth callback.
-
-    Exchanges the temporary authorization code for an access token, then
-    triggers the cloning of the specified repository.
-
-    Args:
-        code (str): The temporary authorization code returned by GitHub.
-        state (str): The state parameter containing "owner:repo" passed during initiation.
+        payload (Dict[str, str]): JSON body containing "owner" and "repo".
 
     Returns:
         Dict[str, str]: A dictionary containing the cloning status and local path details.
 
     Raises:
         HTTPException:
-            - 400: If the state format is invalid or token exchange fails.
-            - 502/503: If there are communication errors with GitHub.
+            - 400: If cloning fails due to invalid parameters.
             - 500: For generic internal server errors during cloning.
     """
-    # 1. Unpack original data
-    try:
-        target_owner, target_repo = state.split(":")
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid state. Expected format 'owner:repo'"
-        ) from exc
+    owner = payload.get("owner")
+    repo = payload.get("repo")
 
-    github_client_id = github_auth_credentials("CLIENT_ID")
-    github_client_secret = github_auth_credentials("CLIENT_SECRET")
+    if not owner or not repo:
+        raise HTTPException(status_code=400, detail="Owner and Repo are required")
 
-    # 2. Exchange Code for Access Token
-    try:
-        async with httpx.AsyncClient() as client:
-            token_resp = await client.post(
-                "https://github.com/login/oauth/access_token",
-                json={
-                    "client_id": github_client_id,
-                    "client_secret": github_client_secret,
-                    "code": code
-                },
-                headers={"Accept": "application/json"}
-            )
-            token_data = token_resp.json()
-            access_token = token_data.get("access_token")
-
-        if not access_token:
-            error_desc = token_data.get('error_description', token_data)
-            raise HTTPException(
-                status_code=400,
-                detail=f"Failed login: couldn't get token. From GitHub: {error_desc}"
-            )
-
-    except httpx.RequestError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=f"An error occurred while trying to reach GitHub: {str(exc)}"
-        ) from exc
-    except httpx.HTTPStatusError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Unexpected GitHub error: {str(exc)}"
-        ) from exc
-
-    # 3. Perform Cloning
     try:
         repo_path = perform_cloning(
-            owner=target_owner,
-            repo=target_repo,
-            oauth_token=access_token
+            owner=owner,
+            repo=repo,
         )
 
         return {
             "status": "cloned",
-            "owner": target_owner,
-            "repo": target_repo,
+            "owner": owner,
+            "repo": repo,
             "local_path": str(repo_path)
         }
 
@@ -310,3 +237,50 @@ def download_repo(payload: Dict[str, str] = Body(...)) -> FileResponse:
         raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}") from e
+
+
+# ------------------------------------------------------------------
+# 5. LICENSE SUGGESTION
+# ------------------------------------------------------------------
+
+@router.post("/suggest-license", response_model=LicenseSuggestionResponse)
+def suggest_license(
+    requirements: LicenseRequirementsRequest = Body(...)
+) -> LicenseSuggestionResponse:
+    """
+    Suggests an appropriate license based on user requirements.
+
+    This endpoint is used when no main license is detected or when there are
+    unknown licenses. The user provides their requirements and constraints,
+    and the AI suggests the most suitable license.
+
+    Args:
+        requirements (LicenseRequirementsRequest): User's license requirements and constraints.
+
+    Returns:
+        LicenseSuggestionResponse: The suggested license with explanation and alternatives.
+
+    Raises:
+        HTTPException:
+            - 500: If the AI suggestion fails.
+    """
+    try:
+        # Convert Pydantic model to dict for processing
+        requirements_dict = requirements.model_dump()
+
+        # Get AI suggestion
+        suggestion = suggest_license_based_on_requirements(requirements_dict)
+
+        return LicenseSuggestionResponse(
+            suggested_license=suggestion["suggested_license"],
+            explanation=suggestion["explanation"],
+            alternatives=suggestion.get("alternatives", [])
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate license suggestion: {str(e)}"
+        ) from e
+
+
+

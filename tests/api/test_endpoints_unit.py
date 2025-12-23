@@ -109,95 +109,6 @@ def mock_upload_zip(mock_zip_upload):
     """Alias for mock_zip_upload."""
     return mock_zip_upload
 
-
-# ==================================================================================
-#                                   TESTS: AUTH
-# ==================================================================================
-
-def test_start_analysis_redirect(mock_env_credentials):
-    """
-     Verifies that the /auth/start endpoint correctly redirects to GitHub.
-
-     Checks:
-     - Status code 307 (Temporary Redirect).
-     - Presence of 'client_id' and 'state' (owner:repo) in the Location header.
-     """
-    mock_env_credentials.return_value = "MY_CLIENT_ID"
-
-    response = client.get(
-        "/api/auth/start",
-        params={"owner": "facebook", "repo": "react"},
-        follow_redirects=False  # Fondamentale per controllare il 307
-    )
-
-    assert response.status_code == 307
-    location = response.headers["location"]
-
-    # Verifica parametri URL
-    assert "github.com/login/oauth/authorize" in location
-    assert "client_id=MY_CLIENT_ID" in location
-    assert "state=facebook:react" in location
-    assert "scope=repo" in location
-
-
-@pytest.mark.asyncio
-async def test_auth_callback_success(mock_env_credentials, mock_httpx_client, mock_cloning):
-    """
-     Tests the Happy Path for the OAuth callback.
-     Process:
-     1. GitHub returns a code.
-     2. API exchanges code for an access token (mocked).
-     3. API triggers the repository cloning process.
-     """
-    # 1. Setup Mock GitHub (Token)
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = {"access_token": "gh_token_ABC"}
-    mock_httpx_client.return_value = mock_resp
-
-    # 2. Setup Mock Clonazione
-    mock_cloning.return_value = "/tmp/repos/facebook/react"
-
-    # 3. Call
-    response = client.get("/api/callback", params={"code": "12345", "state": "facebook:react"})
-
-    # 4. Asserzioni
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "cloned"
-    assert data["local_path"] == "/tmp/repos/facebook/react"
-
-    # Verify that the token has been passed
-    mock_cloning.assert_called_once_with(owner="facebook", repo="react", oauth_token="gh_token_ABC")
-
-
-@pytest.mark.asyncio
-async def test_auth_callback_network_error(mock_env_credentials, mock_httpx_client):
-    """
-    Robustness Test: Simulates a timeout/network error to GitHub.
-    It should return 503 Service Unavailable (thanks to the added try/except).
-    """
-    mock_httpx_client.side_effect = httpx.RequestError("Connection timeout")
-
-    response = client.get("/api/callback", params={"code": "123", "state": "u:r"})
-
-    assert response.status_code == 503
-    assert "An error occurred" in response.json()["detail"]
-
-
-def test_auth_callback_invalid_state():
-    """
-     Validates the error handling for an improperly formatted state parameter.
-
-     The API expects the 'state' query parameter to follow the 'owner:repo'
-     format. This test ensures that providing a string without the required
-     colon delimiter results in a 400 Bad Request error.
-     """
-    response = client.get("/api/callback", params={"code": "123", "state": "invalid_format"})
-    assert response.status_code == 400
-    assert "Invalid state" in response.json()["detail"]
-
-
 # ==================================================================================
 #                                   TESTS: ZIP
 # ==================================================================================
@@ -396,81 +307,6 @@ def test_download_missing_repo(mock_download):
 #                       ADDITIONAL UNIT TESTS (NUOVI RICHIESTI)
 # ==================================================================================
 
-def test_start_redirect_with_url_parsing(mock_creds):
-    """
-    Verifies the GitHub redirect URL construction using robust parsing.
-
-    This test ensures that the generated 'Location' header is a valid URL
-    and contains the expected query parameters (client_id and state)
-    in the correct format.
-
-    Args:
-        mock_creds: Fixture simulating the retrieval of client credentials.
-    """
-    response = client.get(
-        "/api/auth/start",
-        params={"owner": "facebook", "repo": "react"},
-        follow_redirects=False
-    )
-
-    assert response.status_code in [302, 307]
-
-    # Parsing robusto dell'URL
-    parsed = urlparse(response.headers["location"])
-    params = parse_qs(parsed.query)
-
-    assert parsed.netloc == "github.com"
-    assert params["client_id"] == ["MOCK_CLIENT_ID"]
-    assert params["state"] == ["facebook:react"]
-
-
-@pytest.mark.asyncio
-async def test_callback_with_token_verification(mock_creds, mock_httpx_post, mock_clone):
-    """
-    Verifies the full OAuth callback flow with token passing verification.
-
-    This test confirms that:
-    1. The API successfully exchanges the code for a GitHub token.
-    2. The retrieved token is correctly passed to the cloning service.
-
-    Args:
-        mock_creds: Fixture for client credentials.
-        mock_httpx_post: Async mock for the token exchange request.
-        mock_clone: Mock for the cloning service.
-    """
-    # Mock risposta GitHub
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = {"access_token": "gh_token_123"}
-    mock_httpx_post.return_value = mock_resp
-
-    # Mock Clone
-    mock_clone.return_value = "/tmp/cloned/facebook/react"
-
-    response = client.get("/api/callback", params={"code": "123", "state": "facebook:react"})
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "cloned"
-    assert data["local_path"] == "/tmp/cloned/facebook/react"
-
-    # Verifica che il token sia passato al clone
-    mock_clone.assert_called_once()
-    assert mock_clone.call_args[1]['oauth_token'] == "gh_token_123"
-
-
-def test_callback_invalid_state_no_slash():
-    """
-    Validates error handling for an invalid state format.
-
-    The state parameter must follow the 'owner:repo' format. This test
-    ensures that a 400 Bad Request is returned if the colon is missing.
-    """
-    response = client.get("/api/callback", params={"code": "123", "state": "invalid_state"})
-    assert response.status_code == 400
-    assert "Invalid state" in response.json()["detail"]
-
-
 def test_analyze_with_schema_validation(mock_scan):
     """
      Validates the analysis endpoint response against the AnalyzeResponse schema.
@@ -620,3 +456,144 @@ def test_upload_zip_with_file_validation(mock_upload_zip, tmp_path):
 
     assert response.status_code == 200
     assert response.json()["status"] == "cloned_from_zip"
+
+
+# ==================================================================================
+#                            LICENSE SUGGESTION TESTS
+# ==================================================================================
+
+def test_suggest_license_success():
+    """
+    Test suggest_license endpoint con successo.
+
+    Verifica che l'endpoint /api/suggest-license restituisca
+    una suggerimento di licenza valido basato sui requisiti forniti.
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo",
+        "commercial_use": True,
+        "modification": True,
+        "distribution": True,
+        "patent_grant": True,
+        "trademark_use": False,
+        "liability": False,
+        "copyleft": "none",
+        "additional_requirements": "Need patent protection"
+    }
+
+    mock_suggestion = {
+        "suggested_license": "Apache-2.0",
+        "explanation": "Apache 2.0 is a permissive license with patent protection",
+        "alternatives": ["MIT", "BSD-3-Clause"]
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion):
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_license"] == "Apache-2.0"
+    assert "explanation" in data
+    assert "alternatives" in data
+    assert len(data["alternatives"]) == 2
+
+
+def test_suggest_license_minimal_requirements():
+    """
+    Test suggest_license con requisiti minimi.
+
+    Verifica che l'endpoint funzioni anche con requisiti minimi
+    (solo campi obbligatori).
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo"
+    }
+
+    mock_suggestion = {
+        "suggested_license": "MIT",
+        "explanation": "MIT is a simple permissive license",
+        "alternatives": []
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion):
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_license"] == "MIT"
+
+
+def test_suggest_license_with_constraints():
+    """
+    Test suggest_license con vincoli specifici.
+
+    Verifica che i vincoli personalizzati vengano correttamente
+    processati dal sistema di suggerimento.
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo",
+        "commercial_use": True,
+        "modification": True,
+        "distribution": True,
+        "patent_grant": True,
+        "copyleft": "strong",
+        "additional_requirements": "Strong copyleft with network use = distribution"
+    }
+
+    mock_suggestion = {
+        "suggested_license": "AGPL-3.0",
+        "explanation": "AGPL-3.0 provides strong copyleft including network use",
+        "alternatives": ["GPL-3.0"]
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion):
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_license"] == "AGPL-3.0"
+    assert "GPL-3.0" in data["alternatives"]
+
+
+def test_suggest_license_error_handling():
+    """
+    Test suggest_license con errore nel servizio AI.
+
+    Verifica che gli errori del servizio di suggerimento
+    vengano gestiti correttamente e restituiscano un errore 500.
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo",
+        "commercial_use": True,
+        "patent_grant": False
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements",
+               side_effect=Exception("AI service unavailable")):
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 500
+    assert "Failed to generate license suggestion" in response.json()["detail"]
+
+
+def test_suggest_license_invalid_payload():
+    """
+    Test suggest_license con payload non valido.
+
+    Verifica che l'endpoint rifiuti payload malformati
+    con validazione Pydantic.
+    """
+    payload = {
+        "owner": "testowner"
+        # Manca repo obbligatorio
+    }
+
+    response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 422  # Unprocessable Entity (validazione Pydantic)
+
+
