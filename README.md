@@ -9,7 +9,7 @@ Sviluppato da: **Riccio Giuseppe, Simeone Lucia, Medugno Vittoria, Capone Antone
 Il progetto è organizzato in una struttura modulare che separa nettamente il backend (FastAPI), il frontend (React) e la suite di test:
 
 ```text
-License_Tool-Lucia2/
+License_Tool/
 ├── .github/workflows/      # Pipeline di CI/CD per test automatizzati
 ├── app/                    # Core del Backend (FastAPI)
 │   ├── controllers/        # Definizione degli endpoint API e gestione rotte
