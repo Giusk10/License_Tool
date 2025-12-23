@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import TripleToggleSwitch from '../components/TripleToggleSwitch';
+import LicenseSuggestionForm from '../components/LicenseSuggestionForm';
 import axios from 'axios';
 import {
     CheckCircle,
@@ -32,6 +33,8 @@ const Callback = () => {
     const [error, setError] = useState('');
     const [source, setSource] = useState('clone'); // clone or upload
     const [filterState, setFilterState] = useState(2); // 1: Compatible, 2: All, 3: Incompatible
+    const [showLicenseSuggestionForm, setShowLicenseSuggestionForm] = useState(false);
+    const [licenseSuggestion, setLicenseSuggestion] = useState(null);
 
     // Simulated progress for analysis
     const [progressStep, setProgressStep] = useState(0);
@@ -110,6 +113,11 @@ const Callback = () => {
             setAnalysisData(response.data);
             setStatus('success');
             clearInterval(interval);
+
+            // Check if license suggestion is needed
+            if (response.data.needs_license_suggestion) {
+                setShowLicenseSuggestionForm(true);
+            }
 
             // Check for regeneration needs immediately after analysis
             // REMOVED AUTO REGENERATION: checkAndRegenerate(response.data, cloneData.owner, cloneData.repo);
@@ -332,9 +340,42 @@ const Callback = () => {
                                 <span style={{ opacity: 0.7, fontSize: '1rem' }}>Repository</span>
                                 <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{displayData.repository}</span>
                             </div>
-                            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(21, 28, 51, 0.18)' }}>
+                            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(21, 28, 51, 0.18)', position: 'relative' }}>
                                 <span style={{ opacity: 0.7, fontSize: '1rem' }}>Main License</span>
-                                <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#646cff' }}>{displayData.main_license || 'Unknown'}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#646cff' }}>
+                                        {displayData.main_license || 'Unknown'}
+                                    </span>
+                                    {displayData.needs_license_suggestion && (
+                                        <button
+                                            onClick={() => setShowLicenseSuggestionForm(true)}
+                                            className="glass-button"
+                                            style={{
+                                                padding: '0.3rem 0.6rem',
+                                                fontSize: '0.75rem',
+                                                background: 'rgba(255, 193, 7, 0.2)',
+                                                borderColor: '#ffc107',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.3rem'
+                                            }}
+                                        >
+                                            <Lightbulb size={14} /> Get Suggestion
+                                        </button>
+                                    )}
+                                    {licenseSuggestion && (
+                                        <span style={{
+                                            padding: '0.3rem 0.6rem',
+                                            fontSize: '0.75rem',
+                                            background: 'rgba(33, 150, 37, 0.2)',
+                                            borderRadius: '4px',
+                                            color: '#219625ff',
+                                            border: '1px solid rgba(33, 150, 37, 0.3)'
+                                        }}>
+                                            Suggested: {licenseSuggestion.suggested_license}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -511,6 +552,18 @@ const Callback = () => {
                     </div>
                 )}
             </div>
+
+            {/* License Suggestion Form Modal */}
+            {showLicenseSuggestionForm && cloneData && (
+                <LicenseSuggestionForm
+                    owner={cloneData.owner}
+                    repo={cloneData.repo}
+                    onClose={() => setShowLicenseSuggestionForm(false)}
+                    onSuggestionReceived={(suggestion) => {
+                        setLicenseSuggestion(suggestion);
+                    }}
+                />
+            )}
         </div>
     );
 };

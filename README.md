@@ -4,6 +4,53 @@
 
 Sviluppato da: **Riccio Giuseppe, Simeone Lucia, Medugno Vittoria, Capone Antonella, Liparulo Elisa**.
 
+---
+
+## 🚀 Quick Start
+
+### Prerequisiti
+- Python 3.10+
+- Node.js 16+
+- [Ollama](https://ollama.ai/download) installato
+- [ScanCode Toolkit](https://github.com/nexB/scancode-toolkit)
+
+### Avvio Rapido (Windows)
+
+**Opzione 1 - Script Automatico (CONSIGLIATO):**
+```powershell
+.\start-all-services.ps1
+```
+
+**Opzione 2 - Manuale (3 Terminali):**
+
+```powershell
+# Terminal 1: Ollama
+ollama serve
+
+# Terminal 2: Backend
+uvicorn app.main:app --reload
+
+# Terminal 3: Frontend
+cd frontend
+npm run dev
+```
+
+**Apri il browser:** http://localhost:5173
+
+### Setup Modelli AI
+
+```powershell
+# Scarica i modelli necessari
+ollama pull deepseek-r1:1.5b
+ollama pull qwen2.5-coder:1.5b
+```
+
+📖 **Guide dettagliate:**
+- [OLLAMA_SETUP.md](OLLAMA_SETUP.md) - Setup completo di Ollama
+- [LICENSE_SUGGESTION_GUIDE.md](docs/LICENSE_SUGGESTION_GUIDE.md) - Guida al suggerimento licenze
+
+---
+
 ## 📂 Struttura del Progetto
 
 Il progetto è organizzato in una struttura modulare che separa nettamente il backend (FastAPI), il frontend (React) e la suite di test:

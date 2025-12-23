@@ -19,8 +19,13 @@ from app.services.analysis_workflow import (
     perform_upload_zip
 )
 from app.services.downloader.download_service import perform_download
-from app.models.schemas import AnalyzeResponse
+from app.models.schemas import (
+    AnalyzeResponse,
+    LicenseRequirementsRequest,
+    LicenseSuggestionResponse
+)
 from app.services.github.encrypted_Auth_Info import github_auth_credentials
+from app.services.llm.license_recommender import suggest_license_based_on_requirements
 
 router = APIRouter()
 
@@ -83,7 +88,7 @@ async def auth_callback(code: str, state: str) -> Dict[str, str]:
     """
     # 1. Unpack original data
     try:
-        target_owner, target_repo = state.split(":")
+        target_owner, target_repo = state.split(":", 1)
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
@@ -145,7 +150,6 @@ async def auth_callback(code: str, state: str) -> Dict[str, str]:
         raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}") from e
-
 
 # ------------------------------------------------------------------
 # 2. FILE UPLOAD
@@ -310,3 +314,50 @@ def download_repo(payload: Dict[str, str] = Body(...)) -> FileResponse:
         raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}") from e
+
+
+# ------------------------------------------------------------------
+# 5. LICENSE SUGGESTION
+# ------------------------------------------------------------------
+
+@router.post("/suggest-license", response_model=LicenseSuggestionResponse)
+def suggest_license(
+    requirements: LicenseRequirementsRequest = Body(...)
+) -> LicenseSuggestionResponse:
+    """
+    Suggests an appropriate license based on user requirements.
+
+    This endpoint is used when no main license is detected or when there are
+    unknown licenses. The user provides their requirements and constraints,
+    and the AI suggests the most suitable license.
+
+    Args:
+        requirements (LicenseRequirementsRequest): User's license requirements and constraints.
+
+    Returns:
+        LicenseSuggestionResponse: The suggested license with explanation and alternatives.
+
+    Raises:
+        HTTPException:
+            - 500: If the AI suggestion fails.
+    """
+    try:
+        # Convert Pydantic model to dict for processing
+        requirements_dict = requirements.model_dump()
+
+        # Get AI suggestion
+        suggestion = suggest_license_based_on_requirements(requirements_dict)
+
+        return LicenseSuggestionResponse(
+            suggested_license=suggestion["suggested_license"],
+            explanation=suggestion["explanation"],
+            alternatives=suggestion.get("alternatives", [])
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate license suggestion: {str(e)}"
+        ) from e
+
+
+
