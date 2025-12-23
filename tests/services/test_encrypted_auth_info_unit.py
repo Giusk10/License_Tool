@@ -1,5 +1,5 @@
 """
-test: services/github/Encrypted_Auth_Info.py
+test: services/github/encrypted_Auth_Info.py
 """
 import pytest
 import json
@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 from cryptography.fernet import Fernet
 # Aggiungiamo l'import dell'errore specifico
 from pymongo.errors import PyMongoError
-from app.services.github.Encrypted_Auth_Info import decripta_dato_singolo, github_auth_credentials, cripta_credenziali
+from app.services.github.encrypted_Auth_Info import decripta_dato_singolo, github_auth_credentials, cripta_credenziali
 
 
 class TestDecriptaDatoSingolo:
@@ -22,7 +22,7 @@ class TestDecriptaDatoSingolo:
         encrypted_bytes = fernet.encrypt(original_data.encode('utf-8'))
         encrypted_string = encrypted_bytes.decode('utf-8')
 
-        with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             result = decripta_dato_singolo(encrypted_string)
             assert result == original_data
 
@@ -30,14 +30,14 @@ class TestDecriptaDatoSingolo:
         """Test con token non valido (restituisce stringa vuota)"""
         test_key = Fernet.generate_key()
 
-        with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             result = decripta_dato_singolo("invalid_encrypted_data")
             assert result == ""
 
     def test_decripta_dato_singolo_empty_string(self):
         """Test con stringa vuota"""
         test_key = Fernet.generate_key()
-        with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             result = decripta_dato_singolo("")
             assert result == ""
 
@@ -49,7 +49,7 @@ class TestDecriptaDatoSingolo:
         encrypted_bytes = fernet.encrypt(original_data.encode('utf-8'))
         encrypted_string = encrypted_bytes.decode('utf-8')
 
-        with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             result = decripta_dato_singolo(encrypted_string)
             assert result == original_data
 
@@ -61,7 +61,7 @@ class TestDecriptaDatoSingolo:
         encrypted_bytes = fernet.encrypt(original_data.encode('utf-8'))
         encrypted_string = encrypted_bytes.decode('utf-8')
 
-        with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             result = decripta_dato_singolo(encrypted_string)
             assert result == original_data
 
@@ -96,8 +96,8 @@ class TestGithubAuthCredentials:
         client_data = json.dumps({"client_id": "test_client_id_123", "client_secret": "secret"})
         encrypted_data = fernet.encrypt(client_data.encode('utf-8')).decode('utf-8')
 
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
-                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
+                patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             _, _, mock_collection = self._setup_mongo_mock(mock_mongo_cls, {
                 "service_name": "CLIENT_ID",
                 "encrypted_data": encrypted_data
@@ -116,8 +116,8 @@ class TestGithubAuthCredentials:
         client_data = json.dumps({"client_id": "id", "client_secret": "test_secret_456"})
         encrypted_data = fernet.encrypt(client_data.encode('utf-8')).decode('utf-8')
 
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
-                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
+                patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             _, _, _ = self._setup_mongo_mock(mock_mongo_cls, {
                 "service_name": "CLIENT_SECRET",
                 "encrypted_data": encrypted_data
@@ -128,7 +128,7 @@ class TestGithubAuthCredentials:
 
     def test_github_auth_credentials_document_not_found(self):
         """Test quando il documento non viene trovato in MongoDB"""
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls:
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls:
             self._setup_mongo_mock(mock_mongo_cls, None)
 
             result = github_auth_credentials("CLIENT_ID")
@@ -136,7 +136,7 @@ class TestGithubAuthCredentials:
 
     def test_github_auth_credentials_connection_error(self):
         """Test gestione errore di connessione a MongoDB"""
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls:
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls:
             # CORREZIONE: Simuliamo l'errore specifico che il codice cattura (PyMongoError)
             # invece di una Exception generica.
             mock_mongo_cls.side_effect = PyMongoError("Connection failed")
@@ -148,8 +148,8 @@ class TestGithubAuthCredentials:
         """Test gestione errore durante la decrittazione"""
         test_key = Fernet.generate_key()
 
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
-                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
+                patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             self._setup_mongo_mock(mock_mongo_cls, {
                 "service_name": "CLIENT_ID",
                 "encrypted_data": "invalid_encrypted_data"
@@ -166,8 +166,8 @@ class TestGithubAuthCredentials:
         invalid_data = "not a json string"
         encrypted_data = fernet.encrypt(invalid_data.encode('utf-8')).decode('utf-8')
 
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
-                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
+                patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             self._setup_mongo_mock(mock_mongo_cls, {
                 "service_name": "CLIENT_ID",
                 "encrypted_data": encrypted_data
@@ -185,8 +185,8 @@ class TestGithubAuthCredentials:
         client_data = json.dumps({"client_id": "test", "client_secret": "test"})
         encrypted_data = fernet.encrypt(client_data.encode('utf-8')).decode('utf-8')
 
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
-                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
+                patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             mock_client, _, _ = self._setup_mongo_mock(mock_mongo_cls, {
                 "service_name": "CLIENT_ID",
                 "encrypted_data": encrypted_data
@@ -207,10 +207,10 @@ class TestGithubAuthCredentials:
         test_db_name = "test_database"
         test_collection_name = "test_collection"
 
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
-                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key), \
-                patch("app.services.github.Encrypted_Auth_Info.DATABASE_NAME", test_db_name), \
-                patch("app.services.github.Encrypted_Auth_Info.COLLECTION_NAME", test_collection_name):
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
+                patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key), \
+                patch("app.services.github.encrypted_Auth_Info.DATABASE_NAME", test_db_name), \
+                patch("app.services.github.encrypted_Auth_Info.COLLECTION_NAME", test_collection_name):
             mock_client, mock_db, _ = self._setup_mongo_mock(mock_mongo_cls, {
                 "service_name": "CLIENT_ID",
                 "encrypted_data": encrypted_data
@@ -223,7 +223,7 @@ class TestGithubAuthCredentials:
 
     def test_github_auth_credentials_missing_encrypted_data(self):
         """Test quando il documento esiste ma il campo encrypted_data è None"""
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls:
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls:
             self._setup_mongo_mock(mock_mongo_cls, {
                 "service_name": "CLIENT_ID",
                 "encrypted_data": None
@@ -238,8 +238,8 @@ class TestGithubAuthCredentials:
         fernet = Fernet(test_key)
         encrypted_data = fernet.encrypt(b"").decode('utf-8')
 
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
-                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
+                patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             self._setup_mongo_mock(mock_mongo_cls, {
                 "service_name": "CLIENT_ID",
                 "encrypted_data": encrypted_data
@@ -256,8 +256,8 @@ class TestGithubAuthCredentials:
         json_data = json.dumps(["client_id", "secret"])
         encrypted_data = fernet.encrypt(json_data.encode('utf-8')).decode('utf-8')
 
-        with patch("app.services.github.Encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
-                patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.MongoClient") as mock_mongo_cls, \
+                patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             self._setup_mongo_mock(mock_mongo_cls, {
                 "service_name": "CLIENT_ID",
                 "encrypted_data": encrypted_data
@@ -275,7 +275,7 @@ class TestCriptaCredenziali:
         original_data = "test_client_id_123"
         test_key = Fernet.generate_key()
 
-        with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             result = cripta_credenziali(original_data)
 
             assert isinstance(result, str)
@@ -291,7 +291,7 @@ class TestCriptaCredenziali:
         original_data = ""
         test_key = Fernet.generate_key()
 
-        with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             result = cripta_credenziali(original_data)
             assert isinstance(result, str)
 
@@ -303,7 +303,7 @@ class TestCriptaCredenziali:
         original_data = "test@#$%^&*()_+-={}[]|\\:;\"'<>,.?/"
         test_key = Fernet.generate_key()
 
-        with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             result = cripta_credenziali(original_data)
 
             fernet = Fernet(test_key)
@@ -314,7 +314,7 @@ class TestCriptaCredenziali:
         original_data = "Café € 中文 🔐"
         test_key = Fernet.generate_key()
 
-        with patch("app.services.github.Encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
+        with patch("app.services.github.encrypted_Auth_Info.ENCRYPTION_KEY", test_key):
             result = cripta_credenziali(original_data)
 
             fernet = Fernet(test_key)

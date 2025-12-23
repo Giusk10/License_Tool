@@ -20,7 +20,7 @@ from app.services.analysis_workflow import (
 )
 from app.services.downloader.download_service import perform_download
 from app.models.schemas import AnalyzeResponse
-from app.services.github.Encrypted_Auth_Info import github_auth_credentials
+from app.services.github.encrypted_Auth_Info import github_auth_credentials
 
 router = APIRouter()
 

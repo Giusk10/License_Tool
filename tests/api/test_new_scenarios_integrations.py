@@ -5,7 +5,7 @@ import json
 from unittest.mock import patch, MagicMock, mock_open
 from fastapi.testclient import TestClient
 from app.main import app
-from app.services.github.Encrypted_Auth_Info import github_auth_credentials
+from app.services.github.encrypted_Auth_Info import github_auth_credentials
 from app.services.analysis_workflow import perform_regeneration
 from app.models.schemas import AnalyzeResponse, LicenseIssue
 from app.services.downloader.download_service import perform_download
@@ -17,8 +17,8 @@ def client():
 
 
 class TestIntegrationPersistence:
-    @patch('app.services.github.Encrypted_Auth_Info.MongoClient')
-    @patch('app.services.github.Encrypted_Auth_Info.decripta_dato_singolo')
+    @patch('app.services.github.encrypted_Auth_Info.MongoClient')
+    @patch('app.services.github.encrypted_Auth_Info.decripta_dato_singolo')
     def test_github_token_save_and_retrieve(self, mock_decrypt, mock_mongo_client):
         # Setup Mock per Context Manager (with MongoClient...)
         mock_client_instance = MagicMock()
