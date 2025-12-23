@@ -109,7 +109,7 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     # 3) Main License
     main_license, path_license = detect_main_license_scancode(scan_raw)
 
-    # 4) Filtro LLM
+    # 4) Filtro Regex
     llm_clean = filter_licenses(scan_raw, main_license, path_license)
     file_licenses = extract_file_licenses(llm_clean)
 
