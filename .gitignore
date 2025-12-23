@@ -32,3 +32,4 @@ venv/
 .env
 
 .coverage
+*.egg-info/

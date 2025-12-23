@@ -42,6 +42,8 @@ dev = [
     "pytest-cov~=7.0.0",
     "pytest-mock~=3.15.1",
     "pytest-asyncio~=1.3.0",
+    "pylint",
+    "pre-commit",
 ]
 
 # --- NUOVA SEZIONE FONDAMENTALE ---
@@ -58,3 +60,17 @@ addopts = "-v --cov=app"
 testpaths = ["tests"]
 python_files = "test_*.py"
 pythonpath = "."
+
+
+# --- Configurazione Static Analysis ---
+[tool.pylint.main]
+# Cambia source-roots per puntare alla root del progetto
+source-roots = ["."]
+# Aggiungi questo hook per forzare l'inclusione della directory corrente
+init-hook = "import sys; sys.path.append('.')"
+# Per ora ignoro i test perché non sono ancora stati fattorizzati come si deve
+ignore = ["tests"]
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = ["all"]
+enable = ["E", "F"]

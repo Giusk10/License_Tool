@@ -1,63 +1,104 @@
+"""
+Main SPDX Utilities Module.
+
+This module provides utility functions to extract and validate SPDX license identifiers
+from ScanCode Toolkit JSON output. It includes logic to prioritize root files
+and traverse nested dictionary structures to find valid license tags.
+"""
+
 from typing import List, Dict, Any, Optional, Tuple
 
+
 def _is_valid(value: Optional[str]) -> bool:
-    """Verifica se una stringa è un SPDX valido e non None/vuota/UNKNOWN."""
+    """
+    Checks if a license string is a valid SPDX identifier.
+
+    Args:
+        value (Optional[str]): The license string to check.
+
+    Returns:
+        bool: True if the value is not None, not empty, and not "UNKNOWN".
+    """
     return bool(value) and value != "UNKNOWN"
+
 
 def _extract_first_valid_spdx(entry: Dict[str, Any]) -> Optional[Tuple[str, str]]:
     """
-    Ritorna il primo SPDX valido trovato nell'entry ScanCode,
-    cercando nell'espressione rilevata, nelle license_detections e infine nelle licenses.
+    Retrieves the first valid SPDX identifier found in a ScanCode entry.
 
-    Ritorna: (spdx_expression, path) o None.
+    It searches in the following order:
+    1. Top-level detected license expression.
+    2. 'license_detections' list.
+    3. 'licenses' details list.
+
+    Args:
+        entry (Dict[str, Any]): A single file entry from the ScanCode JSON.
+
+    Returns:
+        Optional[Tuple[str, str]]: A tuple (spdx_expression, file_path) if found,
+        otherwise None.
     """
     if not isinstance(entry, dict):
         return None
 
     path = entry.get("path") or ""
 
-    # 1. Controlla l'espressione di licenza principale
+    # 1. Check the main detected license expression
     spdx = entry.get("detected_license_expression_spdx")
     if _is_valid(spdx):
         return spdx, path
 
-    # 2. Controlla le singole detections
-    # Sebbene l'output root 'license_detections' possa essere rimosso,
-    # questa chiave è ancora presente all'interno di ogni oggetto 'files'.
-    for detection in entry.get("license_detections", []) or []:
+    # 2. Check individual detections
+    # Even if the root 'license_detections' is removed during post-processing,
+    # this key often remains inside individual 'files' objects.
+    detections = entry.get("license_detections", []) or []
+    for detection in detections:
         det_spdx = detection.get("license_expression_spdx")
         if _is_valid(det_spdx):
             return det_spdx, path
 
-    # 3. Controlla le chiavi SPDX nelle licenze dettagliate
-    for lic in entry.get("licenses", []) or []:
+    # 3. Check SPDX keys in detailed license list
+    licenses = entry.get("licenses", []) or []
+    for lic in licenses:
         spdx_key = lic.get("spdx_license_key")
         if _is_valid(spdx_key):
             return spdx_key, path
 
     return None
 
+
 def _pick_best_spdx(entries: List[Dict[str, Any]]) -> Optional[Tuple[str, str]]:
     """
-    Ordina i file più vicini alla root (minore profondità del path) e
-    ritorna la prima licenza SPDX valida trovata.
+    Selects the best license from a list of candidates, prioritizing root files.
 
-    Ritorna: (spdx_expression, path) o None.
+    It sorts the entries based on directory depth (shallowest path first)
+    and returns the first valid SPDX identifier found.
+
+    Args:
+        entries (List[Dict[str, Any]]): A list of ScanCode file entries.
+
+    Returns:
+        Optional[Tuple[str, str]]: A tuple (spdx_expression, file_path) if found,
+        otherwise None.
     """
     if not entries:
         return None
 
-    # Filtra solo le entry che sono dizionari
-    entries = [e for e in entries if isinstance(e, dict)]
+    # Filter ensuring only dictionaries are processed
+    valid_entries = [e for e in entries if isinstance(e, dict)]
 
-    # Ordina: usa la profondità del path (conteggio degli "/") come chiave
-    # Più basso è il conteggio, più vicino è alla root.
-    sorted_entries = sorted(entries, key=lambda e: (e.get("path", "") or "").count("/"))
+    # Sort entries by path depth (number of slashes).
+    # Files with fewer slashes are closer to the root and generally more authoritative
+    # (e.g., ./LICENSE vs ./src/vendor/lib/LICENSE).
+    sorted_entries = sorted(
+        valid_entries,
+        key=lambda e: (e.get("path", "") or "").count("/")
+    )
 
     for entry in sorted_entries:
-        res = _extract_first_valid_spdx(entry)
-        if res:
-            # res è già una tupla (spdx, path)
-            return res
+        result = _extract_first_valid_spdx(entry)
+        if result:
+            # result is already a tuple (spdx, path)
+            return result
 
     return None

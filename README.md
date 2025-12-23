@@ -88,9 +88,9 @@ Elenca le librerie necessarie per l'ambiente operativo:
 * Linguaggio: Python 3.13.
 
 ### Frontend
-* Framework: React 19 con Vite.
-* Routing: React Router DOM.
-* Icone: Lucide React.
+* Framework: React 19 con Vite. 
+* Routing: React Router DOM. 
+* Icone: Lucide React. 
 * HTTP Client: Axios.
 
 ### Requisiti
@@ -165,12 +165,12 @@ Questo strumento interagisce con servizi esterni e scarica codice che ha licenze
 Questo tool si basa sui seguenti servizi esterni, il cui utilizzo è regolato dai rispettivi termini e condizioni:
 
 * **GitHub API e Accesso al Repository:**
-  * Il tool scarica repository (codice e metadati) tramite l'API di GitHub.
-  * L'uso di questa funzionalità è soggetto ai **Termini di Servizio e ai Termini d'uso delle API di GitHub**.
-  * **Attenzione:** Si prega di rispettare rigorosamente i limiti di frequenza (rate limits) di GitHub.
+    * Il tool scarica repository (codice e metadati) tramite l'API di GitHub.
+    * L'uso di questa funzionalità è soggetto ai **Termini di Servizio e ai Termini d'uso delle API di GitHub**.
+    * **Attenzione:** Si prega di rispettare rigorosamente i limiti di frequenza (rate limits) di GitHub.
 
 * **Ollama API:**
-  * Il tool interagisce con un'istanza Ollama. L'uso di Ollama è soggetto alla sua licenza (MIT).
+    * Il tool interagisce con un'istanza Ollama. L'uso di Ollama è soggetto alla sua licenza (MIT).
 
 ### Declino di Responsabilità per la Rigenerazione del Codice
 

@@ -1,26 +1,19 @@
 """
-Modulo `compat_utils` — utilità di parsing e normalizzazione.
+Compatibility Utilities Module.
 
-Funzioni principali:
-- normalize_symbol(sym: str) -> str
-    Normalizza uno symbol SPDX applicando trasformazioni comuni (es. '+' -> '-or-later') e
-    mappando alcuni alias frequenti a forme canoniche usate nella matrice.
-
-- extract_symbols(expr: str) -> List[str]
-    Usa la libreria `license_expression` per estrarre i simboli presenti in una espressione SPDX.
-    Restituisce una lista di stringhe rappresentanti i symbol identificati.
-
-Queste utilità sono intenzionalmente semplici: il parser più complesso per AND/OR/WITH
-è implementato in `parser_spdx.py`.
+This module provides utility functions for parsing and normalizing license symbols
+to ensure consistency across the application. It acts as a helper layer before
+complex SPDX evaluation.
 """
 
-from typing import List
+from typing import List, Dict
 from license_expression import Licensing
 
+# Initialize the licensing parser
 licensing = Licensing()
 
-# Alias/sinonimi comuni -> forma canonica usata nella matrice
-_SYNONYMS = {
+# Map of common aliases/synonyms to the canonical forms used in the matrix
+_SYNONYMS: Dict[str, str] = {
     "GPL-3.0+": "GPL-3.0-or-later",
     "GPL-2.0+": "GPL-2.0-or-later",
     "LGPL-3.0+": "LGPL-3.0-or-later",
@@ -30,42 +23,64 @@ _SYNONYMS = {
 
 def normalize_symbol(sym: str) -> str:
     """
-    Normalizza una singola stringa di licenza.
+    Normalizes a single license string into a canonical format.
 
-    Trasformazioni eseguite (non esaustive):
-      - trim degli spazi
-      - normalizzazione di costrutti 'with' -> 'WITH'
-      - conversione di '+' in '-or-later'
-      - mappatura di alias comuni tramite _SYNONYMS
+    This function performs several transformations to ensure consistent keys
+    for matrix lookups, including:
+    - Trimming whitespace.
+    - Standardizing 'with' clauses to uppercase 'WITH'.
+    - Converting '+' suffixes to '-or-later'.
+    - resolving aliases via a predefined synonym list.
 
-    L'obiettivo è ottenere chiavi consistenti da cercare nella matrice.
+    Args:
+        sym (str): The raw license symbol or expression string.
+
+    Returns:
+        str: The normalized license symbol. Returns the input unchanged if None.
     """
     if not sym:
         return sym
+
     s = sym.strip()
-    # normalizza spazi multipli attorno a WITH
+
+    # Normalize variations of 'with' to 'WITH'
     if " with " in s:
         s = s.replace(" with ", " WITH ")
     if " With " in s:
         s = s.replace(" With ", " WITH ")
     if " with" in s and " WITH" not in s:
         s = s.replace(" with", " WITH")
+
+    # Normalize version indicators
     if "+" in s and "-or-later" not in s:
         s = s.replace("+", "-or-later")
+
     return _SYNONYMS.get(s, s)
 
 
 def extract_symbols(expr: str) -> List[str]:
     """
-    Estrae i symbol (identificatori) presenti in una espressione SPDX.
+    Extracts individual license symbols from an SPDX expression.
 
-    Nota: questa funzione non gestisce la struttura logica (AND/OR/WITH). Serve
-    come utilità di retrocompatibilità e per semplici debug/log.
+    This function uses the `license_expression` library to identify unique
+    symbols within a complex string (ignoring logical operators like AND/OR).
+
+    Args:
+        expr (str): The SPDX license expression to parse.
+
+    Returns:
+        List[str]: A list of identified license symbols. Returns an empty list
+        if parsing fails or the expression is empty.
     """
     if not expr:
         return []
+
     try:
         tree = licensing.parse(expr, strict=False)
-    except Exception:
+        # The 'symbols' attribute contains the list of license identifiers found
+        return [str(sym) for sym in getattr(tree, "symbols", [])]
+
+    except Exception:  # pylint: disable=broad-exception-caught
+        # Intentionally catch all exceptions to prevent parsing errors from
+        # crashing the entire workflow. This is a helper utility, not a validator.
         return []
-    return [str(sym) for sym in getattr(tree, "symbols", [])]

@@ -1,17 +1,27 @@
+"""
+Main Application Entry Point.
+
+This module initializes the FastAPI application for the License Compatibility Checker.
+It configures Cross-Origin Resource Sharing (CORS) policies to allow communication
+with the frontend and registers the main API routers.
+"""
+
+from typing import Dict
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.controllers.analysis import router as analysis_router
 
+# Initialize the application instance
 app = FastAPI(
     title="License Compatibility Checker + Ollama",
     version="1.0.0",
 )
 
-# API principali
-app.include_router(analysis_router, prefix="/api", tags=["Analysis"])
+# ------------------------------------------------------------------
+# CORS CONFIGURATION
+# ------------------------------------------------------------------
 
-# CORS Configuration
-from fastapi.middleware.cors import CORSMiddleware
-
+# List of allowed origins (Frontend development server)
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -25,7 +35,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# per test rapido
+# ------------------------------------------------------------------
+# ROUTER REGISTRATION
+# ------------------------------------------------------------------
+
+# Register the main analysis controller with the /api prefix
+app.include_router(analysis_router, prefix="/api", tags=["Analysis"])
+
+
+# ------------------------------------------------------------------
+# ROOT ENDPOINT
+# ------------------------------------------------------------------
+
 @app.get("/")
-def root():
+def root() -> Dict[str, str]:
+    """
+    Root endpoint to verify backend availability.
+
+    Returns:
+        Dict[str, str]: A simple status message indicating the service is running.
+    """
     return {"message": "License Checker Backend is running"}

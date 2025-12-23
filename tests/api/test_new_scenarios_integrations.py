@@ -5,10 +5,10 @@ import json
 from unittest.mock import patch, MagicMock, mock_open
 from fastapi.testclient import TestClient
 from app.main import app
-from app.services.github.Encrypted_Auth_Info import github_auth_credentials, cripta_credenziali, decripta_dato_singolo
+from app.services.github.Encrypted_Auth_Info import github_auth_credentials
 from app.services.analysis_workflow import perform_regeneration
 from app.models.schemas import AnalyzeResponse, LicenseIssue
-from app.services.dowloader.download_service import perform_download
+from app.services.downloader.download_service import perform_download
 
 
 @pytest.fixture
@@ -20,11 +20,17 @@ class TestIntegrationPersistence:
     @patch('app.services.github.Encrypted_Auth_Info.MongoClient')
     @patch('app.services.github.Encrypted_Auth_Info.decripta_dato_singolo')
     def test_github_token_save_and_retrieve(self, mock_decrypt, mock_mongo_client):
-        # Mock MongoDB
-        mock_collection = MagicMock()
+        # Setup Mock per Context Manager (with MongoClient...)
+        mock_client_instance = MagicMock()
+        mock_mongo_client.return_value = mock_client_instance
+        # Quando entra nel 'with', restituisce se stesso
+        mock_client_instance.__enter__.return_value = mock_client_instance
+        mock_client_instance.__exit__.return_value = None
+
         mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_client_instance.__getitem__.return_value = mock_db
         mock_db.__getitem__.return_value = mock_collection
-        mock_mongo_client.return_value.__getitem__.return_value = mock_db
 
         # Original token
         original_token = "ghp_1234567890abcdef"
@@ -95,7 +101,8 @@ class TestIntegrationCodeGeneratorFileSystem:
     @patch('app.services.analysis_workflow.extract_file_licenses')
     @patch('app.services.analysis_workflow.check_compatibility')
     @patch('app.services.analysis_workflow.enrich_with_llm_suggestions')
-    def test_full_regeneration_cycle(self, mock_enrich, mock_compat, mock_extract, mock_filter, mock_scancode, mock_regenerate, mock_detect):
+    def test_full_regeneration_cycle(self, mock_enrich, mock_compat, mock_extract, mock_filter, mock_scancode,
+                                     mock_regenerate, mock_detect):
         # Setup mocks
         mock_regenerate.return_value = "# MIT License\n\ndef hello():\n    print('Hello MIT')\n"
         mock_scancode.return_value = {"files": []}

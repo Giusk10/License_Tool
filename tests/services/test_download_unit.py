@@ -1,12 +1,12 @@
 """
-test: services/dowloader/download_service.py
+test: services/downloader/download_service.py
 """
 import os
 import tempfile
 import shutil
 from unittest.mock import patch, MagicMock
 import pytest
-from app.services.dowloader.download_service import perform_download
+from app.services.downloader.download_service import perform_download
 
 
 class TestPerformDownload:
@@ -30,7 +30,7 @@ class TestPerformDownload:
             f.write("test content")
 
         # Mock CLONE_BASE_DIR
-        with patch("app.services.dowloader.download_service.CLONE_BASE_DIR", clone_base_dir):
+        with patch("app.services.downloader.download_service.CLONE_BASE_DIR", clone_base_dir):
             result = perform_download(owner, repo)
 
             # Verifica che il path dello zip sia corretto
@@ -59,7 +59,7 @@ class TestPerformDownload:
         owner = "test_owner"
         repo = "nonexistent_repo"
 
-        with patch("app.services.dowloader.download_service.CLONE_BASE_DIR", clone_base_dir):
+        with patch("app.services.downloader.download_service.CLONE_BASE_DIR", clone_base_dir):
             with pytest.raises(ValueError) as exc_info:
                 perform_download(owner, repo)
 
@@ -79,7 +79,7 @@ class TestPerformDownload:
         # Crea la directory del repository
         os.makedirs(repo_path, exist_ok=True)
 
-        with patch("app.services.dowloader.download_service.CLONE_BASE_DIR", clone_base_dir):
+        with patch("app.services.downloader.download_service.CLONE_BASE_DIR", clone_base_dir):
             result = perform_download(owner, repo)
 
             # Verifica il nome del file
@@ -100,7 +100,7 @@ class TestPerformDownload:
         # Crea la directory del repository
         os.makedirs(repo_path, exist_ok=True)
 
-        with patch("app.services.dowloader.download_service.CLONE_BASE_DIR", clone_base_dir):
+        with patch("app.services.downloader.download_service.CLONE_BASE_DIR", clone_base_dir):
             result = perform_download(owner, repo)
 
             # Verifica che funzioni anche con caratteri speciali
@@ -125,7 +125,7 @@ class TestPerformDownload:
         with open(zip_path, "w") as f:
             f.write("old zip content")
 
-        with patch("app.services.dowloader.download_service.CLONE_BASE_DIR", clone_base_dir):
+        with patch("app.services.downloader.download_service.CLONE_BASE_DIR", clone_base_dir):
             result = perform_download(owner, repo)
 
             # Verifica che il file sia stato sovrascritto (ora è un vero zip)
@@ -151,7 +151,7 @@ class TestPerformDownload:
         # Crea la directory vuota del repository
         os.makedirs(repo_path, exist_ok=True)
 
-        with patch("app.services.dowloader.download_service.CLONE_BASE_DIR", clone_base_dir):
+        with patch("app.services.downloader.download_service.CLONE_BASE_DIR", clone_base_dir):
             result = perform_download(owner, repo)
 
             # Verifica che lo zip sia creato anche per repository vuoto
