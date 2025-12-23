@@ -11,15 +11,29 @@ const Home = () => {
     const navigate = useNavigate();
     const fileInputRef = React.useRef(null);
 
-    const handleAnalyze = (e) => {
+    const handleAnalyze = async (e) => {
         e.preventDefault();
         if (!owner || !repo) return;
 
         setLoading(true);
-        // Redirect to backend auth start endpoint
-        // Using window.location.href to navigate to the backend URL
-        const backendUrl = 'http://localhost:8000/api/auth/start';
-        window.location.href = `${backendUrl}?owner=${owner}&repo=${repo}`;
+
+        try {
+            const response = await axios.post('http://localhost:8000/api/clone', {
+                owner,
+                repo
+            });
+
+            navigate('/callback', {
+                state: {
+                    cloneData: response.data,
+                    source: 'clone'
+                }
+            });
+        } catch (error) {
+            console.error("Cloning failed", error);
+            alert("Cloning failed: " + (error.response?.data?.detail || error.message));
+            setLoading(false);
+        }
     };
 
     const handleUploadClick = () => {
@@ -60,7 +74,7 @@ const Home = () => {
         }
     };
 
-    if (uploading) {
+    if (uploading || loading) {
         return (
             <div className="container">
                 <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
@@ -72,8 +86,12 @@ const Home = () => {
                             marginBottom: '1rem'
                         }}
                     />
-                    <h2>Uploading Repository...</h2>
-                    <p>Please wait while we upload and process the repository.</p>
+                    <h2>{uploading ? 'Uploading Repository...' : 'Cloning Repository...'}</h2>
+                    <p>
+                        {uploading
+                            ? 'Please wait while we upload and process the repository.'
+                            : 'Please wait while we clone the repository from GitHub.'}
+                    </p>
                 </div>
             </div>
         );
@@ -118,7 +136,7 @@ const Home = () => {
 
                     <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                         <button type="submit" className="glass-button" style={{ flex: 1 }} disabled={loading}>
-                            {loading ? 'Redirecting...' : (
+                            {loading ? 'Cloning...' : (
                                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                                     Clone Repository <ArrowRight size={16} />
                                 </span>

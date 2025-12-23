@@ -30,7 +30,7 @@ from app.utility.config import CLONE_BASE_DIR
 from app.services.llm.code_generator import regenerate_code
 
 
-def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
+def perform_cloning(owner: str, repo: str) -> str:
     """
     Executes the repository cloning process.
 
@@ -48,7 +48,7 @@ def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
     Raises:
         ValueError: If the cloning operation fails.
     """
-    clone_result = clone_repo(owner, repo, oauth_token)
+    clone_result = clone_repo(owner, repo)
     if not clone_result.success:
         raise ValueError(f"Cloning error: {clone_result.error}")
 

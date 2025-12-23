@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import TripleToggleSwitch from '../components/TripleToggleSwitch';
 import LicenseSuggestionForm from '../components/LicenseSuggestionForm';
 import axios from 'axios';
@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 
 const Callback = () => {
-    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -46,48 +45,23 @@ const Callback = () => {
     ];
 
     // 1. Initial Clone on Mount
-    const hasCalledRef = React.useRef(false);
-
+    React.useRef(false);
     useEffect(() => {
-        // Check if data was passed via navigation (e.g. from Upload Zip)
+        // Check if data was passed via navigation (e.g. from Upload Zip or Clone)
         if (location.state?.cloneData) {
             setCloneData(location.state.cloneData);
             setStatus('cloned');
             if (location.state.source) {
                 setSource(location.state.source);
             }
-            return;
-        }
-
-        const code = searchParams.get('code');
-        const state = searchParams.get('state');
-
-        if (!code || !state) {
+        } else {
+            // If no data is present, redirect back to Home
             setStatus('error');
-            setError('Missing code or state parameters.');
-            return;
+            setError('No repository data found. Please start from the Home page.');
+            // Optional: Auto-redirect after a delay
+            // setTimeout(() => navigate('/'), 3000);
         }
-
-        if (hasCalledRef.current) return;
-        hasCalledRef.current = true;
-
-        const performClone = async () => {
-            try {
-                const response = await axios.get(`http://localhost:8000/api/callback`, {
-                    params: { code, state }
-                });
-                // Response: { status: "cloned", owner, repo, local_path }
-                setCloneData(response.data);
-                setStatus('cloned');
-            } catch (err) {
-                console.error(err);
-                setStatus('error');
-                setError(err.response?.data?.detail || 'Cloning failed.');
-            }
-        };
-
-        performClone();
-    }, [searchParams, location.state]);
+    }, [location.state]);
 
     // 2. Handle Analyze Click
     const handleAnalyze = async () => {

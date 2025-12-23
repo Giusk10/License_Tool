@@ -34,7 +34,7 @@ def _handle_remove_readonly(func: Callable[..., Any], path: str, _exc: Any) -> N
     func(path)
 
 
-def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
+def clone_repo(owner: str, repo: str) -> CloneResult:
     """
     Clones a GitHub repository to a local directory using an OAuth token.
 
@@ -67,7 +67,7 @@ def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
 
         # Construct authenticated URL
         # Note: x-access-token is the standard username for OAuth token usage in git
-        auth_url = f"https://x-access-token:{oauth_token}@github.com/{owner}/{repo}.git"
+        auth_url = f"https://github.com/{owner}/{repo}.git"
 
         Repo.clone_from(auth_url, target_path)
 
@@ -75,8 +75,7 @@ def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
 
     except GitCommandError as e:
         # Security: Ensure the OAuth token is not leaked in error logs/responses
-        safe_error = str(e).replace(oauth_token, "***")
-        return CloneResult(success=False, error=safe_error)
+        return CloneResult(success=False, error=str(e))
 
     except OSError as e:
         return CloneResult(success=False, error=f"Filesystem error: {e}")
