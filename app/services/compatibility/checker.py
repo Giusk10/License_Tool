@@ -1,56 +1,52 @@
 """
-This module provides the public interface for verifying license compatibility.
+Compatibility Checker Module.
 
-Main Responsibility:
-- Orchestrates the normalization of the main license.
-- Loads the compatibility matrix.
-- Parses SPDX expressions for each file into an evaluation tree.
-- Evaluates the tree against the matrix to determine compliance.
-Behavior:
-- Normalizes the main license
-- Loads the professional matrix (via `matrix.get_matrix`)
-- For each file, parses the SPDX expression via `parser_spdx.parse_spdx`
-  and evaluates via `evaluator.eval_node`
-- Produces a list of issues with the following fields for each file:
-  - file_path: file path
-  - detected_license: detected expression string
-  - compatible: boolean (True if final outcome is yes)
-  - reason: string with detailed trace (useful for report + LLM)
-
-Note: in case of unavailable matrices or missing main license, the function
-returns a set of issues with explanatory reason.
+This module serves as the public interface for verifying license compatibility.
+It orchestrates the process by normalizing license symbols, loading the compatibility
+matrix, parsing SPDX expressions from files, and evaluating them against the
+project's main license.
 """
 
-from typing import Dict
+from typing import Dict, Any, List
+
 from .compat_utils import normalize_symbol
 from .parser_spdx import parse_spdx
 from .evaluator import eval_node
 from .matrix import get_matrix
 
 
-def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> dict:
+def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> Dict[str, Any]:
     """
     Evaluates the compatibility of file-level licenses against the main project license.
 
-    Process:
-    1. Normalizes the main license symbol.
-    2. Retrieves the compatibility matrix.
-    3. Iterates over each file's license expression:
-       - Parses the SPDX string into a logical tree (Node).
-       - Evaluates the tree using `eval_node` to get a status (yes/no/conditional) and a trace.
+    The process involves:
+    1. Normalizing the main license symbol.
+    2. Retrieving the compatibility matrix.
+    3. Iterating over each file's license expression to:
+        - Parse the SPDX string into a logical tree (Node).
+        - Evaluate the tree using `eval_node` to determine status (yes, no, conditional)
+          and generate a trace.
 
     Args:
-        main_license (str): The main license symbol of the project.
-        file_licenses (Dict[str, str]): A dictionary mapping file paths to their detected license expressions.
+        main_license (str): The main license symbol of the project (e.g., "MIT").
+        file_licenses (Dict[str, str]): A dictionary mapping file paths to their
+            detected license expressions (e.g., {"src/file.js": "MIT AND Apache-2.0"}).
 
     Returns:
-        dict: A dictionary containing the normalized main license and a list of 'issues'
-              (compatibility results for each file).
+        Dict[str, Any]: A dictionary containing:
+            - "main_license" (str): The normalized main license identifier.
+            - "issues" (List[Dict]): A list of dictionaries representing the compatibility
+              result for each file. Each dictionary contains:
+                - file_path (str)
+                - detected_license (str)
+                - compatible (bool)
+                - reason (str)
     """
-    issues = []
+    issues: List[Dict[str, Any]] = []
     main_license_n = normalize_symbol(main_license)
     matrix = get_matrix()
 
+    # Case 1: Main license is missing or invalid
     if not main_license_n or main_license_n in {"UNKNOWN", "NOASSERTION", "NONE"}:
         for file_path, license_expr in file_licenses.items():
             issues.append({
@@ -61,20 +57,32 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> dic
             })
         return {"main_license": main_license or "UNKNOWN", "issues": issues}
 
+    # Case 2: Matrix unavailable or main license not supported in matrix
     if not matrix or main_license_n not in matrix:
         for file_path, license_expr in file_licenses.items():
             issues.append({
                 "file_path": file_path,
                 "detected_license": license_expr,
                 "compatible": False,
-                "reason": "Professional matrix not available or main license not present in the matrix",
+                "reason": (
+                    "Professional matrix not available or "
+                    "main license not present in the matrix"
+                ),
             })
         return {"main_license": main_license_n, "issues": issues}
 
+    # Case 3: Standard evaluation
     for file_path, license_expr in file_licenses.items():
         license_expr = (license_expr or "").strip()
+
+        # Parse the SPDX expression into a logical tree
         node = parse_spdx(license_expr)
+
+        # Evaluate compatibility against the main license
         status, trace = eval_node(main_license_n, node)
+
+        compatible = False
+        reason = ""
 
         if status == "yes":
             compatible = True
@@ -83,9 +91,13 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> dic
             compatible = False
             reason = "; ".join(trace)
         else:
+            # Handle "conditional" or unknown statuses
             compatible = False
             hint = "conditional" if status == "conditional" else "unknown"
-            reason = "; ".join(trace) + f"; Outcome: {hint}. Requires compliance/manual verification."
+            reason = (
+                f"{'; '.join(trace)}; "
+                f"Outcome: {hint}. Requires compliance/manual verification."
+            )
 
         issues.append({
             "file_path": file_path,

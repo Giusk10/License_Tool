@@ -1,56 +1,82 @@
 """
-Handles Git operations, specifically cloning repositories using OAuth tokens.
-Includes Windows-specific handling for file permission errors during cleanup.
+GitHub Client Module.
+
+This module handles low-level Git operations, specifically cloning repositories
+using OAuth tokens. It includes platform-specific handling (Windows) for file
+permission errors that often occur during directory cleanup.
 """
 
 import os
 import stat
 import shutil
+import sys
+from typing import Any, Callable
+
 from git import Repo, GitCommandError
 from app.models.schemas import CloneResult
 from app.utility.config import CLONE_BASE_DIR
 
-def handle_remove_readonly(func, path, exc):
+
+def _handle_remove_readonly(func: Callable[..., Any], path: str, _exc: Any) -> None:
     """
-    Forces file removal by changing permissions if a read-only error occurs.
+    Error handler for shutil.rmtree to force removal of read-only files.
+
+    This is particularly useful on Windows where Git object files are often
+    marked as read-only, causing standard cleanup to fail.
 
     Args:
-        func: The function that raised the exception.
-        path: The file path that caused the exception.
-        exc: The exception information.
+        func (Callable): The function that raised the exception (usually os.unlink).
+        path (str): The path to the file that caused the exception.
+        _exc (Any): The exception information (unused).
     """
+    # Clear the read-only bit and retry the operation
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
+
 def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
     """
-    Clones a GitHub repository using an OAuth token for authentication.
+    Clones a GitHub repository to a local directory using an OAuth token.
+
+    This function handles the entire lifecycle:
+    1. Prepares the destination directory.
+    2. Cleans up any existing data at that location (handling permission errors).
+    3. Clones the remote repository.
+    4. Catches and redacts sensitive tokens from error messages.
 
     Args:
-        owner (str): The owner of the repository.
+        owner (str): The username or organization name of the repository owner.
         repo (str): The name of the repository.
-        oauth_token (str): The OAuth token for authentication.
+        oauth_token (str): The GitHub OAuth token for authentication.
 
     Returns:
-        CloneResult: The result of the clone operation, including success status and path or error message.
+        CloneResult: A model containing the success status and either the
+        local path (on success) or an error message (on failure).
     """
     os.makedirs(CLONE_BASE_DIR, exist_ok=True)
-
     target_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
 
     try:
-        # Safe cleanup of existing directory for Windows
+        # Safe cleanup of existing directory (Windows-friendly)
         if os.path.exists(target_path):
-            shutil.rmtree(target_path, onerror=handle_remove_readonly)
+            # 'onerror' is deprecated in Python 3.12+ in favor of 'onexc'
+            if sys.version_info >= (3, 12):
+                shutil.rmtree(target_path, onexc=_handle_remove_readonly)
+            else:
+                shutil.rmtree(target_path, onerror=_handle_remove_readonly)  # pylint: disable=deprecated-argument
 
         # Construct authenticated URL
+        # Note: x-access-token is the standard username for OAuth token usage in git
         auth_url = f"https://x-access-token:{oauth_token}@github.com/{owner}/{repo}.git"
 
         Repo.clone_from(auth_url, target_path)
+
         return CloneResult(success=True, repo_path=target_path)
 
     except GitCommandError as e:
+        # Security: Ensure the OAuth token is not leaked in error logs/responses
         safe_error = str(e).replace(oauth_token, "***")
         return CloneResult(success=False, error=safe_error)
+
     except OSError as e:
         return CloneResult(success=False, error=f"Filesystem error: {e}")
