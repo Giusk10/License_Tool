@@ -25,11 +25,12 @@ from app.services.scanner.detection import (
 from app.services.scanner.filter import filter_licenses
 from app.services.compatibility import check_compatibility
 from app.services.llm.suggestion import enrich_with_llm_suggestions
+from app.services.llm.license_recommender import needs_license_suggestion
 from app.utility.config import CLONE_BASE_DIR
 from app.services.llm.code_generator import regenerate_code
 
 
-def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
+def perform_cloning(owner: str, repo: str) -> str:
     """
     Executes the repository cloning process.
 
@@ -47,7 +48,7 @@ def perform_cloning(owner: str, repo: str, oauth_token: str) -> str:
     Raises:
         ValueError: If the cloning operation fails.
     """
-    clone_result = clone_repo(owner, repo, oauth_token)
+    clone_result = clone_repo(owner, repo)
     if not clone_result.success:
         raise ValueError(f"Cloning error: {clone_result.error}")
 
@@ -163,7 +164,14 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     scan_raw = run_scancode(repo_path)
 
     # 3) Detect Main License
-    main_license, path_license = detect_main_license_scancode(scan_raw)
+    license_result = detect_main_license_scancode(scan_raw)
+
+    # Handle both return types: tuple (license, path) or string "UNKNOWN"
+    if isinstance(license_result, tuple):
+        main_license, path_license = license_result
+    else:
+        main_license = license_result
+        path_license = None
 
     # 4) LLM Filtering
     llm_clean = filter_licenses(scan_raw, main_license, path_license)
@@ -175,7 +183,10 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     # 6) AI Suggestions
     enriched_issues = enrich_with_llm_suggestions(main_license, compatibility["issues"], {})
 
-    # 7) Map to Pydantic Models
+    # 7) Check if license suggestion is needed
+    needs_suggestion = needs_license_suggestion(main_license, enriched_issues)
+
+    # 8) Map to Pydantic Models
     license_issue_models = [
         LicenseIssue(
             file_path=i["file_path"],
@@ -193,6 +204,7 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
         repository=f"{owner}/{repo}",
         main_license=main_license,
         issues=license_issue_models,
+        needs_license_suggestion=needs_suggestion,
     )
 
 
@@ -254,6 +266,9 @@ def perform_regeneration(
         regenerated_files_map
     )
 
+    # 4. Check if license suggestion is still needed after regeneration
+    needs_suggestion = needs_license_suggestion(main_license, enriched_issues)
+
     license_issue_models = [
         LicenseIssue(
             file_path=i["file_path"],
@@ -261,6 +276,7 @@ def perform_regeneration(
             compatible=i["compatible"],
             reason=i.get("reason"),
             suggestion=i.get("suggestion"),
+            licenses=i.get("licenses"),
             regenerated_code_path=i.get("regenerated_code_path"),
         )
         for i in enriched_issues
@@ -270,6 +286,7 @@ def perform_regeneration(
         repository=f"{owner}/{repo}",
         main_license=main_license,
         issues=license_issue_models,
+        needs_license_suggestion=needs_suggestion,
     )
 
 
@@ -321,11 +338,14 @@ def _regenerate_incompatible_files(
             with open(abs_path, "r", encoding="utf-8", errors="ignore") as f:
                 original_content = f.read()
 
+            # Ensure licenses is a string, not None
+            licenses_str = issue.licenses if issue.licenses else "MIT, Apache-2.0, BSD-3-Clause"
+
             new_code = regenerate_code(
                 code_content=original_content,
                 main_license=main_license,
                 detected_license=issue.detected_license,
-                licenses=issue.licenses
+                licenses=licenses_str
             )
 
             if new_code and len(new_code.strip()) > 10:
@@ -369,7 +389,13 @@ def _rescan_repository(
     scan_raw = run_scancode(repo_path)
 
     # Detect license path again to ensure accuracy
-    _, path_license = detect_main_license_scancode(scan_raw)
+    license_result = detect_main_license_scancode(scan_raw)
+
+    # Handle both return types: tuple (license, path) or string "UNKNOWN"
+    if isinstance(license_result, tuple):
+        _, path_license = license_result
+    else:
+        path_license = None
 
     llm_clean = filter_licenses(scan_raw, main_license, path_license)
     file_licenses = extract_file_licenses(llm_clean)

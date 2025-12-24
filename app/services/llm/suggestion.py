@@ -174,6 +174,11 @@ def enrich_with_llm_suggestions(
                 "The file is compatible with the project's main license. No action needed."
             )
 
+        elif issue.get("compatible") is None:
+            suggestion_text = (
+                "The repository main license could not be determined, please click on the toggle 'Get Suggestion' to choose a main license."
+            )
+
         # Case 2: Incompatible File
         else:
             is_document = file_path.endswith(DOCUMENT_EXTENSIONS)
