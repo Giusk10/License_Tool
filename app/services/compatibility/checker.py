@@ -52,7 +52,7 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> Dic
             issues.append({
                 "file_path": file_path,
                 "detected_license": license_expr,
-                "compatible": False,
+                "compatible": None,
                 "reason": "Main license not detected or invalid (UNKNOWN/NOASSERTION/NONE)",
             })
         return {"main_license": main_license or "UNKNOWN", "issues": issues}
@@ -63,7 +63,7 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> Dic
             issues.append({
                 "file_path": file_path,
                 "detected_license": license_expr,
-                "compatible": False,
+                "compatible": None,
                 "reason": (
                     "Professional matrix not available or "
                     "main license not present in the matrix"

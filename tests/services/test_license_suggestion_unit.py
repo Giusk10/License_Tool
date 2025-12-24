@@ -123,14 +123,6 @@ class TestLicenseRecommenderService:
         assert needs_license_suggestion("None", issues) is True
         assert needs_license_suggestion("", issues) is True
 
-    def test_needs_license_suggestion_unknown_files(self):
-        """Test detection when files have unknown licenses."""
-        issues = [
-            {"detected_license": "Unknown", "compatible": False},
-            {"detected_license": "MIT", "compatible": True}
-        ]
-
-        assert needs_license_suggestion("Apache-2.0", issues) is True
 
     def test_needs_license_suggestion_not_needed(self):
         """Test when suggestion is not needed."""

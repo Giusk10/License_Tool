@@ -21,7 +21,7 @@ def test_main_license_invalid_returns_issues(monkeypatch, _msg_matches):
     assert len(res["issues"]) == 1
     issue = res["issues"][0]
     assert issue["file_path"] == "a.py"
-    assert issue["compatible"] is False
+    assert issue["compatible"] is None
     assert _msg_matches(issue["reason"],
                         "Main license not detected or invalid",
                         "Licenza principale non rilevata")

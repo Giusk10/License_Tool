@@ -34,7 +34,7 @@ def _handle_remove_readonly(func: Callable[..., Any], path: str, _exc: Any) -> N
     func(path)
 
 
-def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
+def clone_repo(owner: str, repo: str) -> CloneResult:
     """
     Clones a GitHub repository to a local directory using an OAuth token.
 
@@ -61,13 +61,13 @@ def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
         if os.path.exists(target_path):
             # 'onerror' is deprecated in Python 3.12+ in favor of 'onexc'
             if sys.version_info >= (3, 12):
-                shutil.rmtree(target_path, onexc=_handle_remove_readonly)
+                shutil.rmtree(target_path, onexc=_handle_remove_readonly)  # pylint: disable=unexpected-keyword-arg
             else:
                 shutil.rmtree(target_path, onerror=_handle_remove_readonly)  # pylint: disable=deprecated-argument
 
         # Construct authenticated URL
         # Note: x-access-token is the standard username for OAuth token usage in git
-        auth_url = f"https://x-access-token:{oauth_token}@github.com/{owner}/{repo}.git"
+        auth_url = f"https://github.com/{owner}/{repo}.git"
 
         Repo.clone_from(auth_url, target_path)
 
@@ -75,8 +75,7 @@ def clone_repo(owner: str, repo: str, oauth_token: str) -> CloneResult:
 
     except GitCommandError as e:
         # Security: Ensure the OAuth token is not leaked in error logs/responses
-        safe_error = str(e).replace(oauth_token, "***")
-        return CloneResult(success=False, error=safe_error)
+        return CloneResult(success=False, error=str(e))
 
     except OSError as e:
         return CloneResult(success=False, error=f"Filesystem error: {e}")

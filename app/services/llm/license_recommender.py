@@ -177,7 +177,7 @@ def needs_license_suggestion(main_license: str, issues: List[Dict]) -> bool:
     for issue in issues:
         detected = issue.get("detected_license", "").lower()
         if "unknown" in detected or detected in ["none", ""]:
-            return True
+            return False
 
     return False
 

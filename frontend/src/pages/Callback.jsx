@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import TripleToggleSwitch from '../components/TripleToggleSwitch';
 import LicenseSuggestionForm from '../components/LicenseSuggestionForm';
 import axios from 'axios';
@@ -16,11 +16,10 @@ import {
     Code,
     RefreshCw,
     ArrowRight,
-    Download
+    Download, HelpCircle
 } from 'lucide-react';
 
 const Callback = () => {
-    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -46,48 +45,23 @@ const Callback = () => {
     ];
 
     // 1. Initial Clone on Mount
-    const hasCalledRef = React.useRef(false);
-
+    React.useRef(false);
     useEffect(() => {
-        // Check if data was passed via navigation (e.g. from Upload Zip)
+        // Check if data was passed via navigation (e.g. from Upload Zip or Clone)
         if (location.state?.cloneData) {
             setCloneData(location.state.cloneData);
             setStatus('cloned');
             if (location.state.source) {
                 setSource(location.state.source);
             }
-            return;
-        }
-
-        const code = searchParams.get('code');
-        const state = searchParams.get('state');
-
-        if (!code || !state) {
+        } else {
+            // If no data is present, redirect back to Home
             setStatus('error');
-            setError('Missing code or state parameters.');
-            return;
+            setError('No repository data found. Please start from the Home page.');
+            // Optional: Auto-redirect after a delay
+            // setTimeout(() => navigate('/'), 3000);
         }
-
-        if (hasCalledRef.current) return;
-        hasCalledRef.current = true;
-
-        const performClone = async () => {
-            try {
-                const response = await axios.get(`http://localhost:8000/api/callback`, {
-                    params: { code, state }
-                });
-                // Response: { status: "cloned", owner, repo, local_path }
-                setCloneData(response.data);
-                setStatus('cloned');
-            } catch (err) {
-                console.error(err);
-                setStatus('error');
-                setError(err.response?.data?.detail || 'Cloning failed.');
-            }
-        };
-
-        performClone();
-    }, [searchParams, location.state]);
+    }, [location.state]);
 
     // 2. Handle Analyze Click
     const handleAnalyze = async () => {
@@ -115,9 +89,9 @@ const Callback = () => {
             clearInterval(interval);
 
             // Check if license suggestion is needed
-            if (response.data.needs_license_suggestion) {
-                setShowLicenseSuggestionForm(true);
-            }
+            // REMOVED AUTO OPEN: if (response.data.needs_license_suggestion) {
+            //     setShowLicenseSuggestionForm(true);
+            // }
 
             // Check for regeneration needs immediately after analysis
             // REMOVED AUTO REGENERATION: checkAndRegenerate(response.data, cloneData.owner, cloneData.repo);
@@ -298,6 +272,7 @@ const Callback = () => {
                     <h2>Analysis Report {isComparisonMode ? '(Regenerated)' : ''}</h2>
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         {displayData.issues.some(i =>
+                            displayData.main_license !== 'UNKNOWN' &&
                             !i.compatible &&
                             !/(\.(md|txt|rst)|THIRD_PARTY_NOTICE|NOTICE)$/i.test(i.file_path)) && (
                             <button onClick={handleRegenerate} className="glass-button" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'rgba(100, 108, 255, 0.2)' }}>
@@ -344,7 +319,7 @@ const Callback = () => {
                                 <span style={{ opacity: 0.7, fontSize: '1rem' }}>Main License</span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#646cff' }}>
-                                        {displayData.main_license || 'Unknown'}
+                                        {displayData.main_license === 'UNKNOWN' ? 'UNLICENSE' : displayData.main_license}
                                     </span>
                                     {displayData.needs_license_suggestion && (
                                         <button
@@ -456,9 +431,11 @@ const Callback = () => {
                                                             </div>
 
                                                             {/* Parte destra (Icona e Status) - Aggiunto 'flexShrink: 0' per evitare che si schiacci */}
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: issue.compatible ? '#219625ff' : '#f44336', fontWeight: 'bold', flexShrink: 0 }}>
-                                                                {issue.compatible ? <CheckCircle size={22} /> : <XCircle size={22} />}
-                                                                {issue.compatible ? 'Compatible' : 'Incompatible'}
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: issue.compatible === true ? '#219625ff' : (issue.compatible === false ? '#f44336' : '#ffab00'), fontWeight: 'bold', flexShrink: 0 }}>
+                                                                {issue.compatible === true && <CheckCircle size={22} />}
+                                                                {issue.compatible === false && <XCircle size={22} />}
+                                                                {(issue.compatible === null || issue.compatible === undefined) && <HelpCircle size={22} />}
+                                                                {issue.compatible === true ? 'Compatible' : (issue.compatible === false ? 'Incompatible' : 'Unknown')}
                                                             </div>
                                                         </div>
                                                         {issue.reason && (
@@ -485,7 +462,7 @@ const Callback = () => {
                                                             <div style={{ background: 'rgba(100, 108, 255, 0.05)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid rgba(100, 108, 255, 0.2)' }}>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#646cff' }}>
                                                                     <Lightbulb size={22} />
-                                                                    <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>Suggerimenti di Risoluzione</span>
+                                                                    <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>AI Suggestions</span>
                                                                 </div>
 
                                                                 {issue.suggestion
