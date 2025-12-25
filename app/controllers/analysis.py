@@ -24,7 +24,6 @@ from app.models.schemas import (
     LicenseRequirementsRequest,
     LicenseSuggestionResponse
 )
-from app.services.github.encrypted_Auth_Info import github_auth_credentials
 from app.services.llm.license_recommender import suggest_license_based_on_requirements
 
 router = APIRouter()

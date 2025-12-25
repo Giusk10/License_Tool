@@ -44,7 +44,7 @@ class LicenseIssue(BaseModel):
     """
     file_path: str
     detected_license: str
-    compatible: bool
+    compatible: bool | None
     reason: Optional[str] = None
     suggestion: Optional[str] = None
     licenses: Optional[str] = None

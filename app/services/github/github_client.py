@@ -61,7 +61,7 @@ def clone_repo(owner: str, repo: str) -> CloneResult:
         if os.path.exists(target_path):
             # 'onerror' is deprecated in Python 3.12+ in favor of 'onexc'
             if sys.version_info >= (3, 12):
-                shutil.rmtree(target_path, onexc=_handle_remove_readonly)
+                shutil.rmtree(target_path, onexc=_handle_remove_readonly)  # pylint: disable=unexpected-keyword-arg
             else:
                 shutil.rmtree(target_path, onerror=_handle_remove_readonly)  # pylint: disable=deprecated-argument
 

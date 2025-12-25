@@ -19,6 +19,35 @@ from app.models.schemas import AnalyzeResponse, LicenseIssue
 
 # --- TESTS PER PERFORM_CLONING ---
 
+def test_perform_cloning_success(tmp_path):
+    """Test perform_cloning con successo."""
+    owner, repo = "testowner", "testrepo"
+    base_dir = tmp_path / "clones"
+    base_dir.mkdir()
+
+    with patch("app.services.analysis_workflow.CLONE_BASE_DIR", str(base_dir)), \
+         patch("app.services.analysis_workflow.clone_repo") as mock_clone:
+        mock_clone.return_value = MagicMock(success=True, repo_path=str(base_dir / f"{owner}_{repo}"))
+
+        result = perform_cloning(owner, repo)
+
+        assert result == str(base_dir / f"{owner}_{repo}")
+        mock_clone.assert_called_once_with(owner, repo)
+
+
+def test_perform_cloning_failure():
+    """Test perform_cloning con fallimento del clone."""
+    owner, repo = "badowner", "badrepo"
+
+    with patch("app.services.analysis_workflow.clone_repo") as mock_clone:
+        mock_clone.return_value = MagicMock(success=False, error="Authentication failed")
+
+        with pytest.raises(ValueError, match="Cloning error: Authentication failed"):
+            perform_cloning(owner, repo)
+
+        mock_clone.assert_called_once_with(owner, repo)
+
+
 # --- TESTS PER PERFORM_UPLOAD_ZIP ---
 
 def test_perform_upload_zip_invalid_extension():

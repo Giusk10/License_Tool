@@ -16,7 +16,6 @@ import json
 from unittest.mock import patch, MagicMock, mock_open
 from fastapi.testclient import TestClient
 from app.main import app
-from app.services.github.encrypted_Auth_Info import github_auth_credentials
 from app.services.analysis_workflow import perform_regeneration
 from app.models.schemas import AnalyzeResponse, LicenseIssue
 from app.services.downloader.download_service import perform_download
@@ -25,61 +24,6 @@ from app.services.downloader.download_service import perform_download
 @pytest.fixture
 def client():
     return TestClient(app)
-
-# ==================================================================================
-#                          TEST SUITE: PERSISTENCE & SECURITY
-# ==================================================================================
-
-class TestIntegrationPersistence:
-    """
-    Tests the secure storage and retrieval of sensitive credentials.
-    """
-    @patch('app.services.github.encrypted_Auth_Info.MongoClient')
-    @patch('app.services.github.encrypted_Auth_Info.decripta_dato_singolo')
-    def test_github_token_save_and_retrieve(self, mock_decrypt, mock_mongo_client):
-        """
-        Validates the GitHub token retrieval flow through MongoDB and Decryption.
-
-        The process involves:
-        1. Mocking the MongoDB Context Manager to simulate database connectivity.
-        2. Simulating a stored encrypted record for the GITHUB_TOKEN.
-        3. Verifying that the decryption service is called with the database output.
-
-        Args:
-            mock_decrypt: Mock for the decryption utility.
-            mock_mongo_client: Mock for the MongoDB client driver.
-        """
-        # Setup Mock per Context Manager (with MongoClient...)
-        mock_client_instance = MagicMock()
-        mock_mongo_client.return_value = mock_client_instance
-        # When it enters the 'with', it returns itself
-        mock_client_instance.__enter__.return_value = mock_client_instance
-        mock_client_instance.__exit__.return_value = None
-
-        mock_db = MagicMock()
-        mock_collection = MagicMock()
-        mock_client_instance.__getitem__.return_value = mock_db
-        mock_db.__getitem__.return_value = mock_collection
-
-        # Original token
-        original_token = "ghp_1234567890abcdef"
-
-        # Mock the find_one to return the encrypted token
-        mock_collection.find_one.return_value = {
-            "service_name": "GITHUB_TOKEN",
-            "encrypted_data": "encrypted_data"
-        }
-
-        # Mock decryption to return original
-        mock_decrypt.return_value = original_token
-
-        # Retrieve and decrypt
-        retrieved_token = github_auth_credentials("GITHUB_TOKEN")
-
-        # Assert
-        assert retrieved_token == original_token
-        mock_collection.find_one.assert_called_with({"service_name": "GITHUB_TOKEN"})
-
 
 # ==================================================================================
 #                          TEST SUITE: LICENSE SCANNING

@@ -16,7 +16,7 @@ import {
     Code,
     RefreshCw,
     ArrowRight,
-    Download
+    Download, HelpCircle
 } from 'lucide-react';
 
 const Callback = () => {
@@ -89,9 +89,9 @@ const Callback = () => {
             clearInterval(interval);
 
             // Check if license suggestion is needed
-            if (response.data.needs_license_suggestion) {
-                setShowLicenseSuggestionForm(true);
-            }
+            // REMOVED AUTO OPEN: if (response.data.needs_license_suggestion) {
+            //     setShowLicenseSuggestionForm(true);
+            // }
 
             // Check for regeneration needs immediately after analysis
             // REMOVED AUTO REGENERATION: checkAndRegenerate(response.data, cloneData.owner, cloneData.repo);
@@ -272,6 +272,7 @@ const Callback = () => {
                     <h2>Analysis Report {isComparisonMode ? '(Regenerated)' : ''}</h2>
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         {displayData.issues.some(i =>
+                            displayData.main_license !== 'UNKNOWN' &&
                             !i.compatible &&
                             !/(\.(md|txt|rst)|THIRD_PARTY_NOTICE|NOTICE)$/i.test(i.file_path)) && (
                             <button onClick={handleRegenerate} className="glass-button" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'rgba(100, 108, 255, 0.2)' }}>
@@ -318,7 +319,7 @@ const Callback = () => {
                                 <span style={{ opacity: 0.7, fontSize: '1rem' }}>Main License</span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#646cff' }}>
-                                        {displayData.main_license || 'Unknown'}
+                                        {displayData.main_license === 'UNKNOWN' ? 'UNLICENSE' : displayData.main_license}
                                     </span>
                                     {displayData.needs_license_suggestion && (
                                         <button
@@ -430,9 +431,11 @@ const Callback = () => {
                                                             </div>
 
                                                             {/* Parte destra (Icona e Status) - Aggiunto 'flexShrink: 0' per evitare che si schiacci */}
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: issue.compatible ? '#219625ff' : '#f44336', fontWeight: 'bold', flexShrink: 0 }}>
-                                                                {issue.compatible ? <CheckCircle size={22} /> : <XCircle size={22} />}
-                                                                {issue.compatible ? 'Compatible' : 'Incompatible'}
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: issue.compatible === true ? '#219625ff' : (issue.compatible === false ? '#f44336' : '#ffab00'), fontWeight: 'bold', flexShrink: 0 }}>
+                                                                {issue.compatible === true && <CheckCircle size={22} />}
+                                                                {issue.compatible === false && <XCircle size={22} />}
+                                                                {(issue.compatible === null || issue.compatible === undefined) && <HelpCircle size={22} />}
+                                                                {issue.compatible === true ? 'Compatible' : (issue.compatible === false ? 'Incompatible' : 'Unknown')}
                                                             </div>
                                                         </div>
                                                         {issue.reason && (
