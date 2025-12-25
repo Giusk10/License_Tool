@@ -85,12 +85,10 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
         cmd.extend(["--ignore", pattern])
 
     # 4. Add output format and target path
-    # FIX: L'input (repo_path) deve andare PRIMA delle opzioni di output
-    cmd.append(repo_path)
-    
-    # Poi specifichi il formato e il file di destinazione
-    cmd.extend(["--json-pp", output_file])
-
+    cmd.extend([
+        "--json-pp", output_file,
+        repo_path,
+    ])
 
     logger.info("Starting ScanCode analysis on: %s", repo_name)
     logger.debug("ScanCode Output File: %s", output_file)
