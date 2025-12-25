@@ -399,7 +399,7 @@ const Callback = () => {
                                                     <div key={idx} className="glass-panel" style={{
                                                         background: 'rgba(21, 28, 51, 0.18)',
                                                         padding: '1.5rem',
-                                                        borderLeft: `4px solid ${issue.compatible ? '#219625ff' : '#f44336'}`
+                                                        borderLeft: `4px solid ${issue.compatible === true ? '#219625ff' : (issue.compatible === false ? '#f44336' : '#ffab00')}`
                                                     }}>
                                                         {/* Container Flex principale */}
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
