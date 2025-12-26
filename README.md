@@ -40,6 +40,7 @@ Il tool implementa un workflow completo di analisi e correzione:
 3.  **Analisi di Compatibilità**: Un motore interno confronta le licenze rilevate con la licenza target del progetto, identificando eventuali conflitti legali.
 4.  **Enrichment AI (Ollama)**: I risultati vengono arricchiti da un LLM che spiega il conflitto e suggerisce soluzioni pratiche.
 5.  **Rigenerazione del Codice**: Possibilità di riscrivere automaticamente i file che presentano conflitti (es. file con licenza Copyleft in progetti permissivi) mantenendo la logica originale ma rimuovendo il codice problematico.
+6.  **Suggerimento Licenza**: In caso di Licenza principale non specificata, tramite un form dove vengono specificati requisisti e costraint [LICENSE SUGGESTION GUIDE](docs/LICENSE_SUGGESTION_GUIDE.md), raccomanda la licenza utilizzare utilizzando un LLM 
 
 ---
 
@@ -47,11 +48,10 @@ Il tool implementa un workflow completo di analisi e correzione:
 
 Prima di installare il progetto, assicurati di avere i seguenti componenti installati e attivi sulla tua macchina:
 
-1.  **Python 3.10+**
+1.  **Python 3.10-3.13**
 2.  **Node.js & npm** (per il frontend)
-3.  **MongoDB**: Deve essere installato e in esecuzione (default porta 27017).
-4.  **Ollama**: Deve essere installato e in esecuzione con i modelli necessari scaricati (es. `llama3`, `codellama`).
-5.  **ScanCode Toolkit**: Deve essere installato localmente. Il percorso dell'eseguibile dovrà essere specificato nel file di configurazione.
+3.  **Ollama**: Deve essere installato e in esecuzione con i modelli necessari scaricati (es. `llama3`, `codellama`).
+4.  **ScanCode Toolkit**: Deve essere installato localmente. Il percorso dell'eseguibile dovrà essere specificato nel file di configurazione.
 
 ### Configurazione Variabili d'Ambiente (.env)
 
@@ -60,13 +60,6 @@ Il backend richiede un file `.env` nella root del progetto (`License_Tool/`) per
 Crea un file chiamato `.env` e compilalo seguendo questo template (adatta i percorsi al tuo OS):
 
 ```ini
-# --- Configurazione Database ---
-MONGO_URI="mongodb://localhost:27017"
-DATABASE_NAME="license_tool_db"
-COLLECTION_NAME="scans"
-# Chiave segreta per cifrare i token GitHub nel DB (generare una stringa random sicura)
-ENCRYPTION_KEY="tua_chiave_segreta_molto_lunga_e_sicura"
-
 # --- Integrazione ScanCode ---
 # Percorso assoluto dell'eseguibile di ScanCode (es. su Linux/Mac o Windows)
 SCANCODE_BIN="/path/to/scancode-toolkit/scancode"
