@@ -28,7 +28,7 @@ License_Tool/
 ├── pyproject.toml          # Metadata del progetto e configurazione build system
 ├── requirements.txt        # Elenco dipendenze Python per installazione rapida
 ├── LICENSE                 # Testo della Licenza MIT del progetto
-└── THRID_PARTY_NOTICE       # Documentazione obbligatoria per componenti di terze parti
+└── THIRD_PARTY_NOTICE      # Documentazione obbligatoria per componenti di terze parti
 ```
 
 ## 🚀 Panoramica del Sistema
@@ -247,7 +247,7 @@ Questo strumento integra il **ScanCode Toolkit** per l'analisi delle licenze. L'
 * **Dati di Rilevamento (Dataset):** CC-BY-4.0 (Creative Commons Attribuzione 4.0 Internazionale).
 
 **Obbligo di Avviso:**
-Come richiesto dalla Licenza Apache 2.0, tutti gli avvisi di copyright e le licenze dei componenti di terze parti di ScanCode sono documentati e distribuiti nel file **[THIRD_PART_NOTICE](THIRD_PARTY_NOTICE)**.
+Come richiesto dalla Licenza Apache 2.0, tutti gli avvisi di copyright e le licenze dei componenti di terze parti di ScanCode sono documentati e distribuiti nel file **[THIRD_PARTY_NOTICE](docs/THIRD_PARTY_NOTICE)**.
 
 **Attribuzione Dati ScanCode:**
 > Copyright (c) nexB Inc. e altri. Tutti i diritti riservati. ScanCode è un marchio di nexB Inc. SPDX-License-Identifier: CC-BY-4.0. Vedi https://creativecommons.org/licenses/by/4.0/legalcode per il testo della licenza. Vedi https://github.com/nexB/scancode-toolkit per supporto o download.
