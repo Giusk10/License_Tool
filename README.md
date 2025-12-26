@@ -40,7 +40,7 @@ Il tool implementa un workflow completo di analisi e correzione:
 3.  **Analisi di Compatibilità**: Un motore interno confronta le licenze rilevate con la licenza target del progetto, identificando eventuali conflitti legali.
 4.  **Enrichment AI (Ollama)**: I risultati vengono arricchiti da un LLM che spiega il conflitto e suggerisce soluzioni pratiche.
 5.  **Rigenerazione del Codice**: Possibilità di riscrivere automaticamente i file che presentano conflitti (es. file con licenza Copyleft in progetti permissivi) mantenendo la logica originale ma rimuovendo il codice problematico.
-6.  **Suggerimento Licenza**: In caso di Licenza principale non specificata, tramite un form dove vengono specificati requisisti e costraint [LICENSE SUGGESTION GUIDE](License_Tool/docs/LICENSE_SUGGESTION_GUIDE,md), raccomanda la licenza utilizzare utilizzando un LLM 
+6.  **Suggerimento Licenza**: In caso di Licenza principale non specificata, tramite un form dove vengono specificati requisisti e costraint [LICENSE SUGGESTION GUIDE](License_Tool/docs/LICENSE_SUGGESTION_GUIDE.md), raccomanda la licenza utilizzare utilizzando un LLM 
 
 ---
 
