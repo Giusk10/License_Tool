@@ -140,13 +140,13 @@ def test_upload_zip_bad_file(mock_zip_upload):
     due to a corrupt archive or incorrect file type), the controller
     correctly returns a 400 Bad Request status with the error details.
     """
-    mock_zip_upload.side_effect = ValueError("Non è uno zip valido")
+    mock_zip_upload.side_effect = ValueError("Not a valid zip")
 
     files = {"uploaded_file": ("test.txt", b"text", "text/plain")}
     response = client.post("/api/zip", data={"owner": "u", "repo": "r"}, files=files)
 
     assert response.status_code == 400
-    assert "Non è uno zip valido" in response.json()["detail"]
+    assert "Not a valid zip" in response.json()["detail"]
 
 
 # ==================================================================================
@@ -161,7 +161,7 @@ def test_analyze_success_correct_schema(mock_scan):
     - The JSON response contains 'main_license' and 'issues'.
     - Undefined fields (e.g., 'compatibility_score') are excluded from the response.
     """
-    # Mock allineato con AnalyzeResponse in schemas.py
+    # Mock aligned with AnalyzeResponse in schemas.py
     mock_scan.return_value = {
         "repository": "user/repo",
         "main_license": "MIT",
@@ -186,7 +186,7 @@ def test_analyze_success_correct_schema(mock_scan):
     assert len(data["issues"]) == 1
     assert data["issues"][0]["detected_license"] == "GPL"
 
-    # Verifica che fields non esistenti nello schema non siano presenti
+    # Verify that fields not existing in the schema are not present
     assert "compatibility_score" not in data
 
 
@@ -218,7 +218,7 @@ def test_regenerate_success(mock_regen):
     Checks that the controller correctly splits the 'repository' string
     into 'owner' and 'repo' before calling the service.
     """
-    # Simuliamo il payload di input (che è una AnalyzeResponse precedente)
+    # Simulate the input payload (which is a previous AnalyzeResponse)
     payload = {
         "repository": "facebook/react",
         "main_license": "MIT",
@@ -226,14 +226,14 @@ def test_regenerate_success(mock_regen):
         "report_path": "path"
     }
 
-    # Il servizio ritorna un oggetto aggiornato
+    # The service returns an updated object
     mock_regen.return_value = payload
 
     response = client.post("/api/regenerate", json=payload)
 
     assert response.status_code == 200
 
-    # Verifica passaggio parametri corretti (split owner/repo)
+    # Verify correct parameter passing (split owner/repo)
     mock_regen.assert_called_once()
     kwargs = mock_regen.call_args[1]
     assert kwargs["owner"] == "facebook"
@@ -272,11 +272,11 @@ def test_download_success(mock_download, tmp_path):
     Uses pytest's 'tmp_path' to create a physical file, ensuring FastAPI's
     FileResponse can serve the content without errors.
     """
-    # 1. Creiamo un file fisico temporaneo
+    # 1. Create a temporary physical file
     fake_zip = tmp_path / "archive.zip"
     fake_zip.write_bytes(b"DATA")
 
-    # 2. Il mock ritorna il path di questo file
+    # 2. The mock returns the path of this file
     mock_download.return_value = str(fake_zip)
 
     response = client.post("/api/download", json={"owner": "u", "repo": "r"})
@@ -295,16 +295,16 @@ def test_download_missing_repo(mock_download):
     on disk (raising a ValueError), the API responds with a 400 Bad Request
     status and provides a clear error message in the response detail.
     """
-    mock_download.side_effect = ValueError("Repo non clonata")
+    mock_download.side_effect = ValueError("Repo not cloned")
 
     response = client.post("/api/download", json={"owner": "ghost", "repo": "b"})
 
     assert response.status_code == 400
-    assert "Repo non clonata" in response.json()["detail"]
+    assert "Repo not cloned" in response.json()["detail"]
 
 
 # ==================================================================================
-#                       ADDITIONAL UNIT TESTS (NUOVI RICHIESTI)
+#                       ADDITIONAL UNIT TESTS (NEWLY REQUESTED)
 # ==================================================================================
 
 def test_analyze_with_schema_validation(mock_scan):
@@ -317,7 +317,7 @@ def test_analyze_with_schema_validation(mock_scan):
      Args:
          mock_scan: Mock for the initial scanning service.
      """
-    # Mock conforme al tuo schema (SENZA 'analysis', CON 'main_license')
+    # Mock compliant with your schema (WITHOUT 'analysis', WITH 'main_license')
     mock_res = {
         "repository": "test/repo",
         "main_license": "MIT",
@@ -360,7 +360,7 @@ def test_regenerate_with_payload_validation(mock_regen):
            mock_regen: Mock for the code regeneration service.
        """
 
-    # Payload INPUT (Deve avere main_license, issues)
+    # Payload INPUT (Must have main_license, issues)
     payload = {
         "repository": "facebook/react",
         "main_license": "MIT",
@@ -430,7 +430,7 @@ def test_download_error_handling(mock_download):
     Ensures that a 400 error is returned if the download service
     cannot find the specified repository on disk.
     """
-    mock_download.side_effect = ValueError("Non trovata")
+    mock_download.side_effect = ValueError("Not found")
     response = client.post("/api/download", json={"owner": "u", "repo": "r"})
     assert response.status_code == 400
 
@@ -464,10 +464,10 @@ def test_upload_zip_with_file_validation(mock_upload_zip, tmp_path):
 
 def test_suggest_license_success():
     """
-    Test suggest_license endpoint con successo.
+    Testing the suggest_license endpoint successfully.
 
-    Verifica che l'endpoint /api/suggest-license restituisca
-    una suggerimento di licenza valido basato sui requisiti forniti.
+    Verify that the /api/suggest-license endpoint returned
+    a valid license suggestion based on the requirements provided.
     """
     payload = {
         "owner": "testowner",
@@ -501,10 +501,9 @@ def test_suggest_license_success():
 
 def test_suggest_license_minimal_requirements():
     """
-    Test suggest_license con requisiti minimi.
+    Test suggest_license with minimum requirements.
 
-    Verifica che l'endpoint funzioni anche con requisiti minimi
-    (solo campi obbligatori).
+    Verify that the endpoint works even with minimum requirements (required fields only).
     """
     payload = {
         "owner": "testowner",
@@ -527,10 +526,10 @@ def test_suggest_license_minimal_requirements():
 
 def test_suggest_license_with_constraints():
     """
-    Test suggest_license con vincoli specifici.
+    Test suggest_license with specific constraints.
 
-    Verifica che i vincoli personalizzati vengano correttamente
-    processati dal sistema di suggerimento.
+    Verify that custom constraints are correctly processed
+    by the suggestion system.
     """
     payload = {
         "owner": "testowner",
@@ -560,10 +559,10 @@ def test_suggest_license_with_constraints():
 
 def test_suggest_license_error_handling():
     """
-    Test suggest_license con errore nel servizio AI.
+    Test suggest_license with an AI service error.
 
-    Verifica che gli errori del servizio di suggerimento
-    vengano gestiti correttamente e restituiscano un errore 500.
+    Verify that suggestion service errors
+    are handled correctly and return a 500 error.
     """
     payload = {
         "owner": "testowner",
@@ -582,27 +581,27 @@ def test_suggest_license_error_handling():
 
 def test_suggest_license_invalid_payload():
     """
-    Test suggest_license con payload non valido.
+    Test suggest_license with invalid payload.
 
-    Verifica che l'endpoint rifiuti payload malformati
-    con validazione Pydantic.
+    Verify that the endpoint rejects malformed payloads
+    with Pydantic validation.
     """
     payload = {
         "owner": "testowner"
-        # Manca repo obbligatorio
+        # Missing mandatory repo
     }
 
     response = client.post("/api/suggest-license", json=payload)
 
-    assert response.status_code == 422  # Unprocessable Entity (validazione Pydantic)
+    assert response.status_code == 422  # Unprocessable Entity (Pydantic validation)
 
 
 def test_suggest_license_with_detected_licenses():
     """
-    Test suggest_license con detected_licenses fornite.
+    Test suggest_license with the provided detected_licenses.
 
-    Verifica che l'endpoint processi correttamente le licenze rilevate
-    e le passi alla funzione di suggerimento.
+    Verify that the endpoint correctly processes detected licenses
+    and passes them to the suggester.
     """
     payload = {
         "owner": "testowner",
@@ -637,9 +636,9 @@ def test_suggest_license_with_detected_licenses():
 
 def test_suggest_license_with_empty_detected_licenses():
     """
-    Test suggest_license con detected_licenses vuota.
+    Test suggest_license with an empty detected_licenses.
 
-    Verifica che una lista vuota di detected_licenses sia gestita correttamente.
+    Verify that an empty detected_licenses list is handled correctly.
     """
     payload = {
         "owner": "testowner",
@@ -668,10 +667,10 @@ def test_suggest_license_with_empty_detected_licenses():
 
 def test_suggest_license_without_detected_licenses():
     """
-    Test suggest_license senza detected_licenses (campo omesso).
+    Test suggest_license without detected_licenses (field omitted).
 
-    Verifica che l'endpoint funzioni correttamente quando detected_licenses
-    non è fornito nel payload.
+    Verify that the endpoint works correctly when detected_licenses
+    is not provided in the payload.
     """
     payload = {
         "owner": "testowner",
@@ -696,5 +695,3 @@ def test_suggest_license_without_detected_licenses():
     # Verify None was passed when field is omitted
     call_kwargs = mock_suggest.call_args[1]
     assert call_kwargs["detected_licenses"] is None
-
-
