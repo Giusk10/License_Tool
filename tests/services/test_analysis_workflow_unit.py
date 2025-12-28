@@ -1,3 +1,19 @@
+"""
+Analysis Workflow Unit Test Module.
+
+This module contains unit tests for the core orchestration functions within
+`app.services.analysis_workflow`. It verifies the logic for repository cloning,
+ZIP file management, the initial scanning pipeline, and the LLM-driven
+code regeneration process.
+
+The suite covers:
+1. Repository Cloning: Success and failure handling during git operations.
+2. ZIP Management: Validation, extraction, and cleanup of uploaded archives.
+3. Analysis Pipeline: Orchestration of ScanCode, license detection, and compatibility.
+4. Code Regeneration: Intelligent filtering of files and LLM interaction for fixes.
+5. Post-Regeneration Rescan: Validating the repository state after code changes.
+"""
+
 import os
 import zipfile
 import pytest
@@ -16,11 +32,24 @@ from app.services.analysis_workflow import (
 )
 from app.models.schemas import AnalyzeResponse, LicenseIssue
 
+# ==================================================================================
+#                                     FIXTURES
+# ==================================================================================
 
-# --- TESTS PER PERFORM_CLONING ---
+# Note: This module primarily uses pytest's built-in 'tmp_path' and
+# 'patch_config_variables' from conftest.py to manage filesystem interactions.
+
+# ==================================================================================
+#                                TESTS: REPO CLONING
+# ==================================================================================
 
 def test_perform_cloning_success(tmp_path):
-    """Test perform_cloning con successo."""
+    """"
+    Verifies successful repository cloning.
+
+    Ensures that the service correctly interacts with the low-level clone utility
+    and returns the expected absolute path to the cloned repository.
+    """
     owner, repo = "testowner", "testrepo"
     base_dir = tmp_path / "clones"
     base_dir.mkdir()
@@ -36,7 +65,12 @@ def test_perform_cloning_success(tmp_path):
 
 
 def test_perform_cloning_failure():
-    """Test perform_cloning con fallimento del clone."""
+    """
+    Tests error handling during repository cloning.
+
+    Verifies that if the git operation fails (e.g., authentication error),
+     a ValueError is raised with a descriptive message.
+    """
     owner, repo = "badowner", "badrepo"
 
     with patch("app.services.analysis_workflow.clone_repo") as mock_clone:
@@ -48,9 +82,17 @@ def test_perform_cloning_failure():
         mock_clone.assert_called_once_with(owner, repo)
 
 
-# --- TESTS PER PERFORM_UPLOAD_ZIP ---
+# ==================================================================================
+#                                TESTS: ZIP UPLOAD
+# ==================================================================================
 
 def test_perform_upload_zip_invalid_extension():
+    """
+    Validates file extension checks for ZIP uploads.
+
+    Ensures that non-ZIP files (e.g., .tar.gz) are rejected with a
+    400 Bad Request exception.
+    """
     mock_file = MagicMock(spec=UploadFile)
     mock_file.filename = "test.tar.gz"
     with pytest.raises(HTTPException) as exc:
@@ -59,8 +101,12 @@ def test_perform_upload_zip_invalid_extension():
 
 
 def test_perform_upload_zip_corrupted_file():
-    # Nota: non usiamo patch_config_variables se non serve esplicitamente,
-    # ma se serve per CLONE_BASE_DIR, assicurati che la fixture sia in conftest.py
+    """
+    Tests handling of corrupted ZIP archives.
+
+    Verifies that if the uploaded file is not a valid ZIP archive, the
+    service raises a 400 error indicating the file is corrupted.
+    """
     mock_file = MagicMock(spec=UploadFile)
     mock_file.filename = "fake.zip"
     mock_file.file = BytesIO(b"not a zip content")
@@ -73,8 +119,10 @@ def test_perform_upload_zip_corrupted_file():
 
 def test_perform_upload_zip_cleanup_existing_dir(tmp_path):
     """
-    Usa tmp_path di pytest per evitare dipendenze globali.
-    Patchiamo CLONE_BASE_DIR per puntare a una directory temporanea.
+    Verifies idempotent behavior during ZIP extraction.
+
+    Ensures that if a directory for the repository already exists, it is
+    removed before extracting the new ZIP content to avoid stale data.
     """
     owner, repo = "cleanup", "existing"
     base_dir = tmp_path / "clones"
@@ -101,6 +149,12 @@ def test_perform_upload_zip_cleanup_existing_dir(tmp_path):
 
 
 def test_perform_upload_zip_cleanup_os_error(tmp_path):
+    """
+    Tests resilience against OS-level errors during cleanup.
+
+    Verifies that if the system cannot delete an existing directory (e.g.,
+    permission denied), a 500 Internal Server Error is raised.
+    """
     owner, repo = "cleanup", "error"
     base_dir = tmp_path / "clones"
     base_dir.mkdir()
@@ -118,6 +172,12 @@ def test_perform_upload_zip_cleanup_os_error(tmp_path):
 
 
 def test_perform_upload_zip_logic_with_root_folder(tmp_path):
+    """
+    Validates extraction logic for ZIPs containing a single root folder.
+
+    Ensures that if the archive contains everything inside a nested folder,
+    the content is flattened correctly into the target repository directory.
+    """
     base_dir = tmp_path / "clones"
     base_dir.mkdir()
 
@@ -135,9 +195,18 @@ def test_perform_upload_zip_logic_with_root_folder(tmp_path):
         assert os.path.exists(os.path.join(res_path, "README.md"))
 
 
-# --- TESTS PER PERFORM_INITIAL_SCAN ---
+# ==================================================================================
+#                                TESTS: INITIAL SCAN
+# ==================================================================================
 
 def test_perform_initial_scan_flow(tmp_path):
+    """
+    Verifies the full orchestration of the initial scan pipeline.
+
+    Ensures that ScanCode results are correctly filtered, analyzed for
+    compatibility, and enriched with LLM data before returning a
+    valid AnalyzeResponse.
+    """
     owner, repo = "scan", "ok"
     base_dir = tmp_path / "clones"
     repo_dir = base_dir / f"{owner}_{repo}"
@@ -155,14 +224,25 @@ def test_perform_initial_scan_flow(tmp_path):
 
 
 def test_perform_initial_scan_repo_not_found(tmp_path):
+    """
+    Validates error handling when attempting to scan a non-existent repo.
+    """
     with patch("app.services.analysis_workflow.CLONE_BASE_DIR", str(tmp_path)):
         with pytest.raises(ValueError, match="Repository not found"):
             perform_initial_scan("ghost", "repo")
 
 
-# --- TESTS PER PERFORM_REGENERATION ---
+# ==================================================================================
+#                                TESTS: REGENERATION
+# ==================================================================================
 
 def test_perform_regeneration_executes_correctly(tmp_path):
+    """
+    Verifies the code regeneration and re-analysis lifecycle.
+
+    Checks that the workflow correctly identifies files needing fixes,
+    applies changes, and performs a second scan to verify compatibility.
+    """
     owner, repo = "regen", "success"
     base_dir = tmp_path / "clones"
     repo_dir = base_dir / f"{owner}_{repo}"
@@ -187,6 +267,9 @@ def test_perform_regeneration_executes_correctly(tmp_path):
 
 
 def test_perform_regeneration_no_issues(tmp_path):
+    """
+    Ensures regeneration is skipped when no license issues are present.
+    """
     owner, repo = "regen", "empty"
     base_dir = tmp_path / "clones"
     (base_dir / f"{owner}_{repo}").mkdir(parents=True)
@@ -199,6 +282,13 @@ def test_perform_regeneration_no_issues(tmp_path):
 
 
 def test_perform_regeneration_llm_fails_short_code(tmp_path):
+    """
+    Validates quality control during LLM code regeneration.
+
+    Ensures that if the LLM returns code that is suspiciously short
+    (indicating a failure or hallucination), the original file content
+    is preserved.
+    """
     owner, repo = "regen", "short"
     base_dir = tmp_path / "clones"
     repo_dir = base_dir / f"{owner}_{repo}"
@@ -221,10 +311,14 @@ def test_perform_regeneration_llm_fails_short_code(tmp_path):
         assert (repo_dir / file_path).read_text() == "original"
 
 
-# --- TESTS PER _REGENERATE_INCOMPATIBLE_FILES ---
+# ==================================================================================
+#                            INTERNAL HELPER TESTS
+# ==================================================================================
 
 def test_regenerate_incompatible_files_success(tmp_path):
-    """Test _regenerate_incompatible_files con rigenerazione di successo."""
+    """
+    Tests the logic for applying LLM fixes to specific incompatible files.
+    """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
@@ -251,7 +345,12 @@ def test_regenerate_incompatible_files_success(tmp_path):
 
 
 def test_regenerate_incompatible_files_skip_documentation(tmp_path):
-    """Test _regenerate_incompatible_files ignora file di documentazione."""
+    """
+    Verifies that documentation files are ignored during regeneration.
+
+    README, NOTICE, and .rst files should not be sent to the LLM for
+    code fixes, even if they have license flags.
+    """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
@@ -267,7 +366,12 @@ def test_regenerate_incompatible_files_skip_documentation(tmp_path):
 
 
 def test_regenerate_incompatible_files_only_compatible(tmp_path):
-    """Test _regenerate_incompatible_files con solo file compatibili."""
+    """
+     Verifies that only incompatible files trigger the regeneration process.
+
+     Ensures that the internal regeneration helper skips files already marked
+     as compatible, returning an empty result set when no issues require fixing.
+     """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
@@ -281,7 +385,13 @@ def test_regenerate_incompatible_files_only_compatible(tmp_path):
 
 
 def test_regenerate_incompatible_files_io_error(tmp_path):
-    """Test _regenerate_incompatible_files gestisce errori IO."""
+    """
+    Tests resilience against file system and I/O errors.
+
+    Ensures that if the service attempts to fix a file that does not exist on
+    disk (or is inaccessible), it handles the error gracefully by returning
+    an empty dictionary instead of raising an unhandled exception.
+    """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
@@ -296,12 +406,18 @@ def test_regenerate_incompatible_files_io_error(tmp_path):
 
     result = _regenerate_incompatible_files(str(repo_path), "MIT", issues)
 
-    # Non deve sollevare eccezioni, ma restituire dict vuoto
+    # Should not raise exceptions, just return an empty dict
     assert len(result) == 0
 
 
 def test_regenerate_incompatible_files_short_code_rejected(tmp_path):
-    """Test _regenerate_incompatible_files rifiuta codice troppo corto."""
+    """
+    Validates quality control for LLM-generated content.
+
+    Ensures that regenerated code is rejected if it fails length validation
+    (e.g., too short, suggesting a hallucination or failure). The original
+    file content must remain untouched in such cases.
+    """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
@@ -326,7 +442,13 @@ def test_regenerate_incompatible_files_short_code_rejected(tmp_path):
 
 
 def test_regenerate_incompatible_files_default_licenses(tmp_path):
-    """Test _regenerate_incompatible_files usa licenze di default se None."""
+    """
+    Tests the fallback mechanism for target compatibility licenses.
+
+    Verifies that if an issue does not specify target licenses, the
+    regeneration service defaults to a safe set of permissive licenses
+    (MIT, Apache-2.0, BSD-3-Clause) to guide the LLM.
+    """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
@@ -339,22 +461,29 @@ def test_regenerate_incompatible_files_default_licenses(tmp_path):
             file_path=file_path,
             detected_license="GPL-3.0",
             compatible=False,
-            licenses=None  # Test con licenses=None
+            licenses=None  # Test with licenses=None
         )
     ]
 
     with patch("app.services.analysis_workflow.regenerate_code", return_value="# new valid code\nprint('hello')") as mock_regen:
         result = _regenerate_incompatible_files(str(repo_path), "MIT", issues)
 
-        # Verifica che sia stata chiamata con le licenze di default
+        # Verify it was called with default permissive licenses
         call_args = mock_regen.call_args
         assert "MIT, Apache-2.0, BSD-3-Clause" in str(call_args)
 
 
-# --- TESTS PER _RESCAN_REPOSITORY ---
+# ==================================================================================
+#                            TESTS: REPOSITORY RESCAN
+# ==================================================================================
 
 def test_rescan_repository_success(tmp_path):
-    """Test _rescan_repository esegue correttamente la scansione."""
+    """
+    Tests the post-regeneration scanning phase.
+
+    Ensures the service can perform a fresh analysis on the modified
+    repository and return the updated issue list.
+    """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
@@ -379,7 +508,13 @@ def test_rescan_repository_success(tmp_path):
 
 
 def test_rescan_repository_with_unknown_license(tmp_path):
-    """Test _rescan_repository gestisce licenza UNKNOWN."""
+    """
+    Validates rescan behavior when the main license is unidentified.
+
+    Ensures that the rescan logic handles "UNKNOWN" license identifiers
+    gracefully without crashing, maintaining consistency in the returned data
+    format.
+    """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
@@ -395,7 +530,13 @@ def test_rescan_repository_with_unknown_license(tmp_path):
 
 
 def test_rescan_repository_with_tuple_license_result(tmp_path):
-    """Test _rescan_repository con risultato tupla da detect_main_license."""
+    """
+    Tests compatibility with different license detection return formats.
+
+    Verifies that the rescan service correctly processes the main license
+    when the detection tool returns a tuple (license_id, license_path)
+    instead of a simple string.
+    """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
@@ -411,7 +552,13 @@ def test_rescan_repository_with_tuple_license_result(tmp_path):
 
 
 def test_rescan_repository_multiple_issues(tmp_path):
-    """Test _rescan_repository con multipli problemi di compatibilità."""
+    """
+    Verifies handling of multiple compatibility issues during a rescan.
+
+    Ensures that the service correctly aggregates multiple issues (both
+    compatible and incompatible) and preserves the specific reason for
+    any detected conflicts.
+    """
     repo_path = tmp_path / "owner_repo"
     repo_path.mkdir()
 
