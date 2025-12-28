@@ -464,10 +464,10 @@ def test_upload_zip_with_file_validation(mock_upload_zip, tmp_path):
 
 def test_suggest_license_success():
     """
-    Test suggest_license endpoint con successo.
+    Testing the suggest_license endpoint successfully.
 
-    Verifica che l'endpoint /api/suggest-license restituisca
-    una suggerimento di licenza valido basato sui requisiti forniti.
+    Verify that the /api/suggest-license endpoint returned
+    a valid license suggestion based on the requirements provided.
     """
     payload = {
         "owner": "testowner",
@@ -501,10 +501,9 @@ def test_suggest_license_success():
 
 def test_suggest_license_minimal_requirements():
     """
-    Test suggest_license con requisiti minimi.
+    Test suggest_license with minimum requirements.
 
-    Verifica che l'endpoint funzioni anche con requisiti minimi
-    (solo campi obbligatori).
+    Verify that the endpoint works even with minimum requirements (required fields only).
     """
     payload = {
         "owner": "testowner",
@@ -527,10 +526,10 @@ def test_suggest_license_minimal_requirements():
 
 def test_suggest_license_with_constraints():
     """
-    Test suggest_license con vincoli specifici.
+    Test suggest_license with specific constraints.
 
-    Verifica che i vincoli personalizzati vengano correttamente
-    processati dal sistema di suggerimento.
+    Verify that custom constraints are correctly processed
+    by the suggestion system.
     """
     payload = {
         "owner": "testowner",
@@ -560,10 +559,10 @@ def test_suggest_license_with_constraints():
 
 def test_suggest_license_error_handling():
     """
-    Test suggest_license con errore nel servizio AI.
+    Test suggest_license with an AI service error.
 
-    Verifica che gli errori del servizio di suggerimento
-    vengano gestiti correttamente e restituiscano un errore 500.
+    Verify that suggestion service errors
+    are handled correctly and return a 500 error.
     """
     payload = {
         "owner": "testowner",
@@ -582,10 +581,10 @@ def test_suggest_license_error_handling():
 
 def test_suggest_license_invalid_payload():
     """
-    Test suggest_license con payload non valido.
+    Test suggest_license with invalid payload.
 
-    Verifica che l'endpoint rifiuti payload malformati
-    con validazione Pydantic.
+    Verify that the endpoint rejects malformed payloads
+    with Pydantic validation.
     """
     payload = {
         "owner": "testowner"
@@ -599,10 +598,10 @@ def test_suggest_license_invalid_payload():
 
 def test_suggest_license_with_detected_licenses():
     """
-    Test suggest_license con detected_licenses fornite.
+    Test suggest_license with the provided detected_licenses.
 
-    Verifica che l'endpoint processi correttamente le licenze rilevate
-    e le passi alla funzione di suggerimento.
+    Verify that the endpoint correctly processes detected licenses
+    and passes them to the suggester.
     """
     payload = {
         "owner": "testowner",
@@ -637,9 +636,9 @@ def test_suggest_license_with_detected_licenses():
 
 def test_suggest_license_with_empty_detected_licenses():
     """
-    Test suggest_license con detected_licenses vuota.
+    Test suggest_license with an empty detected_licenses.
 
-    Verifica che una lista vuota di detected_licenses sia gestita correttamente.
+    Verify that an empty detected_licenses list is handled correctly.
     """
     payload = {
         "owner": "testowner",
@@ -668,10 +667,111 @@ def test_suggest_license_with_empty_detected_licenses():
 
 def test_suggest_license_without_detected_licenses():
     """
-    Test suggest_license senza detected_licenses (campo omesso).
+    Test suggest_license without detected_licenses (field omitted).
 
-    Verifica che l'endpoint funzioni correttamente quando detected_licenses
-    non è fornito nel payload.
+    VVerify that the endpoint works correctly when detected_licenses
+    is not provided in the payload.
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo",
+        "commercial_use": True,
+        "copyleft": "weak"
+    }
+
+    mock_suggestion = {
+        "suggested_license": "LGPL-3.0",
+        "explanation": "LGPL-3.0 provides weak copyleft protection",
+        "alternatives": ["MPL-2.0"]
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion) as mock_suggest:
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_license"] == "LGPL-3.0"
+
+    # Verify None was passed when field is omitted
+    call_kwargs = mock_suggest.call_args[1]
+    assert call_kwargs["detected_licenses"] is None
+
+
+def test_suggest_license_with_detected_licenses():
+    """
+    Test suggest_license with the provided detected_licenses.
+
+    Verify that the endpoint correctly processes detected licenses
+    and passes them to the suggester.
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo",
+        "commercial_use": True,
+        "modification": True,
+        "distribution": True,
+        "copyleft": "none",
+        "detected_licenses": ["MIT", "Apache-2.0"]
+    }
+
+    mock_suggestion = {
+        "suggested_license": "Apache-2.0",
+        "explanation": "Apache-2.0 is compatible with detected MIT and Apache-2.0 licenses",
+        "alternatives": ["MIT"]
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion) as mock_suggest:
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_license"] == "Apache-2.0"
+    assert "compatible" in data["explanation"].lower()
+
+    # Verify detected_licenses was passed to the function
+    mock_suggest.assert_called_once()
+    call_args, call_kwargs = mock_suggest.call_args
+    assert "detected_licenses" in call_kwargs
+    assert call_kwargs["detected_licenses"] == ["MIT", "Apache-2.0"]
+
+
+def test_suggest_license_with_empty_detected_licenses():
+    """
+    Test suggest_license with an empty detected_licenses.
+
+    Verify that an empty detected_licenses list is handled correctly.
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo",
+        "commercial_use": True,
+        "detected_licenses": []
+    }
+
+    mock_suggestion = {
+        "suggested_license": "MIT",
+        "explanation": "MIT is a simple permissive license",
+        "alternatives": ["BSD-3-Clause"]
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion) as mock_suggest:
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_license"] == "MIT"
+
+    # Verify empty list was passed
+    call_kwargs = mock_suggest.call_args[1]
+    assert call_kwargs["detected_licenses"] == []
+
+
+def test_suggest_license_without_detected_licenses():
+    """
+    Test suggest_license without detected_licenses (field omitted).
+
+    VVerify that the endpoint works correctly when detected_licenses
+    is not provided in the payload.
     """
     payload = {
         "owner": "testowner",
