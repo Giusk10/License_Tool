@@ -72,7 +72,9 @@ const LicenseSuggestionForm = ({ owner, repo, onClose, onSuggestionReceived }) =
                     padding: '2rem',
                     position: 'relative',
                     maxHeight: '90vh',
-                    overflowY: 'auto'
+                    overflowY: 'auto',
+                    boxSizing: 'border-box',
+                    overflowX: 'hidden'
                 }}>
                     <button
                         onClick={onClose}
@@ -162,7 +164,9 @@ const LicenseSuggestionForm = ({ owner, repo, onClose, onSuggestionReceived }) =
                 padding: '2rem',
                 position: 'relative',
                 maxHeight: '90vh',
-                overflowY: 'auto'
+                overflowY: 'auto',
+                boxSizing: 'border-box',
+                overflowX: 'hidden'
             }}>
                 <button
                     onClick={onClose}
