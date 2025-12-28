@@ -597,3 +597,104 @@ def test_suggest_license_invalid_payload():
     assert response.status_code == 422  # Unprocessable Entity (validazione Pydantic)
 
 
+def test_suggest_license_with_detected_licenses():
+    """
+    Test suggest_license con detected_licenses fornite.
+
+    Verifica che l'endpoint processi correttamente le licenze rilevate
+    e le passi alla funzione di suggerimento.
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo",
+        "commercial_use": True,
+        "modification": True,
+        "distribution": True,
+        "copyleft": "none",
+        "detected_licenses": ["MIT", "Apache-2.0"]
+    }
+
+    mock_suggestion = {
+        "suggested_license": "Apache-2.0",
+        "explanation": "Apache-2.0 is compatible with detected MIT and Apache-2.0 licenses",
+        "alternatives": ["MIT"]
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion) as mock_suggest:
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_license"] == "Apache-2.0"
+    assert "compatible" in data["explanation"].lower()
+
+    # Verify detected_licenses was passed to the function
+    mock_suggest.assert_called_once()
+    call_args, call_kwargs = mock_suggest.call_args
+    assert "detected_licenses" in call_kwargs
+    assert call_kwargs["detected_licenses"] == ["MIT", "Apache-2.0"]
+
+
+def test_suggest_license_with_empty_detected_licenses():
+    """
+    Test suggest_license con detected_licenses vuota.
+
+    Verifica che una lista vuota di detected_licenses sia gestita correttamente.
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo",
+        "commercial_use": True,
+        "detected_licenses": []
+    }
+
+    mock_suggestion = {
+        "suggested_license": "MIT",
+        "explanation": "MIT is a simple permissive license",
+        "alternatives": ["BSD-3-Clause"]
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion) as mock_suggest:
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_license"] == "MIT"
+
+    # Verify empty list was passed
+    call_kwargs = mock_suggest.call_args[1]
+    assert call_kwargs["detected_licenses"] == []
+
+
+def test_suggest_license_without_detected_licenses():
+    """
+    Test suggest_license senza detected_licenses (campo omesso).
+
+    Verifica che l'endpoint funzioni correttamente quando detected_licenses
+    non è fornito nel payload.
+    """
+    payload = {
+        "owner": "testowner",
+        "repo": "testrepo",
+        "commercial_use": True,
+        "copyleft": "weak"
+    }
+
+    mock_suggestion = {
+        "suggested_license": "LGPL-3.0",
+        "explanation": "LGPL-3.0 provides weak copyleft protection",
+        "alternatives": ["MPL-2.0"]
+    }
+
+    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion) as mock_suggest:
+        response = client.post("/api/suggest-license", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_license"] == "LGPL-3.0"
+
+    # Verify None was passed when field is omitted
+    call_kwargs = mock_suggest.call_args[1]
+    assert call_kwargs["detected_licenses"] is None
+
+

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Lightbulb, X, CheckCircle, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 
-const LicenseSuggestionForm = ({ owner, repo, onClose, onSuggestionReceived }) => {
+const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, onSuggestionReceived }) => {
     const [loading, setLoading] = useState(false);
     const [suggestion, setSuggestion] = useState(null);
 
@@ -16,7 +16,8 @@ const LicenseSuggestionForm = ({ owner, repo, onClose, onSuggestionReceived }) =
         trademark_use: false,
         liability: false,
         copyleft: 'none',
-        additional_requirements: ''
+        additional_requirements: '',
+        detected_licenses: detectedLicenses
     });
 
     const handleCheckboxChange = (field) => {
@@ -187,6 +188,36 @@ const LicenseSuggestionForm = ({ owner, repo, onClose, onSuggestionReceived }) =
                         Please specify your requirements to get AI-powered license suggestions.
                     </p>
                 </div>
+
+                {/* Display detected licenses if any */}
+                {detectedLicenses && detectedLicenses.length > 0 && (
+                    <div className="glass-panel" style={{
+                        background: 'rgba(100, 108, 255, 0.1)',
+                        borderColor: '#646cff',
+                        padding: '1rem',
+                        marginBottom: '1.5rem'
+                    }}>
+                        <h4 style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#646cff' }}>
+                            Existing Licenses Detected in Project
+                        </h4>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {detectedLicenses.map((license, idx) => (
+                                <span key={idx} style={{
+                                    padding: '0.3rem 0.6rem',
+                                    fontSize: '0.85rem',
+                                    background: 'rgba(100, 108, 255, 0.2)',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(100, 108, 255, 0.3)'
+                                }}>
+                                    {license}
+                                </span>
+                            ))}
+                        </div>
+                        <p style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '0.5rem', marginBottom: 0 }}>
+                            The AI will recommend a license compatible with these existing licenses.
+                        </p>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '2rem' }}>

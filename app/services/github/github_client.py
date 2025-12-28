@@ -47,7 +47,6 @@ def clone_repo(owner: str, repo: str) -> CloneResult:
     Args:
         owner (str): The username or organization name of the repository owner.
         repo (str): The name of the repository.
-        oauth_token (str): The GitHub OAuth token for authentication.
 
     Returns:
         CloneResult: A model containing the success status and either the

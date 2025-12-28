@@ -19,6 +19,32 @@ import {
     Download, HelpCircle
 } from 'lucide-react';
 
+// Helper function to extract unique detected licenses from analysis data
+const extractDetectedLicenses = (analysisData) => {
+    if (!analysisData || !analysisData.issues) return [];
+
+    const licenses = new Set();
+
+    // Add main license if present and not unknown
+    if (analysisData.main_license &&
+        analysisData.main_license !== 'UNKNOWN' &&
+        analysisData.main_license !== 'UNLICENSE') {
+        licenses.add(analysisData.main_license);
+    }
+
+    // Add all detected licenses from issues
+    analysisData.issues.forEach(issue => {
+        if (issue.detected_license &&
+            issue.detected_license !== 'Unknown' &&
+            issue.detected_license !== 'UNKNOWN' &&
+            issue.detected_license !== 'None') {
+            licenses.add(issue.detected_license);
+        }
+    });
+
+    return Array.from(licenses);
+};
+
 const Callback = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -535,6 +561,7 @@ const Callback = () => {
                 <LicenseSuggestionForm
                     owner={cloneData.owner}
                     repo={cloneData.repo}
+                    detectedLicenses={analysisData ? extractDetectedLicenses(analysisData) : []}
                     onClose={() => setShowLicenseSuggestionForm(false)}
                     onSuggestionReceived={(suggestion) => {
                         setLicenseSuggestion(suggestion);

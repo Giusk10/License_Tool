@@ -110,6 +110,7 @@ class LicenseRequirementsRequest(BaseModel):
         liability (bool): Whether liability protection is needed.
         copyleft (Optional[str]): Copyleft preference: "strong", "weak", "none", or None.
         additional_requirements (Optional[str]): Any additional free-text requirements.
+        detected_licenses (Optional[List[str]]): List of licenses already detected in the project.
     """
     owner: str
     repo: str
@@ -121,6 +122,7 @@ class LicenseRequirementsRequest(BaseModel):
     liability: bool = False
     copyleft: Optional[str] = None  # "strong", "weak", "none"
     additional_requirements: Optional[str] = None
+    detected_licenses: Optional[List[str]] = None
 
 
 class LicenseSuggestionResponse(BaseModel):
