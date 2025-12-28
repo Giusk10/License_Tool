@@ -76,7 +76,7 @@ def test_detect_main_license_with_unknown_files():
                 "type": "file",
                 "detected_license_expression_spdx": None,
                 "licenses": [],
-                "matches": [] # Lista vuota
+                "matches": [] # Empty list
             }
         ]
     }
@@ -85,16 +85,16 @@ def test_detect_main_license_with_unknown_files():
     # The logic must ignore sub-file licenses and select the root LICENSE file
     main_license, license_path = detect_main_license_scancode(mock_scancode_output)
 
-    print(f"\nMain License rilevata: {main_license} (su {license_path})")
+    print(f"\nMain License detected: {main_license} (on {license_path})")
 
-    assert main_license == "MIT", "La main license dovrebbe essere MIT"
-    assert license_path == "LICENSE", "Il file della main license dovrebbe essere LICENSE"
+    assert main_license == "MIT", "Main license should be MIT"
+    assert license_path == "LICENSE", "Main license file should be LICENSE"
 
     # --- PHASE 2: Granular File Analysis Verification ---
     # The function must map every file to its specific license, including UNKNOWNs
     files_analysis = extract_file_licenses(mock_scancode_output)
 
-    print("Licenze file estratte:", files_analysis)
+    print("Extracted file licenses:", files_analysis)
 
     # Verify correct mapping for valid source files
     assert "src/utils.py" in files_analysis
@@ -103,7 +103,7 @@ def test_detect_main_license_with_unknown_files():
     # Verify handling of UNKNOWN files
     # It is vital that UNKNOWN is not converted to None, so as to alert the user or the LLM
     assert "legacy/script.sh" in files_analysis
-    assert files_analysis["legacy/script.sh"] == "UNKNOWN", "Il file script.sh dovrebbe essere rilevato come UNKNOWN"
+    assert files_analysis["legacy/script.sh"] == "UNKNOWN", "The file script.sh should be detected as UNKNOWN"
 
     # Verify asset filtering
     # Files with no matches should not bloat the results dictionary

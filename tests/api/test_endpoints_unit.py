@@ -140,13 +140,13 @@ def test_upload_zip_bad_file(mock_zip_upload):
     due to a corrupt archive or incorrect file type), the controller
     correctly returns a 400 Bad Request status with the error details.
     """
-    mock_zip_upload.side_effect = ValueError("Non è uno zip valido")
+    mock_zip_upload.side_effect = ValueError("Not a valid zip")
 
     files = {"uploaded_file": ("test.txt", b"text", "text/plain")}
     response = client.post("/api/zip", data={"owner": "u", "repo": "r"}, files=files)
 
     assert response.status_code == 400
-    assert "Non è uno zip valido" in response.json()["detail"]
+    assert "Not a valid zip" in response.json()["detail"]
 
 
 # ==================================================================================
@@ -161,7 +161,7 @@ def test_analyze_success_correct_schema(mock_scan):
     - The JSON response contains 'main_license' and 'issues'.
     - Undefined fields (e.g., 'compatibility_score') are excluded from the response.
     """
-    # Mock allineato con AnalyzeResponse in schemas.py
+    # Mock aligned with AnalyzeResponse in schemas.py
     mock_scan.return_value = {
         "repository": "user/repo",
         "main_license": "MIT",
@@ -186,7 +186,7 @@ def test_analyze_success_correct_schema(mock_scan):
     assert len(data["issues"]) == 1
     assert data["issues"][0]["detected_license"] == "GPL"
 
-    # Verifica che fields non esistenti nello schema non siano presenti
+    # Verify that fields not existing in the schema are not present
     assert "compatibility_score" not in data
 
 
@@ -218,7 +218,7 @@ def test_regenerate_success(mock_regen):
     Checks that the controller correctly splits the 'repository' string
     into 'owner' and 'repo' before calling the service.
     """
-    # Simuliamo il payload di input (che è una AnalyzeResponse precedente)
+    # Simulate the input payload (which is a previous AnalyzeResponse)
     payload = {
         "repository": "facebook/react",
         "main_license": "MIT",
@@ -226,14 +226,14 @@ def test_regenerate_success(mock_regen):
         "report_path": "path"
     }
 
-    # Il servizio ritorna un oggetto aggiornato
+    # The service returns an updated object
     mock_regen.return_value = payload
 
     response = client.post("/api/regenerate", json=payload)
 
     assert response.status_code == 200
 
-    # Verifica passaggio parametri corretti (split owner/repo)
+    # Verify correct parameter passing (split owner/repo)
     mock_regen.assert_called_once()
     kwargs = mock_regen.call_args[1]
     assert kwargs["owner"] == "facebook"
@@ -272,11 +272,11 @@ def test_download_success(mock_download, tmp_path):
     Uses pytest's 'tmp_path' to create a physical file, ensuring FastAPI's
     FileResponse can serve the content without errors.
     """
-    # 1. Creiamo un file fisico temporaneo
+    # 1. Create a temporary physical file
     fake_zip = tmp_path / "archive.zip"
     fake_zip.write_bytes(b"DATA")
 
-    # 2. Il mock ritorna il path di questo file
+    # 2. The mock returns the path of this file
     mock_download.return_value = str(fake_zip)
 
     response = client.post("/api/download", json={"owner": "u", "repo": "r"})
@@ -295,16 +295,16 @@ def test_download_missing_repo(mock_download):
     on disk (raising a ValueError), the API responds with a 400 Bad Request
     status and provides a clear error message in the response detail.
     """
-    mock_download.side_effect = ValueError("Repo non clonata")
+    mock_download.side_effect = ValueError("Repo not cloned")
 
     response = client.post("/api/download", json={"owner": "ghost", "repo": "b"})
 
     assert response.status_code == 400
-    assert "Repo non clonata" in response.json()["detail"]
+    assert "Repo not cloned" in response.json()["detail"]
 
 
 # ==================================================================================
-#                       ADDITIONAL UNIT TESTS (NUOVI RICHIESTI)
+#                       ADDITIONAL UNIT TESTS (NEWLY REQUESTED)
 # ==================================================================================
 
 def test_analyze_with_schema_validation(mock_scan):
@@ -317,7 +317,7 @@ def test_analyze_with_schema_validation(mock_scan):
      Args:
          mock_scan: Mock for the initial scanning service.
      """
-    # Mock conforme al tuo schema (SENZA 'analysis', CON 'main_license')
+    # Mock compliant with your schema (WITHOUT 'analysis', WITH 'main_license')
     mock_res = {
         "repository": "test/repo",
         "main_license": "MIT",
@@ -360,7 +360,7 @@ def test_regenerate_with_payload_validation(mock_regen):
            mock_regen: Mock for the code regeneration service.
        """
 
-    # Payload INPUT (Deve avere main_license, issues)
+    # Payload INPUT (Must have main_license, issues)
     payload = {
         "repository": "facebook/react",
         "main_license": "MIT",
@@ -430,7 +430,7 @@ def test_download_error_handling(mock_download):
     Ensures that a 400 error is returned if the download service
     cannot find the specified repository on disk.
     """
-    mock_download.side_effect = ValueError("Non trovata")
+    mock_download.side_effect = ValueError("Not found")
     response = client.post("/api/download", json={"owner": "u", "repo": "r"})
     assert response.status_code == 400
 
@@ -588,12 +588,12 @@ def test_suggest_license_invalid_payload():
     """
     payload = {
         "owner": "testowner"
-        # Manca repo obbligatorio
+        # Missing mandatory repo
     }
 
     response = client.post("/api/suggest-license", json=payload)
 
-    assert response.status_code == 422  # Unprocessable Entity (validazione Pydantic)
+    assert response.status_code == 422  # Unprocessable Entity (Pydantic validation)
 
 
 def test_suggest_license_with_detected_licenses():
@@ -669,7 +669,7 @@ def test_suggest_license_without_detected_licenses():
     """
     Test suggest_license without detected_licenses (field omitted).
 
-    VVerify that the endpoint works correctly when detected_licenses
+    Verify that the endpoint works correctly when detected_licenses
     is not provided in the payload.
     """
     payload = {
@@ -695,106 +695,3 @@ def test_suggest_license_without_detected_licenses():
     # Verify None was passed when field is omitted
     call_kwargs = mock_suggest.call_args[1]
     assert call_kwargs["detected_licenses"] is None
-
-
-def test_suggest_license_with_detected_licenses():
-    """
-    Test suggest_license with the provided detected_licenses.
-
-    Verify that the endpoint correctly processes detected licenses
-    and passes them to the suggester.
-    """
-    payload = {
-        "owner": "testowner",
-        "repo": "testrepo",
-        "commercial_use": True,
-        "modification": True,
-        "distribution": True,
-        "copyleft": "none",
-        "detected_licenses": ["MIT", "Apache-2.0"]
-    }
-
-    mock_suggestion = {
-        "suggested_license": "Apache-2.0",
-        "explanation": "Apache-2.0 is compatible with detected MIT and Apache-2.0 licenses",
-        "alternatives": ["MIT"]
-    }
-
-    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion) as mock_suggest:
-        response = client.post("/api/suggest-license", json=payload)
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["suggested_license"] == "Apache-2.0"
-    assert "compatible" in data["explanation"].lower()
-
-    # Verify detected_licenses was passed to the function
-    mock_suggest.assert_called_once()
-    call_args, call_kwargs = mock_suggest.call_args
-    assert "detected_licenses" in call_kwargs
-    assert call_kwargs["detected_licenses"] == ["MIT", "Apache-2.0"]
-
-
-def test_suggest_license_with_empty_detected_licenses():
-    """
-    Test suggest_license with an empty detected_licenses.
-
-    Verify that an empty detected_licenses list is handled correctly.
-    """
-    payload = {
-        "owner": "testowner",
-        "repo": "testrepo",
-        "commercial_use": True,
-        "detected_licenses": []
-    }
-
-    mock_suggestion = {
-        "suggested_license": "MIT",
-        "explanation": "MIT is a simple permissive license",
-        "alternatives": ["BSD-3-Clause"]
-    }
-
-    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion) as mock_suggest:
-        response = client.post("/api/suggest-license", json=payload)
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["suggested_license"] == "MIT"
-
-    # Verify empty list was passed
-    call_kwargs = mock_suggest.call_args[1]
-    assert call_kwargs["detected_licenses"] == []
-
-
-def test_suggest_license_without_detected_licenses():
-    """
-    Test suggest_license without detected_licenses (field omitted).
-
-    VVerify that the endpoint works correctly when detected_licenses
-    is not provided in the payload.
-    """
-    payload = {
-        "owner": "testowner",
-        "repo": "testrepo",
-        "commercial_use": True,
-        "copyleft": "weak"
-    }
-
-    mock_suggestion = {
-        "suggested_license": "LGPL-3.0",
-        "explanation": "LGPL-3.0 provides weak copyleft protection",
-        "alternatives": ["MPL-2.0"]
-    }
-
-    with patch("app.controllers.analysis.suggest_license_based_on_requirements", return_value=mock_suggestion) as mock_suggest:
-        response = client.post("/api/suggest-license", json=payload)
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["suggested_license"] == "LGPL-3.0"
-
-    # Verify None was passed when field is omitted
-    call_kwargs = mock_suggest.call_args[1]
-    assert call_kwargs["detected_licenses"] is None
-
-
