@@ -147,7 +147,7 @@ class TestPerformDownload:
         with patch("app.services.downloader.download_service.CLONE_BASE_DIR", clone_base_dir):
             result = perform_download(owner, repo)
 
-            # Verifica che funzioni anche con caratteri speciali
+            # Verify that it also works with special characters
             assert os.path.exists(result)
             assert f"{repo_dir_name}_download.zip" in result
 
