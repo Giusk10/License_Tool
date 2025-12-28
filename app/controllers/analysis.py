@@ -267,8 +267,14 @@ def suggest_license(
         # Convert Pydantic model to dict for processing
         requirements_dict = requirements.model_dump()
 
-        # Get AI suggestion
-        suggestion = suggest_license_based_on_requirements(requirements_dict)
+        # Extract detected licenses from requirements
+        detected_licenses = requirements_dict.pop("detected_licenses", None)
+
+        # Get AI suggestion with detected licenses
+        suggestion = suggest_license_based_on_requirements(
+            requirements_dict,
+            detected_licenses=detected_licenses
+        )
 
         return LicenseSuggestionResponse(
             suggested_license=suggestion["suggested_license"],

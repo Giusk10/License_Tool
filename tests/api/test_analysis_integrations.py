@@ -1535,6 +1535,110 @@ def test_suggest_license_integration_success():
         mock_suggest.assert_called_once()
 
 
+def test_suggest_license_with_detected_licenses_integration():
+    """
+    Integration test: Suggest license with detected licenses from analysis.
+
+    Verifies that detected licenses are passed to the recommendation engine
+    and considered in the suggestion.
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "Apache-2.0",
+            "explanation": "Apache-2.0 is compatible with detected MIT and BSD-3-Clause licenses",
+            "alternatives": ["MIT"]
+        }
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "commercial_use": True,
+            "modification": True,
+            "distribution": True,
+            "patent_grant": True,
+            "copyleft": "none",
+            "detected_licenses": ["MIT", "BSD-3-Clause"]
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["suggested_license"] == "Apache-2.0"
+        assert "compatible" in data["explanation"].lower()
+
+        # Verify detected_licenses was passed to the function
+        mock_suggest.assert_called_once()
+        call_kwargs = mock_suggest.call_args[1]
+        assert "detected_licenses" in call_kwargs
+        assert call_kwargs["detected_licenses"] == ["MIT", "BSD-3-Clause"]
+
+
+def test_suggest_license_gpl_incompatibility_detection():
+    """
+    Integration test: Verify GPL incompatibility is detected with permissive licenses.
+
+    When detected licenses include Apache-2.0, suggesting GPL should be avoided
+    due to incompatibility.
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        # Mock should avoid GPL when Apache-2.0 is detected
+        mock_suggest.return_value = {
+            "suggested_license": "Apache-2.0",
+            "explanation": "Apache-2.0 is compatible with existing Apache-2.0 license in the project",
+            "alternatives": ["MIT", "BSD-3-Clause"]
+        }
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "commercial_use": True,
+            "copyleft": "strong",
+            "detected_licenses": ["Apache-2.0"]
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        # Should NOT suggest GPL when Apache-2.0 is detected
+        assert "GPL" not in data["suggested_license"]
+        assert data["suggested_license"] in ["Apache-2.0", "MIT", "BSD-3-Clause"]
+
+
+def test_suggest_license_with_multiple_detected_licenses():
+    """
+    Integration test: Handle multiple detected licenses correctly.
+
+    Verifies that the system can handle projects with multiple licenses
+    and suggest a compatible one.
+    """
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "Apache-2.0",
+            "explanation": "Apache-2.0 is compatible with all detected licenses: MIT, BSD-3-Clause, Apache-2.0",
+            "alternatives": ["MIT"]
+        }
+
+        payload = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "commercial_use": True,
+            "copyleft": "none",
+            "detected_licenses": ["MIT", "BSD-3-Clause", "Apache-2.0"]
+        }
+
+        response = client.post("/api/suggest-license", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["suggested_license"] == "Apache-2.0"
+
+        # Verify all licenses were passed
+        call_kwargs = mock_suggest.call_args[1]
+        assert len(call_kwargs["detected_licenses"]) == 3
+
+
 def test_suggest_license_minimal_requirements():
     """
     Integration test: Suggest license with only required fields.
@@ -1792,5 +1896,102 @@ def test_suggest_license_with_analyze_workflow(sample_zip_file, cleanup_test_rep
         suggest_data = suggest_resp.json()
         assert suggest_data["suggested_license"] in ["MIT", "Apache-2.0", "BSD-3-Clause"]
         assert len(suggest_data["alternatives"]) > 0
+
+
+def test_complete_workflow_with_detected_licenses(sample_zip_file, cleanup_test_repos):
+    """
+    Integration test: Complete workflow with detected licenses extraction.
+
+    This test verifies the full workflow:
+    1. Upload/Clone repository
+    2. Analyze and detect existing licenses
+    3. Pass detected licenses to suggestion endpoint
+    4. Receive compatible license recommendation
+    """
+    owner = "workflow_test"
+    repo = "multi_license_repo"
+
+    # Step 1: Upload repository
+    sample_zip_file.seek(0)
+    upload_resp = client.post(
+        "/api/zip",
+        data={"owner": owner, "repo": repo},
+        files={"uploaded_file": ("test.zip", sample_zip_file, "application/zip")}
+    )
+    assert upload_resp.status_code == 200
+
+    # Step 2: Mock analysis with multiple detected licenses
+    with patch('app.services.analysis_workflow.run_scancode') as mock_scan, \
+         patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
+         patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
+         patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
+         patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
+         patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich, \
+         patch('app.services.analysis_workflow.needs_license_suggestion') as mock_needs:
+
+        # Mock files with different licenses
+        issues_list = [
+            {"file_path": "file1.py", "detected_license": "MIT", "compatible": True, "reason": None},
+            {"file_path": "file2.py", "detected_license": "Apache-2.0", "compatible": True, "reason": None}
+        ]
+
+        mock_scan.return_value = {"files": [
+            {"path": "file1.py", "licenses": [{"key": "mit"}]},
+            {"path": "file2.py", "licenses": [{"key": "apache-2.0"}]}
+        ]}
+        mock_detect.return_value = "UNKNOWN"
+        mock_filter.return_value = {"files": [
+            {"path": "file1.py", "licenses": [{"key": "mit"}]},
+            {"path": "file2.py", "licenses": [{"key": "apache-2.0"}]}
+        ]}
+        mock_extract.return_value = {
+            "file1.py": ["MIT"],
+            "file2.py": ["Apache-2.0"]
+        }
+        mock_compat.return_value = {"issues": issues_list}
+        mock_enrich.return_value = issues_list  # Return the same issues (enriched)
+        mock_needs.return_value = True
+
+        analyze_resp = client.post("/api/analyze", json={"owner": owner, "repo": repo})
+        assert analyze_resp.status_code == 200
+        analyze_data = analyze_resp.json()
+
+        # Extract detected licenses from analysis
+        detected_licenses = set()
+        for issue in analyze_data.get("issues", []):
+            if issue.get("detected_license") and issue["detected_license"] not in ["Unknown", "None"]:
+                detected_licenses.add(issue["detected_license"])
+
+        detected_licenses_list = list(detected_licenses)
+
+    # Step 3: Request suggestion WITH detected licenses
+    with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
+        mock_suggest.return_value = {
+            "suggested_license": "Apache-2.0",
+            "explanation": "Apache-2.0 is compatible with detected MIT and Apache-2.0 licenses",
+            "alternatives": ["MIT"]
+        }
+
+        suggest_payload = {
+            "owner": owner,
+            "repo": repo,
+            "commercial_use": True,
+            "modification": True,
+            "distribution": True,
+            "detected_licenses": detected_licenses_list
+        }
+
+        suggest_resp = client.post("/api/suggest-license", json=suggest_payload)
+
+        assert suggest_resp.status_code == 200
+        suggest_data = suggest_resp.json()
+
+        # Verify the suggestion is compatible
+        assert suggest_data["suggested_license"] in ["Apache-2.0", "MIT"]
+
+        # Verify detected_licenses were passed
+        call_kwargs = mock_suggest.call_args[1]
+        assert "detected_licenses" in call_kwargs
+        assert len(call_kwargs["detected_licenses"]) > 0
 
 

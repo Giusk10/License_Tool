@@ -2,8 +2,7 @@
 License Recommender Module.
 
 This module provides AI-driven license recommendations based on user requirements
-and constraints. It's used when no main license is detected or when there are
-unknown licenses in the repository.
+and constraints. It's used when no main license is detected.
 """
 
 import json
@@ -16,8 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 def suggest_license_based_on_requirements(
-    requirements: Dict[str, any]
+        requirements: Dict[str, any],
+        detected_licenses: List[str] = None
 ) -> Dict[str, any]:
+
     """
     Suggests an appropriate license based on user-provided requirements.
 
@@ -83,6 +84,10 @@ def suggest_license_based_on_requirements(
 
     requirements_text = "\n".join(req_parts)
 
+    if detected_licenses:
+        detected_text = ", ".join(detected_licenses)
+        requirements_text += f"\n\n### EXISTING LICENSES IN PROJECT\n{detected_text}\n\n**IMPORTANT**: The recommended license MUST be compatible with ALL existing licenses listed above. If incompatible, choose an alternative that ensures compatibility."
+
     prompt = f"""### ROLE
 You are an expert in open source software licensing. Your task is to recommend 
 the most appropriate license for a software project based on the user's requirements.
@@ -93,6 +98,7 @@ the most appropriate license for a software project based on the user's requirem
 ### TASK
 Based on the requirements above, recommend the most suitable open source license.
 Consider popular licenses like MIT, Apache-2.0, GPL-3.0, LGPL-3.0, BSD-3-Clause, etc.
+If existing licenses are listed in the project, ensure the recommendation is compatible with them.
 
 ### OUTPUT FORMAT (MANDATORY)
 You MUST respond with a valid JSON object with NO markdown formatting, NO code blocks, NO ```json tags.
