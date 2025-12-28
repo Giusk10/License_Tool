@@ -73,7 +73,9 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                     padding: '2rem',
                     position: 'relative',
                     maxHeight: '90vh',
-                    overflowY: 'auto'
+                    overflowY: 'auto',
+                    boxSizing: 'border-box',
+                    overflowX: 'hidden'
                 }}>
                     <button
                         onClick={onClose}
@@ -90,7 +92,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                         <X size={24} />
                     </button>
 
-                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '2rem'}}>
                         <CheckCircle size={64} color="#219625ff" style={{ marginBottom: '1rem' }} />
                         <h2>License Suggestion</h2>
                     </div>
@@ -163,7 +165,9 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                 padding: '2rem',
                 position: 'relative',
                 maxHeight: '90vh',
-                overflowY: 'auto'
+                overflowY: 'auto',
+                boxSizing: 'border-box',
+                overflowX: 'hidden'
             }}>
                 <button
                     onClick={onClose}
@@ -180,8 +184,8 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                     <X size={24} />
                 </button>
 
-                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <Lightbulb size={64} color="#646cff" style={{ marginBottom: '1rem' }} />
+                <div style={{ textAlign: 'center', marginBottom: '1rem'}}>
+                    <Lightbulb size={64} color="#646cff" style={{ marginBottom: '0.3rem', marginTop: '0.5rem' }} />
                     <h2>License Recommendation</h2>
                     <p style={{ opacity: 0.8, marginTop: '0.5rem' }}>
                         No main license detected or unknown licenses found.
@@ -197,14 +201,14 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                         padding: '1rem',
                         marginBottom: '1.5rem'
                     }}>
-                        <h4 style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#646cff' }}>
+                        <h4 style={{ marginBottom: '0.5rem', fontSize: '1.3rem', color: '#646cff', marginTop: '0.5rem'}}>
                             Existing Licenses Detected in Project
                         </h4>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {detectedLicenses.map((license, idx) => (
                                 <span key={idx} style={{
                                     padding: '0.3rem 0.6rem',
-                                    fontSize: '0.85rem',
+                                    fontSize: '0.95rem',
                                     background: 'rgba(100, 108, 255, 0.2)',
                                     borderRadius: '4px',
                                     border: '1px solid rgba(100, 108, 255, 0.3)'
@@ -213,7 +217,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                                 </span>
                             ))}
                         </div>
-                        <p style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '0.5rem', marginBottom: 0 }}>
+                        <p style={{ fontSize: '0.9rem', opacity: 0.7, marginTop: '0.5rem', marginBottom: 0 }}>
                             The AI will recommend a license compatible with these existing licenses.
                         </p>
                     </div>
@@ -221,7 +225,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
 
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '2rem' }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Permissions & Requirements</h3>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.3rem' }}>Permissions & Requirements</h3>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
@@ -229,7 +233,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                                     type="checkbox"
                                     checked={formData.commercial_use}
                                     onChange={() => handleCheckboxChange('commercial_use')}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                    className="glass-checkbox"
                                 />
                                 <span>Commercial use allowed</span>
                             </label>
@@ -239,7 +243,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                                     type="checkbox"
                                     checked={formData.modification}
                                     onChange={() => handleCheckboxChange('modification')}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                    className="glass-checkbox"
                                 />
                                 <span>Modification allowed</span>
                             </label>
@@ -249,7 +253,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                                     type="checkbox"
                                     checked={formData.distribution}
                                     onChange={() => handleCheckboxChange('distribution')}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                    className="glass-checkbox"
                                 />
                                 <span>Distribution allowed</span>
                             </label>
@@ -259,7 +263,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                                     type="checkbox"
                                     checked={formData.patent_grant}
                                     onChange={() => handleCheckboxChange('patent_grant')}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                    className="glass-checkbox"
                                 />
                                 <span>Patent grant required</span>
                             </label>
@@ -269,7 +273,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                                     type="checkbox"
                                     checked={formData.trademark_use}
                                     onChange={() => handleCheckboxChange('trademark_use')}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                    className="glass-checkbox"
                                 />
                                 <span>Trademark use allowed</span>
                             </label>
@@ -279,7 +283,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                                     type="checkbox"
                                     checked={formData.liability}
                                     onChange={() => handleCheckboxChange('liability')}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                    className="glass-checkbox"
                                 />
                                 <span>Liability protection needed</span>
                             </label>
@@ -287,7 +291,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                     </div>
 
                     <div style={{ marginBottom: '2rem' }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Copyleft Preference</h3>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.3rem' }}>Copyleft Preference</h3>
 
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {['none', 'weak', 'strong'].map((option) => (
@@ -314,14 +318,14 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                     </div>
 
                     <div style={{ marginBottom: '2rem' }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Additional Requirements (Optional)</h3>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Additional Requirements (Optional)</h3>
                         <textarea
                             value={formData.additional_requirements}
                             onChange={(e) => setFormData(prev => ({ ...prev, additional_requirements: e.target.value }))}
                             placeholder="Any additional constraints or preferences..."
                             className="glass-input"
                             style={{
-                                width: '100%',
+                                width: '94%',
                                 minHeight: '100px',
                                 resize: 'vertical',
                                 fontFamily: 'inherit'
@@ -346,12 +350,12 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                         >
                             {loading ? (
                                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                    <div className="spin" style={{ width: 16, height: 16 }} />
+                                    <div className="spin" style={{ width: 20, height: 20 }} />
                                     Getting Suggestion...
                                 </span>
                             ) : (
                                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                    Get Suggestion <ArrowRight size={16} />
+                                    Get Suggestion <ArrowRight size={20} />
                                 </span>
                             )}
                         </button>
