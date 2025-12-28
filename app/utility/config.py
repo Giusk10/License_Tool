@@ -8,7 +8,6 @@ throughout the application for:
 - AI Service integration (Ollama models and URLs)
 - External tools (ScanCode)
 - File system management (Clone, Output, and JSON directories)
-- Database connections (MongoDB and Encryption)
 """
 
 import os
