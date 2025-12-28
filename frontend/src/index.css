@@ -83,7 +83,7 @@ h1 {
   font-size: 3.2em;
   line-height: 1.1;
   background: linear-gradient(to right, #ffffff, #d4d7ff);
-  display: inline-block
+  display: inline-block;
   -webkit-background-clip: text;
   background-clip: text;
   margin-bottom: 0.5em;
