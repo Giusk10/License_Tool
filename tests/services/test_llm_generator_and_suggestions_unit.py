@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, mock_open
-from app.services.llm.code_generator import regenerate_code
+from app.services.llm.code_generator import regenerate_code, validate_generated_code
 from app.services.llm.suggestion import ask_llm_for_suggestions, review_document, enrich_with_llm_suggestions
 
 
@@ -30,6 +30,20 @@ def test_regenerate_code_no_response():
 def test_regenerate_code_exception():
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
         mock_call.side_effect = Exception("error")
+        result = regenerate_code("old code", "MIT", "GPL", "MIT, Apache")
+        assert result is None
+
+
+def test_regenerate_code_validation_fails():
+    with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
+        mock_call.return_value = "short"  # Too short
+        result = regenerate_code("old code", "MIT", "GPL", "MIT, Apache")
+        assert result is None
+
+
+def test_regenerate_code_validation_syntax_error():
+    with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
+        mock_call.return_value = "def invalid syntax("  # Syntax error
         result = regenerate_code("old code", "MIT", "GPL", "MIT, Apache")
         assert result is None
 
@@ -112,3 +126,41 @@ def test_enrich_with_llm_suggestions_with_regenerated():
         mock_ask.return_value = "MIT, Apache-2.0"
         result = enrich_with_llm_suggestions("MIT", issues, regenerated_map)
         assert result[0]["regenerated_code_path"] == "/path/to/new.py"
+
+
+# Tests for validate_generated_code
+
+def test_validate_generated_code_valid_python():
+    code = "print('hello world')"
+    assert validate_generated_code(code) is True
+
+
+def test_validate_generated_code_invalid_python():
+    code = "def invalid("
+    assert validate_generated_code(code) is False
+
+
+def test_validate_generated_code_too_short():
+    code = "hi"
+    assert validate_generated_code(code) is False
+
+
+def test_validate_generated_code_empty():
+    code = ""
+    assert validate_generated_code(code) is False
+
+
+def test_validate_generated_code_none():
+    code = None
+    assert validate_generated_code(code) is False
+
+
+def test_validate_generated_code_other_language():
+    code = "some longer code"
+    assert validate_generated_code(code, "javascript") is True  # Just length check
+
+
+def test_validate_generated_code_other_language_short():
+    code = "hi"
+    assert validate_generated_code(code, "javascript") is False
+

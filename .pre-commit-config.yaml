@@ -1,0 +1,21 @@
+default_install_hook_types: [pre-commit, pre-push]
+
+repos:
+  - repo: local
+    hooks:
+      # Pylint: runs on every commit (pre-commit is the default)
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        exclude: ^tests/
+        args: ["app", "--errors-only"]
+
+      # Pytest: runs ONLY on 'git push'
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
