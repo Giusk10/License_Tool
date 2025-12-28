@@ -92,7 +92,7 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> Dic
             reason = "; ".join(trace)
         else:
             # Handle "conditional" or unknown statuses
-            compatible = False
+            compatible = None
             hint = "conditional" if status == "conditional" else "unknown"
             reason = (
                 f"{'; '.join(trace)}; "

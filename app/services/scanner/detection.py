@@ -220,6 +220,6 @@ def extract_file_licenses(scancode_data: Dict[str, Any]) -> Dict[str, str]:
         if len(unique_spdx) == 1:
             results[path] = unique_spdx[0]
         else:
-            results[path] = " AND ".join(unique_spdx)
+            results[path] = " OR ".join(unique_spdx)
 
     return results

@@ -17,18 +17,19 @@ License_Tool/
 │   ├── controllers/        # Definizione degli endpoint API e gestione rotte
 │   ├── models/             # Schemi Pydantic per la validazione dei dati
 │   ├── services/           # Logica di business e workflow di analisi
-│   │   ├── compatibility/  # Algoritmi per il calcolo della compatibilità licenze
-│   │   ├── downloader/     # Servizi per il download dei repository processati
-│   │   ├── github/         # Client per l'integrazione con le API GitHub e OAuth
-│   │   ├── llm/            # Moduli per l'interazione con Ollama e rigenerazione codice
-│   │   └── scanner/        # Integrazione con ScanCode Toolkit e filtraggio risultati
-│   └── utility/            # Gestione configurazioni (.env), variabili d'ambiente e helper
+│   │   ├── compatibility/  # Algoritmi compatibilità, matrice e parser SPDX
+│   │   ├── downloader/     # Servizi per il download e creazione archivi ZIP
+│   │   ├── github/         # Client per operazioni Git e integrazione GitHub
+│   │   ├── llm/            # Integrazione Ollama per suggerimenti e codice
+│   │   └── scanner/        # Logica di rilevamento licenze e filtraggio file
+│   └── utility/            # Configurazione app e variabili d'ambiente
+├── docs/                   # Documentazione tecnica, guide e note legali
 ├── frontend/               # Interfaccia Utente (React + Vite)
 ├── tests/                  # Suite di test unitari e di integrazione
-├── pyproject.toml          # Metadata del progetto e configurazione build system
+├── pyproject.toml          # Configurazione build system e metadati progetto
 ├── requirements.txt        # Elenco dipendenze Python per installazione rapida
-├── LICENSE                 # Testo della Licenza MIT del progetto
-└── THIRD_PARTY_NOTICE      # Documentazione obbligatoria per componenti di terze parti
+├── start-all-services.ps1  # Script PowerShell per l'avvio rapido dei servizi
+└── LICENSE                 # Testo della Licenza del progetto
 ```
 
 ## 🚀 Panoramica del Sistema

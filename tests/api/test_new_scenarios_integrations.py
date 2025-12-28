@@ -170,16 +170,16 @@ class TestIntegrationErrorHandling:
 
 class TestIntegrationCloneWorkflow:
     """
-    Test completi del workflow di cloning del repository.
+    Comprehensive tests for the repository cloning workflow.
     """
 
     @patch('app.controllers.analysis.perform_cloning')
     def test_clone_repository_complete_flow(self, mock_clone, client):
         """
-        Test del workflow completo di cloning repository.
+        Test the complete repository cloning workflow.
 
-        Verifica che il processo di cloning funzioni end-to-end
-        dall'endpoint al servizio.
+        Verifies that the cloning process works end-to-end from
+        the endpoint to the service.
         """
         mock_clone.return_value = "/tmp/test_clones/testowner_testrepo"
 
@@ -199,9 +199,9 @@ class TestIntegrationCloneWorkflow:
     @patch('app.controllers.analysis.perform_cloning')
     def test_clone_repository_with_special_chars(self, mock_clone, client):
         """
-        Test cloning con caratteri speciali nel nome.
+        Tests cloning with special characters in the name.
 
-        Verifica che repository con nomi complessi vengano gestiti.
+        Verifies that repositories with complex names are handled correctly.
         """
         mock_clone.return_value = "/tmp/test_clones/org-name_repo.test"
 
@@ -217,16 +217,16 @@ class TestIntegrationCloneWorkflow:
 
 class TestIntegrationAnalysisWorkflow:
     """
-    Test completi del workflow di analisi.
+    Comprehensive tests for the analysis workflow.
     """
 
     @patch('app.controllers.analysis.perform_initial_scan')
     def test_analysis_with_multiple_issues(self, mock_scan, client):
         """
-        Test analisi con multipli problemi di licenza.
+        Tests analysis with multiple license issues.
 
-        Verifica che il sistema gestisca correttamente repository
-        con più file incompatibili.
+        Verifies that the system correctly handles repositories
+        with multiple incompatible files.
         """
         mock_scan.return_value = AnalyzeResponse(
             repository="owner/repo",
@@ -268,9 +268,9 @@ class TestIntegrationAnalysisWorkflow:
     @patch('app.controllers.analysis.perform_initial_scan')
     def test_analysis_with_license_suggestion_needed(self, mock_scan, client):
         """
-        Test analisi che richiede suggerimento licenza.
+        Tests analysis that requires a license suggestion.
 
-        Verifica che il flag needs_license_suggestion sia corretto.
+        Verifies that the `needs_license_suggestion` flag is correctly set.
         """
         mock_scan.return_value = AnalyzeResponse(
             repository="owner/repo",
@@ -292,18 +292,18 @@ class TestIntegrationAnalysisWorkflow:
 
 class TestIntegrationRegenerationWorkflow:
     """
-    Test completi del workflow di rigenerazione.
+    Comprehensive tests for the regeneration workflow.
     """
 
     @patch('app.controllers.analysis.perform_regeneration')
     def test_regeneration_reduces_issues(self, mock_regen, client):
         """
-        Test che la rigenerazione riduca i problemi di compatibilità.
+        Tests that regeneration reduces compatibility issues.
 
-        Simula uno scenario in cui dopo la rigenerazione,
-        alcuni problemi vengono risolti.
+        Simulates a scenario where, after regeneration,
+        some issues are resolved.
         """
-        # Previous analysis con 2 problemi
+        # Previous analysis with 2 issues
         previous = {
             "repository": "owner/repo",
             "main_license": "MIT",
@@ -321,7 +321,7 @@ class TestIntegrationRegenerationWorkflow:
             ]
         }
 
-        # After regeneration: solo 1 problema rimane
+        # After regeneration: only 1 issue remains
         mock_regen.return_value = AnalyzeResponse(
             repository="owner/repo",
             main_license="MIT",
@@ -340,22 +340,22 @@ class TestIntegrationRegenerationWorkflow:
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data["issues"]) == 1  # Ridotto da 2 a 1
+        assert len(data["issues"]) == 1  # Reduced from 2 to 1
         assert data["issues"][0]["file_path"] == "src/file2.py"
 
 
 class TestIntegrationLicenseSuggestion:
     """
-    Test di integrazione per il sistema di suggerimento licenza.
+    Integration tests for the license suggestion system.
     """
 
     @patch('app.controllers.analysis.suggest_license_based_on_requirements')
     def test_license_suggestion_complete_workflow(self, mock_suggest, client):
         """
-        Test del workflow completo di suggerimento licenza.
+        Tests the complete license suggestion workflow.
 
-        Verifica che il sistema possa suggerire una licenza appropriata
-        basandosi sui requisiti dell'utente.
+        Verifies that the system can suggest an appropriate license
+        based on user requirements.
         """
         mock_suggest.return_value = {
             "suggested_license": "Apache-2.0",
@@ -385,10 +385,10 @@ class TestIntegrationLicenseSuggestion:
     @patch('app.controllers.analysis.suggest_license_based_on_requirements')
     def test_license_suggestion_for_copyleft(self, mock_suggest, client):
         """
-        Test suggerimento per licenze copyleft.
+        Tests suggestion for copyleft licenses.
 
-        Verifica che il sistema suggerisca correttamente licenze
-        copyleft quando richieste.
+        Verifies that the system correctly suggests copyleft licenses
+        when requested.
         """
         mock_suggest.return_value = {
             "suggested_license": "GPL-3.0",
@@ -417,16 +417,16 @@ class TestIntegrationLicenseSuggestion:
 
 class TestIntegrationZipUploadWorkflow:
     """
-    Test di integrazione per upload ZIP.
+    Integration tests for ZIP upload.
     """
 
     @patch('app.controllers.analysis.perform_upload_zip')
     def test_zip_upload_and_analyze_workflow(self, mock_upload, client):
         """
-        Test workflow completo: upload ZIP + analisi.
+        Tests complete workflow: ZIP upload + analysis.
 
-        Verifica che un repository caricato via ZIP possa
-        essere successivamente analizzato.
+        Verifies that a repository uploaded via ZIP can
+        be successfully analyzed.
         """
         # Step 1: Upload ZIP
         mock_upload.return_value = "/tmp/test_clones/uploaded_repo"
@@ -460,18 +460,18 @@ class TestIntegrationZipUploadWorkflow:
 
 class TestIntegrationErrorScenarios:
     """
-    Test di integrazione per scenari di errore.
+    Integration tests for error scenarios.
     """
 
     @patch('app.controllers.analysis.perform_cloning')
     def test_clone_failure_then_retry(self, mock_clone, client):
         """
-        Test fallimento cloning seguito da retry.
+        Tests cloning failure followed by a retry.
 
-        Verifica che il sistema gestisca correttamente errori
-        di cloning e permetta un retry.
+        Verifies that the system correctly handles cloning errors
+        and allows for a retry.
         """
-        # Prima chiamata fallisce
+        # First call fails
         mock_clone.side_effect = ValueError("Network error")
 
         response1 = client.post("/api/clone", json={
@@ -481,7 +481,7 @@ class TestIntegrationErrorScenarios:
 
         assert response1.status_code == 400
 
-        # Retry con successo
+        # Retry successful
         mock_clone.side_effect = None
         mock_clone.return_value = "/tmp/owner_repo"
 
@@ -491,6 +491,3 @@ class TestIntegrationErrorScenarios:
         })
 
         assert response2.status_code == 200
-
-
-

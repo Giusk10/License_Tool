@@ -3,33 +3,33 @@ test: services/compatibility/parser_spdx.py
 """
 
 """
-Modulo `parser_spdx` — parser semplice per espressioni SPDX.
+`parser_spdx` module — simple parser for SPDX expressions.
 
-Supporta:
-- operatori logici: AND, OR (AND ha priorità su OR; case-insensitive)
-- parentesi per raggruppamento: (...)
-- costrutto WITH: combinato in un unico token "<ID> WITH <ID>"
+Supports:
+- logical operators: AND, OR (AND has priority over OR; case-insensitive)
+- parentheses for grouping: (...)
+- WITH construct: combined into a single token "<ID> WITH <ID>"
 
-Comportamento:
-- Restituisce `None` per stringhe vuote o composte solo da spazi.
-- Restituisce un albero di nodi (`Leaf`, `And`, `Or`) per espressioni valide.
-- Per input malformati il parser tenta di recuperare senza sollevare eccezioni non gestite
-  (può restituire `None` o un sotto-albero parziale); definire test espliciti per il comportamento atteso.
-- `Leaf` chiama `normalize_symbol(value)`; nei test mockare `normalize_symbol` nel modulo `parser_spdx`.
+Behavior:
+- Returns `None` for empty strings or strings consisting only of spaces.
+- Returns a tree of nodes (`Leaf`, `And`, `Or`) for valid expressions.
+- For malformed inputs, the parser attempts to recover without raising unhandled exceptions
+  (it may return `None` or a partial sub-tree); explicit tests should define expected behavior.
+- `Leaf` calls `normalize_symbol(value)`; in tests, mock `normalize_symbol` in the `parser_spdx` module.
 """
 
 from app.services.compatibility import parser_spdx as ps
 
 
 def test_parse_empty_returns_none():
-    """Espressione vuota deve tornare None."""
+    """Empty expression must return None."""
     assert ps.parse_spdx("") is None
     assert ps.parse_spdx("   ") is None
 
 
 def test_parse_simple_license_creates_leaf(monkeypatch):
-    """Un token semplice deve diventare un Leaf e chiamare normalize_symbol."""
-    # mock della normalize_symbol per verificare che venga usata
+    """A simple token must become a Leaf and call normalize_symbol."""
+    # mock normalize_symbol to verify it is used
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s.upper())
 
     node = ps.parse_spdx("mit")
@@ -38,26 +38,27 @@ def test_parse_simple_license_creates_leaf(monkeypatch):
 
 
 def test_parse_with_operator_precedence(monkeypatch):
-    """AND ha priorità rispetto a OR.
+    """AND has precedence over OR.
 
-    'A OR B AND C' deve essere parsato come Or(Leaf(A), And(Leaf(B), Leaf(C))).
+    'A OR B AND C' must be parsed as Or(Leaf(A), And(Leaf(B), Leaf(C))).
     """
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
 
     expr = "MIT OR Apache-2.0 AND GPL-3.0"
     root = ps.parse_spdx(expr)
 
-    # root deve essere Or
+    # root must be Or
     assert isinstance(root, ps.Or)
     # left child MIT
     assert isinstance(root.left, ps.Leaf) and root.left.value == "MIT"
-    # right child è And(Apache, GPL)
+    # right child is And(Apache, GPL)
     assert isinstance(root.right, ps.And)
     assert isinstance(root.right.left, ps.Leaf) and root.right.left.value == "Apache-2.0"
     assert isinstance(root.right.right, ps.Leaf) and root.right.right.value == "GPL-3.0"
 
+
 def test_parse_parentheses_override_precedence(monkeypatch):
-    """Le parentesi devono forzare la precedenza: (A AND B) -> And al top."""
+    """Parentheses must enforce precedence: (A AND B) -> And at the top."""
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
 
     root = ps.parse_spdx("(MIT AND GPL-3.0)")
@@ -67,20 +68,21 @@ def test_parse_parentheses_override_precedence(monkeypatch):
 
 
 def test_parse_with_combines_with_token(monkeypatch):
-    """Il costrutto WITH deve essere combinato in un singolo Leaf token.
+    """The WITH construct must be combined into a single Leaf token.
 
-    Es: 'GPL-2.0 WITH Autoconf-exception-generic' -> Leaf con valore combinato.
+    Ex: 'GPL-2.0 WITH Autoconf-exception-generic' -> Leaf with combined value.
     """
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
 
     expr = "GPL-2.0 WITH Autoconf-exception-generic"
     node = ps.parse_spdx(expr)
     assert isinstance(node, ps.Leaf)
-    # il token mantiene la forma combinata 'GPL-2.0 WITH Autoconf-exception-generic'
+    # the token retains the combined form 'GPL-2.0 WITH Autoconf-exception-generic'
     assert "WITH" in node.value and node.value.startswith("GPL-2.0")
 
+
 def test_parser_handles_multiple_spaces_and_tabs(monkeypatch):
-    """Verifica che il parser ignori spazi multipli e tabulazioni tra i token."""
+    """Verify that the parser ignores multiple spaces and tabs between tokens."""
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
     root = ps.parse_spdx("MIT    OR\tGPL-3.0")
     assert isinstance(root, ps.Or)
@@ -89,7 +91,7 @@ def test_parser_handles_multiple_spaces_and_tabs(monkeypatch):
 
 
 def test_parser_parses_deeply_nested_parentheses(monkeypatch):
-    """Verifica il parsing corretto di espressioni con parentesi annidate."""
+    """Verify correct parsing of expressions with nested parentheses."""
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
     root = ps.parse_spdx("A OR (B AND (C OR D))")
     assert isinstance(root, ps.Or)
@@ -103,7 +105,7 @@ def test_parser_parses_deeply_nested_parentheses(monkeypatch):
 
 
 def test_parser_with_token_handles_extra_spaces_and_case(monkeypatch):
-    """Verifica che il token 'WITH' venga riconosciuto anche con spazi extra e case diversi."""
+    """Verify that the 'WITH' token is recognized even with extra spaces and different cases."""
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
     node = ps.parse_spdx("mit  with   Exception")
     assert isinstance(node, ps.Leaf)
@@ -111,25 +113,26 @@ def test_parser_with_token_handles_extra_spaces_and_case(monkeypatch):
 
 
 def test_parser_handles_malformed_input_gracefully(monkeypatch):
-    """Assicura che input malformati non sollevino eccezioni non gestite; accetta None o Node parziale."""
+    """Ensures malformed inputs do not raise unhandled exceptions; accepts None or partial Node."""
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
     malformed = ["(MIT AND", "MIT OR", "AND MIT", "MIT WITH"]
     for expr in malformed:
         node = ps.parse_spdx(expr)
         assert node is None or isinstance(node, ps.Node)
 
+
 def test_tokenize_multiple_with_occurrences(monkeypatch):
-    """Verifica che un'espressione con più occorrenze di WITH non faccia crashare il parser
-    e che almeno la prima occorrenza venga combinata in un token contenente 'WITH'."""
+    """Verify that an expression with multiple occurrences of WITH does not crash the parser
+    and that at least the first occurrence is combined into a token containing 'WITH'."""
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
     expr = "A WITH X WITH Y"
     node = ps.parse_spdx(expr)
-    # Non facciamo assunzioni rigide su struttura, ma assicuriamo che non sollevi eccezioni
-    # e che la stringa 'WITH' sia presente in almeno una leaf value se esiste una leaf.
+    # We don't make rigid assumptions about structure, but ensure it doesn't raise exceptions
+    # and that the string 'WITH' is present in at least one leaf value if a leaf exists.
     if node is None:
         assert node is None
     else:
-        # Cerca ricorsivamente una Leaf che contenga WITH
+        # Recursively search for a Leaf containing WITH
         found_with = False
         def collect(n):
             nonlocal found_with
@@ -144,8 +147,8 @@ def test_tokenize_multiple_with_occurrences(monkeypatch):
 
 
 def test_parser_handles_special_characters_and_plus(monkeypatch):
-    """Token con caratteri speciali come '+' e '/' non devono causare crash e devono
-    essere passati a normalize_symbol (mockata)"""
+    """Tokens with special characters like '+' and '/' must not cause crashes and must
+    be passed to normalize_symbol (mocked)."""
     calls = []
     def fake_normalize(s):
         calls.append(s)
@@ -154,18 +157,17 @@ def test_parser_handles_special_characters_and_plus(monkeypatch):
 
     expr = "GPL-2.0+ OR BSD-3-Clause/"
     node = ps.parse_spdx(expr)
-    # Assicuriamoci che il parser non crashi e che normalize_symbol sia stata chiamata
+    # Ensure the parser does not crash and normalize_symbol was called
     assert node is not None
     assert any("GPL-2.0" in c for c in calls)
     assert any("BSD-3-Clause" in c or "/" in c for c in calls)
 
 
 def test_parser_malformed_parenthesis_does_not_crash(monkeypatch):
-    """Input con parentesi mancanti non deve sollevare eccezioni non gestite.
-    Il comportamento atteso è che il parser ritorni None o un sottoalbero parziale.
+    """Input with missing parentheses must not raise unhandled exceptions.
+    Expected behavior is for the parser to return None or a partial subtree.
     """
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
     for expr in ["(MIT AND", "MIT OR", "(A OR (B AND C)", "(OR) MIT"]:
         node = ps.parse_spdx(expr)
         assert node is None or isinstance(node, ps.Node)
-

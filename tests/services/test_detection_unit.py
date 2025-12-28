@@ -281,7 +281,7 @@ class TestExtractFileLicenses:
         Validates merging of multiple licenses for a single file.
 
         Ensures that if a file contains multiple licenses, they are combined
-        using the ' AND ' operator into a single SPDX expression.
+        using the ' OR ' operator into a single SPDX expression.
         """
         data = {
             "files": [
@@ -298,7 +298,8 @@ class TestExtractFileLicenses:
         # The order of the set is not guaranteed, we check the presence
         assert "MIT" in result["file1.py"]
         assert "Apache-2.0" in result["file1.py"]
-        assert " AND " in result["file1.py"]
+        # Multiple licenses are now joined with OR (not AND)
+        assert " OR " in result["file1.py"]
 
 
     def test_extract_no_matches(self):

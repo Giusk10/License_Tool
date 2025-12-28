@@ -108,8 +108,8 @@ def test_eval_conditional_returns_hint_in_reason_and_not_compatible(complex_matr
     """
     Verifies processing of 'conditional' compatibility.
 
-    Ensures that conditional outcomes are treated as 'not compatible' for
-    safety, while providing the user with the necessary clauses/hints.
+    Ensures that conditional outcomes are treated as indeterminate (None)
+    for safety, while providing the user with the necessary clauses/hints.
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: complex_matrix_data)
@@ -120,7 +120,8 @@ def test_eval_conditional_returns_hint_in_reason_and_not_compatible(complex_matr
     res = check_compatibility("MIT", {"folder/thing.py": "  LGPL-2.1  "})
     mock_parse.assert_called_with("LGPL-2.1")
     issue = res["issues"][0]
-    assert issue["compatible"] is False
+    # conditional and unknown statuses now return compatible=None (indeterminate)
+    assert issue["compatible"] is None
     assert "Outcome: conditional" in issue["reason"]
 
 # ==================================================================================
@@ -174,7 +175,7 @@ def test_eval_unknown_status_shows_unknown_hint(complex_matrix_data, monkeypatch
     Validates fallback for unexpected evaluation statuses.
 
     Ensures that if the node evaluator returns an unrecognized status code,
-    the service defaults to marking the file as incompatible.
+    the service defaults to marking the file as indeterminate (None).
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: complex_matrix_data)
@@ -182,7 +183,8 @@ def test_eval_unknown_status_shows_unknown_hint(complex_matrix_data, monkeypatch
     monkeypatch.setattr("app.services.compatibility.checker.eval_node", lambda *_: ("weird", ["trace info"]))
     res = check_compatibility("MIT", {"x.py": "Zlib"})
     issue = res["issues"][0]
-    assert issue["compatible"] is False
+    # Unknown statuses now return compatible=None (indeterminate)
+    assert issue["compatible"] is None
     assert "Outcome: unknown" in issue["reason"]
 
 

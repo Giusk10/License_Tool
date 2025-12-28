@@ -8,7 +8,7 @@ It acts as the orchestrator for:
 - Initial license scanning and compatibility checking.
 - The AI-based code regeneration loop to fix license conflicts.
 """
-
+import json
 import os
 import shutil
 import tempfile
@@ -26,6 +26,7 @@ from app.services.scanner.filter import filter_licenses
 from app.services.compatibility import check_compatibility
 from app.services.llm.suggestion import enrich_with_llm_suggestions
 from app.services.llm.license_recommender import needs_license_suggestion
+from app.services.scanner.license_ranking import choose_most_permissive_license_in_file
 from app.utility.config import CLONE_BASE_DIR
 from app.services.llm.code_generator import regenerate_code
 
@@ -173,12 +174,16 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
         main_license = license_result
         path_license = None
 
-    # 4) LLM Filtering
+    # 4) Filtering
     llm_clean = filter_licenses(scan_raw, main_license, path_license)
     file_licenses = extract_file_licenses(llm_clean)
 
+    print(json.dumps(file_licenses, indent=2))
+
+    remove_or_clauses = choose_most_permissive_license_in_file(file_licenses)
+
     # 5) Compatibility Check
-    compatibility = check_compatibility(main_license, file_licenses)
+    compatibility = check_compatibility(main_license, remove_or_clauses)
 
     # 6) AI Suggestions
     enriched_issues = enrich_with_llm_suggestions(main_license, compatibility["issues"], {})
