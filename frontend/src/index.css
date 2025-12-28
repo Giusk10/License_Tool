@@ -83,14 +83,14 @@ h1 {
   font-size: 3.2em;
   line-height: 1.1;
   background: linear-gradient(to right, #ffffff, #d4d7ff);
-  display: inline-block;
+  display: inline-block
   -webkit-background-clip: text;
   background-clip: text;
   margin-bottom: 0.5em;
 }
 
 h2 {
-  font-size: 2.5em;
+  font-size: 2.2em;
   color: #e0e0e0;
   line-height: 1.8;
 }
@@ -156,4 +156,64 @@ pre {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #646cff;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #747bff;
+}
+
+
+/* Custom Checkbox */
+.glass-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  transition: all 0.2s ease;
+}
+
+.glass-checkbox::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+  box-shadow: inset 1em 1em white;
+  transform-origin: center;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.glass-checkbox:checked {
+  background: #646cff;
+  border-color: #646cff;
+}
+
+.glass-checkbox:checked::before {
+  transform: scale(1);
+}
+
+.glass-checkbox:hover {
+  border-color: #646cff;
+  box-shadow: 0 0 8px rgba(100, 108, 255, 0.3);
 }

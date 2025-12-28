@@ -361,7 +361,7 @@ const Callback = () => {
                                                 gap: '0.3rem'
                                             }}
                                         >
-                                            <Lightbulb size={14} /> Get Suggestion
+                                            <Lightbulb size={16} /> Get Suggestion
                                         </button>
                                     )}
                                     {licenseSuggestion && (

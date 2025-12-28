@@ -8,7 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 frontend/node_modules
-dist
+frontend/node_modules/@eslint/plugin-kit/dist
 dist-ssr
 *.local
 
