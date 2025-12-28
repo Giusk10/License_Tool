@@ -27,7 +27,7 @@ Integration tests for the /api/auth/start and /api/callback endpoints
 These tests verify the complete OAuth authentication flow with GitHub
 """
 
-# --- FIXTURES PER PULIRE IL CODICE ---
+# --- CLEANUP FIXTURES ---
 @pytest.fixture
 def mock_env_credentials():
     """Emulates environment variables or the function that retrieves them."""
@@ -44,7 +44,7 @@ def mock_httpx_post():
 
 @pytest.fixture
 def mock_clone():
-    """Mocka the cloning function."""
+    """Mocks the cloning function."""
     with patch("app.controllers.analysis.perform_cloning") as m:
         yield m
 
@@ -120,7 +120,7 @@ def flat_zip_file():
 def cleanup_test_repos():
     """Fixture to clean test repositories after each test."""
     yield
-    # Cleanup dopo il test
+    # Cleanup after the test
     test_patterns = [
         'testowner_testrepo',
         'flatowner_flatrepo',
@@ -279,7 +279,7 @@ def test_upload_zip_overwrites_existing(sample_zip_file, cleanup_test_repos):
     complete cleanup of the old directory. This prevents 'file pollution'
     where legacy files from a previous upload remain in the workspace.
     """
-    # Prima creazione
+    # First creation
     files1 = {
         'uploaded_file': ('test1.zip', sample_zip_file, 'application/zip')
     }
@@ -292,7 +292,7 @@ def test_upload_zip_overwrites_existing(sample_zip_file, cleanup_test_repos):
     assert response1.status_code == 200
     repo_path = response1.json()['local_path']
 
-    #Let's add a marker file to check for overwriting
+    # Let's add a marker file to check for overwriting
     marker_file = os.path.join(repo_path, 'MARKER.txt')
     with open(marker_file, 'w') as f:
         f.write('This should be deleted')
@@ -300,7 +300,7 @@ def test_upload_zip_overwrites_existing(sample_zip_file, cleanup_test_repos):
     assert os.path.exists(marker_file)
 
     # Second upload (same owner/repo)
-    sample_zip_file.seek(0)  # Reset del buffer
+    sample_zip_file.seek(0)  # Reset buffer
     files2 = {
         'uploaded_file': ('test2.zip', sample_zip_file, 'application/zip')
     }
@@ -547,7 +547,7 @@ def test_run_analysis_with_special_characters_in_params():
      in URL parameters correctly. The test expects a 400 error because the
      directory won't exist, but validates that the request parsing is stable.
      """
-    # Owner/repo con caratteri speciali validi per GitHub
+    # Owner/repo with valid GitHub special characters
     payload = {
         'owner': 'owner-with-dash',
         'repo': 'repo_with_underscore'
@@ -642,7 +642,7 @@ def mock_scancode_and_llm():
         # Mock compatibility check (no issues)
         mock_compat.return_value = {'issues': []}
 
-        # Mock enriched issues (nessun problema per MIT->MIT)
+        # Mock enriched issues (no issues for MIT->MIT)
         mock_enrich.return_value = []
 
         yield {
@@ -803,7 +803,7 @@ using mocks ONLY for expensive external dependencies (ScanCode, LLM).
 from app.models.schemas import AnalyzeResponse, LicenseIssue
 
 # ==============================================================================
-# FIXTURES E HELPER
+# FIXTURES AND HELPERS
 # ==============================================================================
 
 @pytest.fixture
@@ -904,7 +904,7 @@ def sample_analyze_response():
 
 
 # ==============================================================================
-# TEST DI INTEGRAZIONE - REGENERATE_ANALYSIS
+# INTEGRATION TEST - REGENERATE_ANALYSIS
 # ==============================================================================
 
 def test_regenerate_analysis_success_integration(
@@ -934,7 +934,7 @@ def test_regenerate_analysis_success_integration(
 
     assert os.path.exists(repo_path)
 
-    # Mock solo perform regeneration (complex workflow with LLM)
+    # Mock only perform regeneration (complex workflow with LLM)
     with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         # Regeneration Response Mock
         mock_regen.return_value = AnalyzeResponse(
@@ -943,9 +943,9 @@ def test_regenerate_analysis_success_integration(
             issues=[
                 LicenseIssue(
                     file_path="src/incompatible.py",
-                    detected_license="MIT",  # Ora compatibile
+                    detected_license="MIT",  # Now compatible
                     compatible=True,
-                    reason="Rigenerato con successo",
+                    reason="Successfully regenerated",
                     regenerated_code_path="src/incompatible.py"
                 )
             ],
@@ -1003,7 +1003,7 @@ def test_regenerate_analysis_repository_not_found(cleanup_test_repos):
     """
     with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         # Mock that raises ValueError (repository not found)
-        mock_regen.side_effect = ValueError("Repository non trovata")
+        mock_regen.side_effect = ValueError("Repository not found")
 
         payload = {
             "repository": "missingowner/missingrepo",
@@ -1014,7 +1014,7 @@ def test_regenerate_analysis_repository_not_found(cleanup_test_repos):
         response = client.post("/api/regenerate", json=payload)
 
         assert response.status_code == 400
-        assert "Repository non trovata" in response.json()["detail"]
+        assert "Repository not found" in response.json()["detail"]
 
 
 def test_regenerate_analysis_generic_exception(cleanup_test_repos):
@@ -1029,7 +1029,7 @@ def test_regenerate_analysis_generic_exception(cleanup_test_repos):
     """
     with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         # Mock that raises generic Exception
-        mock_regen.side_effect = RuntimeError("Errore imprevisto durante rigenerazione")
+        mock_regen.side_effect = RuntimeError("Unexpected error during regeneration")
 
         payload = {
             "repository": "errorowner/errorrepo",
@@ -1044,7 +1044,7 @@ def test_regenerate_analysis_generic_exception(cleanup_test_repos):
 
 
 # ==============================================================================
-# TEST DI INTEGRAZIONE - DOWNLOAD_REPO
+# INTEGRATION TEST - DOWNLOAD_REPO
 # ==============================================================================
 
 def test_download_repo_success_integration(create_test_repo, cleanup_test_repos):
@@ -1088,7 +1088,7 @@ def test_download_repo_success_integration(create_test_repo, cleanup_test_repos)
     # Step 4: Content Validation
     zip_content = BytesIO(response.content)
     with zipfile.ZipFile(zip_content, 'r') as zip_file:
-        # Lista file nel ZIP
+        # List files in ZIP
         zip_files = zip_file.namelist()
 
         # Verify all directories and files are present in the archive
@@ -1115,11 +1115,8 @@ def test_download_repo_repository_not_found(_msg_matches):
     )
 
     assert response.status_code == 400
-    assert _msg_matches(
-        response.json()["detail"],
-        "Repository not found",
-        "Repository non trovata"
-    )
+    # Assuming _msg_matches checks if either string is in the detail
+    assert "Repository not found" in response.json()["detail"] or "Repository non trovata" in response.json()["detail"]
 
 def test_download_repo_missing_parameters():
     """
@@ -1128,16 +1125,16 @@ def test_download_repo_missing_parameters():
     Ensures the API rejects requests missing the 'owner' or 'repo'
     keys with a 400 Bad Request.
     """
-    # Caso 1: missing owner
+    # Case 1: missing owner
     response1 = client.post("/api/download", json={"repo": "test"})
     assert response1.status_code == 400
     assert "obbligatori" in response1.json()["detail"].lower() or "required" in response1.json()["detail"].lower()
 
-    # Caso 2: missing repo
+    # Case 2: missing repo
     response2 = client.post("/api/download", json={"owner": "test"})
     assert response2.status_code == 400
 
-    # Caso 3: empty payload
+    # Case 3: empty payload
     response3 = client.post("/api/download", json={})
     assert response3.status_code == 400
 
@@ -1244,7 +1241,7 @@ def test_download_repo_generic_exception(create_test_repo, cleanup_test_repos):
 
     with patch('app.controllers.analysis.perform_download') as mock_download:
         # Mock that raises generic Exception
-        mock_download.side_effect = RuntimeError("Errore imprevisto durante zip")
+        mock_download.side_effect = RuntimeError("Unexpected error during zip")
 
         response = client.post(
             "/api/download",
@@ -1256,7 +1253,7 @@ def test_download_repo_generic_exception(create_test_repo, cleanup_test_repos):
 
 
 # ==============================================================================
-# TEST FLUSSO COMPLETO: UPLOAD → ANALYZE → REGENERATE → DOWNLOAD
+# COMPLETE WORKFLOW TEST: UPLOAD → ANALYZE → REGENERATE → DOWNLOAD
 # ==============================================================================
 
 def test_complete_workflow_integration(create_test_repo, cleanup_test_repos):
@@ -1328,7 +1325,7 @@ def test_complete_workflow_integration(create_test_repo, cleanup_test_repos):
 
 
 # ==================================================================================
-#                    INTEGRATION TESTS FOR /api/clone
+#                 INTEGRATION TESTS FOR /api/clone
 # ==================================================================================
 
 
@@ -1993,5 +1990,3 @@ def test_complete_workflow_with_detected_licenses(sample_zip_file, cleanup_test_
         call_kwargs = mock_suggest.call_args[1]
         assert "detected_licenses" in call_kwargs
         assert len(call_kwargs["detected_licenses"]) > 0
-
-
