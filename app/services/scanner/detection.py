@@ -14,10 +14,9 @@ import os
 import json
 import logging
 import subprocess
-from typing import Dict, Tuple, Union, List, Any
+from typing import Dict, List, Any, Tuple
 
 from app.utility.config import SCANCODE_BIN, OUTPUT_BASE_DIR
-from app.services.scanner.main_spdx_utilities import _pick_best_spdx
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +129,7 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
         logger.exception("Error during ScanCode output processing")
         raise RuntimeError(f"Failed to process ScanCode output: {e}") from e
 
-def detect_main_license_scancode(data: Dict[str, Any]) -> str:
+def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
     """
     Rileva la licenza principale usando euristiche basate su profondità,
     tipologia di file e score di ScanCode.
@@ -170,8 +169,6 @@ def detect_main_license_scancode(data: Dict[str, Any]) -> str:
         for lic in licenses:
 
             spdx = lic.get("license_expression_spdx")
-            print(spdx)
-
             if not spdx:
                 continue
 
@@ -219,7 +216,7 @@ def detect_main_license_scancode(data: Dict[str, Any]) -> str:
     #     print(f"Candidate: {c['spdx']} | Weight: {c['weight']} | Path: {c['path']}")
 
     # Ritorna il vincitore
-    return candidates[0]["spdx"]
+    return candidates[0]["spdx"], candidates[0]["path"]
 
 def extract_file_licenses(scancode_data: Dict[str, Any]) -> Dict[str, str]:
     """
