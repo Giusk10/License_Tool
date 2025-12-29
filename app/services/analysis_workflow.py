@@ -8,7 +8,6 @@ It acts as the orchestrator for:
 - Initial license scanning and compatibility checking.
 - The AI-based code regeneration loop to fix license conflicts.
 """
-import json
 import os
 import shutil
 import tempfile

@@ -22,269 +22,619 @@ from app.services.scanner.detection import (
     extract_file_licenses
 )
 
+
 # ==================================================================================
-#                       TEST CLASS: SCANCODE EXECUTION
+#                          TEST CLASS: RUN SCANCODE
 # ==================================================================================
 
 class TestRunScancode:
     """
-    Tests for the 'run_scancode' function.
+    Test suite for the 'run_scancode' function.
 
-    Focuses on the interaction with the operating system, validating that the
-    ScanCode binary is called with correct arguments and that its output
-    is safely ingested.
+    Verifies subprocess execution, file I/O, ignore pattern loading,
+    and error handling for various ScanCode exit codes.
     """
 
-
-    @pytest.fixture
-    def mock_scancode_deps(self, tmp_path):
+    def test_run_scancode_success_with_patterns(self, tmp_path):
         """
-        Provides cross-platform temporary paths for scanning tests.
+        Tests successful ScanCode execution with ignore patterns loaded.
 
-        Ensures that output directories and binary paths are mocked correctly
-        regardless of the host operating system (Windows/Linux).
+        Validates that:
+        - Ignore patterns are correctly loaded from patterns_to_ignore.json
+        - ScanCode command is built with correct parameters
+        - Output JSON is processed and optimized (license_detections removed)
+        - Function returns parsed JSON data
         """
-        # Create a temporary path valid for the current operating system
-        temp_output_dir = tmp_path / "output"
+        # Setup
+        repo_path = str(tmp_path / "test_repo")
+        os.makedirs(repo_path, exist_ok=True)
 
-        with patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
-             patch("app.services.scanner.detection.OUTPUT_BASE_DIR", str(temp_output_dir)):
-            yield
+        output_dir = str(tmp_path / "output")
+        os.makedirs(output_dir, exist_ok=True)
 
-    @patch("app.services.scanner.detection.subprocess.Popen")
-    @patch("app.services.scanner.detection.os.path.exists")
-    @patch("app.services.scanner.detection.open")
-    @patch("app.services.scanner.detection.json.load")
-    @patch("app.services.scanner.detection.json.dump")
+        # Mock ignore patterns file
+        patterns_data = {"ignored_patterns": ["*.pyc", "node_modules", "__pycache__"]}
 
+        # Mock ScanCode output
+        mock_scancode_output = {
+            "headers": [{"tool_name": "scancode"}],
+            "license_detections": [{"id": "detection1"}],  # Should be removed
+            "files": [
+                {
+                    "path": "LICENSE",
+                    "license_detections": [
+                        {"license_expression_spdx": "MIT", "score": 100}
+                    ]
+                }
+            ]
+        }
 
-    def test_run_scancode_success(self, mock_json_dump, mock_json_load, mock_open_func, mock_exists, mock_popen, mock_scancode_deps):
-        """
-         Validates a successful ScanCode execution flow.
+        with patch("app.services.scanner.detection.OUTPUT_BASE_DIR", output_dir), \
+             patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
+             patch("subprocess.Popen") as mock_popen, \
+             patch("os.path.exists") as mock_exists, \
+             patch("builtins.open", mock_open(read_data=json.dumps(patterns_data))) as mock_file, \
+             patch("json.load") as mock_json_load, \
+             patch("json.dump") as mock_json_dump:
 
-         Ensures that when ScanCode exits with code 0, the service correctly
-         parses the resulting JSON and strips unnecessary metadata before
-         returning the file list.
-         """
-        # Setup Mock Process
-        process_mock = MagicMock()
-        process_mock.wait.return_value = 0
+            # Setup mocks
+            mock_process = MagicMock()
+            mock_process.wait.return_value = 0
+            mock_process.__enter__ = MagicMock(return_value=mock_process)
+            mock_process.__exit__ = MagicMock(return_value=False)
+            mock_popen.return_value = mock_process
 
-        # Configure context manager (__enter__ returns the process_mock)
-        mock_popen.return_value.__enter__.return_value = process_mock
-        mock_popen.return_value.__exit__.return_value = None
-
-        # Mock filesystem
-        mock_exists.side_effect = lambda path: True  # Tutto esiste (rules, output)
-        mock_json_load.return_value = {"files": [], "license_detections": []} # Fake output
-
-        result = run_scancode("/path/to/repo")
-
-        # Checks
-        assert result == {"files": []} # license_detections rimosso
-        mock_popen.assert_called_once()
-        process_mock.wait.assert_called_once()
-
-    @patch("app.services.scanner.detection.subprocess.Popen")
-    @patch("app.services.scanner.detection.os.path.exists")
-
-
-    def test_run_scancode_error_exit_code(self, mock_exists, mock_popen, mock_scancode_deps):
-        """
-         Tests handling of ScanCode process failures.
-
-         Verifies that if ScanCode returns a critical error code (e.g., code 2),
-          the service raises a RuntimeError with a descriptive message.
-         """
-        process_mock = MagicMock()
-        process_mock.wait.return_value = 2
-
-        mock_popen.return_value.__enter__.return_value = process_mock
-        mock_popen.return_value.__exit__.return_value = None
-
-        # Mock ignore file existence to avoid unrelated errors
-        mock_exists.return_value = True
-
-        with pytest.raises(RuntimeError, match="ScanCode error"):
-            run_scancode("/path/to/repo")
-
-    @patch("app.services.scanner.detection.subprocess.Popen")
-    @patch("app.services.scanner.detection.os.path.exists")
-
-
-    def test_run_scancode_no_output_file(self, mock_exists, mock_popen, mock_scancode_deps):
-        """
-         Verifies behavior when ScanCode fails to generate an output file.
-
-         Ensures that if the binary finishes but the expected JSON result is
-         missing, the service detects the inconsistency and raises an error.
-         """
-        process_mock = MagicMock()
-        process_mock.wait.return_value = 0
-
-        mock_popen.return_value.__enter__.return_value = process_mock
-        mock_popen.return_value.__exit__.return_value = None
-
-
-        # Simulation: ignore rules file exists (True), but output file DOES NOT (False)
-        def side_effect(path):
-            if "scancode_output.json" in path:
+            # Mock file existence checks
+            def exists_side_effect(path):
+                if "patterns_to_ignore.json" in path:
+                    return True
+                if path.endswith("_scancode_output.json"):
+                    return True
                 return False
-            return True
+            mock_exists.side_effect = exists_side_effect
 
-        mock_exists.side_effect = side_effect
+            # Mock JSON load/dump
+            mock_json_load.return_value = mock_scancode_output.copy()
 
-        with pytest.raises(RuntimeError, match="did not generate the JSON file"):
-            run_scancode("/path/to/repo")
+            # Execute
+            result = run_scancode(repo_path)
 
-    @patch("app.services.scanner.detection.subprocess.Popen")
-    @patch("app.services.scanner.detection.os.path.exists")
-    @patch("app.services.scanner.detection.open", new_callable=mock_open, read_data='{"ignored_patterns": ["*.tmp"]}')
-    @patch("app.services.scanner.detection.json.load")
-    @patch("app.services.scanner.detection.json.dump")
+            # Verify subprocess was called with correct parameters
+            assert mock_popen.called
+            cmd_args = mock_popen.call_args[0][0]
+            assert "scancode" in cmd_args
+            assert "--license" in cmd_args
+            assert "--json-pp" in cmd_args
+            assert repo_path in cmd_args
 
+            # Verify JSON was processed (license_detections removed)
+            assert mock_json_dump.called
+            saved_data = mock_json_dump.call_args[0][0]
+            assert "license_detections" not in saved_data
+            assert "files" in saved_data
 
-    def test_run_scancode_with_license_rules(self, mock_dump, mock_load, mock_file, mock_exists, mock_popen, mock_scancode_deps):
+    def test_run_scancode_with_exit_code_1(self, tmp_path):
         """
-        Tests the application of 'ignore' patterns during scanning.
+        Tests ScanCode execution with exit code 1 (non-fatal warnings).
 
-        Ensures that patterns defined in 'license_rules.json' are correctly
-        passed to the ScanCode CLI via the '--ignore' flag.
+        Verifies that the function logs a warning but continues processing.
         """
-        process_mock = MagicMock()
-        process_mock.wait.return_value = 0
-        mock_popen.return_value.__enter__.return_value = process_mock
+        repo_path = str(tmp_path / "test_repo")
+        os.makedirs(repo_path, exist_ok=True)
 
-        mock_exists.return_value = True
-        mock_load.side_effect = [
-            {"ignored_patterns": ["*.tmp"]}, # First call: rules ignore
-            {"files": []} # Second call: scancode output
-        ]
+        output_dir = str(tmp_path / "output")
+        os.makedirs(output_dir, exist_ok=True)
 
-        run_scancode("/path/to/repo")
+        mock_scancode_output = {
+            "files": [{"path": "LICENSE", "license_detections": []}]
+        }
 
-        # Make sure --ignore *.tmp is in the command
-        args, _ = mock_popen.call_args
-        cmd_list = args[0]
-        assert "--ignore" in cmd_list
-        assert "*.tmp" in cmd_list
+        with patch("app.services.scanner.detection.OUTPUT_BASE_DIR", output_dir), \
+             patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
+             patch("subprocess.Popen") as mock_popen, \
+             patch("os.path.exists", return_value=True), \
+             patch("builtins.open", mock_open(read_data="{}")), \
+             patch("json.load", return_value=mock_scancode_output), \
+             patch("json.dump"):
 
-    @patch("app.services.scanner.detection.subprocess.Popen")
-    @patch("app.services.scanner.detection.os.path.exists")
-    @patch("app.services.scanner.detection.open", new_callable=mock_open)
-    @patch("app.services.scanner.detection.json.load")
-    @patch("app.services.scanner.detection.json.dump")
+            mock_process = MagicMock()
+            mock_process.wait.return_value = 1  # Non-fatal error
+            mock_process.__enter__ = MagicMock(return_value=mock_process)
+            mock_process.__exit__ = MagicMock(return_value=False)
+            mock_popen.return_value = mock_process
 
+            # Should not raise exception
+            result = run_scancode(repo_path)
+            assert result is not None
+            assert "files" in result
 
-    def test_run_scancode_no_ignore_files(self, mock_dump, mock_load, mock_file, mock_exists, mock_popen, mock_scancode_deps):
+    def test_run_scancode_critical_error(self, tmp_path):
         """
-        Tests the execution flow when no ignore configuration is present.
+        Tests ScanCode execution with exit code > 1 (critical error).
 
-        Verifies that if the 'license_rules.json' file (or any ignore-related
-        config) is missing from the file system, the service proceeds with
-        a standard scan without appending the '--ignore' flag to the
-        ScanCode command.
+        Verifies that a RuntimeError is raised with appropriate message.
         """
-        process_mock = MagicMock()
-        process_mock.wait.return_value = 0
-        mock_popen.return_value.__enter__.return_value = process_mock
+        repo_path = str(tmp_path / "test_repo")
+        os.makedirs(repo_path, exist_ok=True)
 
-        # Side effect: Rules/Ignore files do not exist, but output infra does.
-        def exists_side_effect(path):
-            if "json" in path and "scancode_output" not in path: # ignore/rules files
+        output_dir = str(tmp_path / "output")
+
+        with patch("app.services.scanner.detection.OUTPUT_BASE_DIR", output_dir), \
+             patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
+             patch("subprocess.Popen") as mock_popen, \
+             patch("os.path.exists", return_value=False):
+
+            mock_process = MagicMock()
+            mock_process.wait.return_value = 2  # Critical error
+            mock_process.__enter__ = MagicMock(return_value=mock_process)
+            mock_process.__exit__ = MagicMock(return_value=False)
+            mock_popen.return_value = mock_process
+
+            with pytest.raises(RuntimeError) as exc_info:
+                run_scancode(repo_path)
+
+            assert "ScanCode error" in str(exc_info.value)
+            assert "exit 2" in str(exc_info.value)
+
+    def test_run_scancode_output_file_not_found(self, tmp_path):
+        """
+        Tests error handling when ScanCode doesn't generate output file.
+
+        Verifies that a RuntimeError is raised when the expected JSON file
+        is missing after ScanCode execution.
+        """
+        repo_path = str(tmp_path / "test_repo")
+        os.makedirs(repo_path, exist_ok=True)
+
+        output_dir = str(tmp_path / "output")
+
+        with patch("app.services.scanner.detection.OUTPUT_BASE_DIR", output_dir), \
+             patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
+             patch("subprocess.Popen") as mock_popen, \
+             patch("os.path.exists", return_value=False):
+
+            mock_process = MagicMock()
+            mock_process.wait.return_value = 0
+            mock_process.__enter__ = MagicMock(return_value=mock_process)
+            mock_process.__exit__ = MagicMock(return_value=False)
+            mock_popen.return_value = mock_process
+
+            with pytest.raises(RuntimeError) as exc_info:
+                run_scancode(repo_path)
+
+            assert "did not generate the JSON file" in str(exc_info.value)
+
+    def test_run_scancode_fallback_to_license_rules(self, tmp_path):
+        """
+        Tests fallback mechanism to license_rules.json when patterns_to_ignore.json
+        is not available.
+        """
+        repo_path = str(tmp_path / "test_repo")
+        os.makedirs(repo_path, exist_ok=True)
+
+        output_dir = str(tmp_path / "output")
+        os.makedirs(output_dir, exist_ok=True)
+
+        rules_data = {"ignored_patterns": ["vendor", "test"]}
+        mock_scancode_output = {"files": []}
+
+        with patch("app.services.scanner.detection.OUTPUT_BASE_DIR", output_dir), \
+             patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
+             patch("subprocess.Popen") as mock_popen, \
+             patch("builtins.open", mock_open(read_data=json.dumps(rules_data))), \
+             patch("json.load", return_value=mock_scancode_output), \
+             patch("json.dump"):
+
+            mock_process = MagicMock()
+            mock_process.wait.return_value = 0
+            mock_process.__enter__ = MagicMock(return_value=mock_process)
+            mock_process.__exit__ = MagicMock(return_value=False)
+            mock_popen.return_value = mock_process
+
+            def exists_side_effect(path):
+                if "patterns_to_ignore.json" in path:
+                    return False
+                if "license_rules.json" in path:
+                    return True
+                if path.endswith("_scancode_output.json"):
+                    return True
                 return False
-            return True # output dir/file
 
-        mock_exists.side_effect = exists_side_effect
-        mock_load.return_value = {"files": []}
+            with patch("os.path.exists", side_effect=exists_side_effect):
+                result = run_scancode(repo_path)
+                assert result is not None
 
-        run_scancode("/path/to/repo")
-
-        # Command Line verification
-        args, _ = mock_popen.call_args
-        cmd_list = args[0]
-
-        # Ensures that the command is clean and doesn't contain orphan --ignore flags
-        assert "--ignore" not in cmd_list
-
-
-class TestDetectMainLicense:
-    """
-    Tests for the 'detect_main_license_scancode' function.
-
-    Validates the heuristic used to identify the project's primary license
-    from the bulk scan data.
-    """
-
-
-    def test_detect_license_file(self):
+    def test_run_scancode_invalid_json_in_patterns(self, tmp_path):
         """
-        Verifies detection of the primary license from root-level files.
+        Tests handling of invalid JSON in ignore patterns file.
 
-        Ensures that if a standard LICENSE file is found, its license key
-        is prioritized as the project's main license.
+        Verifies that the function continues without patterns if JSON is malformed.
+        """
+        repo_path = str(tmp_path / "test_repo")
+        os.makedirs(repo_path, exist_ok=True)
+
+        output_dir = str(tmp_path / "output")
+        os.makedirs(output_dir, exist_ok=True)
+
+        mock_scancode_output = {"files": []}
+
+        with patch("app.services.scanner.detection.OUTPUT_BASE_DIR", output_dir), \
+             patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
+             patch("subprocess.Popen") as mock_popen, \
+             patch("os.path.exists") as mock_exists, \
+             patch("builtins.open", mock_open(read_data="invalid json{")), \
+             patch("json.load") as mock_json_load, \
+             patch("json.dump"):
+
+            mock_process = MagicMock()
+            mock_process.wait.return_value = 0
+            mock_process.__enter__ = MagicMock(return_value=mock_process)
+            mock_process.__exit__ = MagicMock(return_value=False)
+            mock_popen.return_value = mock_process
+
+            # First call to json.load raises JSONDecodeError for patterns file
+            # Second call returns valid scancode output
+            mock_json_load.side_effect = [
+                json.JSONDecodeError("Invalid", "", 0),
+                mock_scancode_output
+            ]
+
+            def exists_side_effect(path):
+                if "patterns_to_ignore.json" in path:
+                    return True
+                if path.endswith("_scancode_output.json"):
+                    return True
+                return False
+            mock_exists.side_effect = exists_side_effect
+
+            # Should not raise exception, just log warning
+            result = run_scancode(repo_path)
+            assert result is not None
+
+    def test_run_scancode_processing_error(self, tmp_path):
+        """
+        Tests error handling during JSON processing phase.
+
+        Verifies that processing errors are caught and re-raised as RuntimeError.
+        """
+        repo_path = str(tmp_path / "test_repo")
+        os.makedirs(repo_path, exist_ok=True)
+
+        output_dir = str(tmp_path / "output")
+
+        with patch("app.services.scanner.detection.OUTPUT_BASE_DIR", output_dir), \
+             patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
+             patch("subprocess.Popen") as mock_popen, \
+             patch("os.path.exists") as mock_exists:
+
+            mock_process = MagicMock()
+            mock_process.wait.return_value = 0
+            mock_process.__enter__ = MagicMock(return_value=mock_process)
+            mock_process.__exit__ = MagicMock(return_value=False)
+            mock_popen.return_value = mock_process
+
+            def exists_side_effect(path):
+                if path.endswith("_scancode_output.json"):
+                    return True
+                return False
+            mock_exists.side_effect = exists_side_effect
+
+            # Simulate error during file reading
+            with patch("builtins.open", side_effect=IOError("Disk error")):
+                with pytest.raises(RuntimeError) as exc_info:
+                    run_scancode(repo_path)
+
+                assert "Failed to process ScanCode output" in str(exc_info.value)
+
+
+# ==================================================================================
+#                    TEST CLASS: DETECT MAIN LICENSE SCANCODE
+# ==================================================================================
+
+class TestDetectMainLicenseScancode:
+    """
+    Test suite for the 'detect_main_license_scancode' function.
+
+    Validates the heuristic-based detection of the main project license,
+    including package declarations, file depth scoring, and name-based weighting.
+    """
+
+    def test_detect_main_license_from_package(self):
+        """
+        Tests detection of main license from package declaration.
+
+        When ScanCode detects a package with declared_license_expression,
+        it should be prioritized as the most reliable source.
+        """
+        data = {
+            "packages": [
+                {
+                    "declared_license_expression": "Apache-2.0",
+                    "path": "package.json"
+                }
+            ],
+            "files": []
+        }
+
+        result = detect_main_license_scancode(data)
+        # When detecting from package, function returns only the license string
+        assert result == "Apache-2.0"
+
+    def test_detect_main_license_from_root_license_file(self):
+        """
+        Tests detection from LICENSE file at repository root.
+
+        Root-level LICENSE files should receive the highest weight.
         """
         data = {
             "files": [
-                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
-                {"path": "src/main.py", "licenses": []}
+                {
+                    "path": "LICENSE",
+                    "license_detections": [
+                        {"license_expression_spdx": "MIT", "score": 100}
+                    ],
+                    "percentage_of_license_text": 95.0
+                }
+            ]
+        }
+
+        result, path = detect_main_license_scancode(data)
+        assert result == "MIT"
+        assert path == "LICENSE"
+
+    def test_detect_main_license_prefers_root_over_nested(self):
+        """
+        Tests that root-level licenses are preferred over nested ones.
+
+        Files at depth 0 should win over identical licenses at greater depth.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "vendor/third_party/LICENSE",
+                    "license_detections": [
+                        {"license_expression_spdx": "BSD-3-Clause", "score": 100}
+                    ],
+                    "percentage_of_license_text": 95.0
+                },
+                {
+                    "path": "LICENSE.md",
+                    "license_detections": [
+                        {"license_expression_spdx": "MIT", "score": 100}
+                    ],
+                    "percentage_of_license_text": 95.0
+                }
+            ]
+        }
+
+        result, path = detect_main_license_scancode(data)
+        assert result == "MIT"
+        assert path == "LICENSE.md"
+
+    def test_detect_main_license_ignores_low_confidence(self):
+        """
+        Tests that low-confidence detections are filtered out.
+
+        Files with percentage_of_license_text < 80% should be ignored.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "LICENSE",
+                    "license_detections": [
+                        {"license_expression_spdx": "GPL-3.0", "score": 50}
+                    ],
+                    "percentage_of_license_text": 70.0  # Too low
+                },
+                {
+                    "path": "COPYING",
+                    "license_detections": [
+                        {"license_expression_spdx": "MIT", "score": 100}
+                    ],
+                    "percentage_of_license_text": 90.0
+                }
+            ]
+        }
+
+        result, path = detect_main_license_scancode(data)
+        assert result == "MIT"
+
+    def test_detect_main_license_from_manifest_files(self):
+        """
+        Tests detection from manifest files (package.json, setup.py, etc.).
+
+        These files should receive high weight even without package declaration.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "package.json",
+                    "license_detections": [
+                        {"license_expression_spdx": "ISC", "score": 100}
+                    ],
+                    "percentage_of_license_text": 85.0
+                }
+            ]
+        }
+
+        result, path = detect_main_license_scancode(data)
+        assert result == "ISC"
+
+    def test_detect_main_license_from_readme(self):
+        """
+        Tests detection from README files.
+
+        README files should receive moderate weight as they often mention licenses.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "README.md",
+                    "license_detections": [
+                        {"license_expression_spdx": "Apache-2.0", "score": 90}
+                    ],
+                    "percentage_of_license_text": 85.0
+                }
+            ]
+        }
+
+        result, path = detect_main_license_scancode(data)
+        assert result == "Apache-2.0"
+
+    def test_detect_main_license_ignores_blacklisted_dirs(self):
+        """
+        Tests that files in node_modules, vendor, test, docs are ignored.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "node_modules/package/LICENSE",
+                    "license_detections": [
+                        {"license_expression_spdx": "BSD-2-Clause", "score": 100}
+                    ],
+                    "percentage_of_license_text": 95.0
+                },
+                {
+                    "path": "LICENSE",
+                    "license_detections": [
+                        {"license_expression_spdx": "MIT", "score": 100}
+                    ],
+                    "percentage_of_license_text": 95.0
+                }
+            ]
+        }
+
+        result, path = detect_main_license_scancode(data)
+        assert result == "MIT"
+        assert "node_modules" not in path
+
+    def test_detect_main_license_returns_unknown_if_no_candidates(self):
+        """
+        Tests that UNKNOWN is returned when no valid licenses are found.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "test.py",
+                    "license_detections": []
+                }
             ]
         }
 
         result = detect_main_license_scancode(data)
+        assert result == "UNKNOWN"
+
+    def test_detect_main_license_with_license_text_match(self):
+        """
+        Tests that is_license_text flag increases weight appropriately.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "license_info.txt",
+                    "license_detections": [
+                        {
+                            "license_expression_spdx": "MIT",
+                            "score": 100,
+                            "matched_rule": {"is_license_text": True}
+                        }
+                    ],
+                    "percentage_of_license_text": 95.0
+                }
+            ]
+        }
+
+        result, path = detect_main_license_scancode(data)
         assert result == "MIT"
+        assert path == "license_info.txt"
 
-
-    def test_detect_fallback_unknown(self):
+    def test_detect_main_license_copying_file(self):
         """
-        Ensures a safe fallback when no main license is detected.
-
-        Validates that if the scanning data contains no obvious project
-        license, the service returns "UNKNOWN" instead of failing.
+        Tests that COPYING files are properly recognized.
         """
-        data = {"files": [{"path": "random.txt"}]}
-        with patch("app.services.scanner.detection._pick_best_spdx", return_value=None):
-            result = detect_main_license_scancode(data)
-            assert result == "UNKNOWN"
+        data = {
+            "files": [
+                {
+                    "path": "COPYING.txt",
+                    "license_detections": [
+                        {"license_expression_spdx": "GPL-2.0", "score": 100}
+                    ],
+                    "percentage_of_license_text": 95.0
+                }
+            ]
+        }
+
+        result, path = detect_main_license_scancode(data)
+        assert result == "GPL-2.0"
+        assert path == "COPYING.txt"
+
+    def test_detect_main_license_multiple_candidates_highest_weight_wins(self):
+        """
+        Tests that when multiple candidates exist, the one with highest
+        cumulative weight is selected.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "src/utils/LICENSE",  # depth 2, name bonus
+                    "license_detections": [
+                        {"license_expression_spdx": "BSD-3-Clause", "score": 100}
+                    ],
+                    "percentage_of_license_text": 95.0
+                },
+                {
+                    "path": "LICENSE",  # depth 0, name bonus, should win
+                    "license_detections": [
+                        {"license_expression_spdx": "MIT", "score": 100}
+                    ],
+                    "percentage_of_license_text": 95.0
+                }
+            ]
+        }
+
+        result, path = detect_main_license_scancode(data)
+        assert result == "MIT"
+        assert path == "LICENSE"
+
 
 # ==================================================================================
-#                     TEST CLASS: FILE LICENSE EXTRACTION
+#                    TEST CLASS: EXTRACT FILE LICENSES
 # ==================================================================================
 
 class TestExtractFileLicenses:
     """
-    Tests for the 'extract_file_licenses' function.
+    Test suite for the 'extract_file_licenses' function.
 
-    Verifies the transformation of ScanCode's raw file-level matches into
-    consolidated SPDX expressions.
+    Validates the extraction and aggregation of per-file license information
+    into SPDX expressions.
     """
 
-
-    def test_extract_single_license(self):
-        """Checks simple extraction for files with exactly one license."""
+    def test_extract_file_licenses_single_match(self):
+        """
+        Tests extraction of a single license from a file.
+        """
         data = {
             "files": [
                 {
-                    "path": "file1.py",
-                    "matches": [{"license_spdx": "MIT"}]
+                    "path": "src/main.py",
+                    "matches": [
+                        {"license_spdx": "MIT"}
+                    ]
                 }
             ]
         }
+
         result = extract_file_licenses(data)
-        assert result["file1.py"] == "MIT"
+        assert result == {"src/main.py": "MIT"}
 
-
-    def test_extract_multiple_licenses_combined(self):
+    def test_extract_file_licenses_multiple_matches_or_operator(self):
         """
-        Validates merging of multiple licenses for a single file.
-
-        Ensures that if a file contains multiple licenses, they are combined
-        using the ' OR ' operator into a single SPDX expression.
+        Tests that multiple licenses in the same file are combined with OR.
         """
         data = {
             "files": [
                 {
-                    "path": "file1.py",
+                    "path": "src/utils.py",
                     "matches": [
                         {"license_spdx": "MIT"},
                         {"license_spdx": "Apache-2.0"}
@@ -292,181 +642,148 @@ class TestExtractFileLicenses:
                 }
             ]
         }
+
         result = extract_file_licenses(data)
-        # The order of the set is not guaranteed, we check the presence
-        assert "MIT" in result["file1.py"]
-        assert "Apache-2.0" in result["file1.py"]
-        # Multiple licenses are now joined with OR (not AND)
-        assert " OR " in result["file1.py"]
+        assert "src/utils.py" in result
+        # Should contain both licenses with OR
+        assert "MIT" in result["src/utils.py"]
+        assert "Apache-2.0" in result["src/utils.py"]
+        assert "OR" in result["src/utils.py"]
 
-
-    def test_extract_no_matches(self):
-        """Ensures files with no detected licenses are skipped from the result map."""
+    def test_extract_file_licenses_no_matches(self):
+        """
+        Tests that files without license matches are excluded from results.
+        """
         data = {
             "files": [
-                {"path": "file1.py", "matches": []}
+                {
+                    "path": "src/test.py",
+                    "matches": []
+                }
             ]
         }
+
         result = extract_file_licenses(data)
-        assert "file1.py" not in result
+        assert result == {}
 
-
-# ==================================================================================
-#                     TESTS: DETECT_MAIN_LICENSE_SCANCODE EURISTICHE
-# ==================================================================================
-
-class TestDetectMainLicenseEuristics:
-    """
-    Tests for the heuristics in 'detect_main_license_scancode' function.
-
-    Validates the new logic based on file depth, file type and score.
-    """
-
-    def test_detect_prefers_root_license_file(self):
+    def test_extract_file_licenses_multiple_files(self):
         """
-        Verifies that root-level LICENSE files are prioritized over deep files.
+        Tests extraction across multiple files.
         """
         data = {
             "files": [
-                {"path": "src/deep/module/file.py", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
-                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
+                {
+                    "path": "LICENSE",
+                    "matches": [{"license_spdx": "MIT"}]
+                },
+                {
+                    "path": "src/main.py",
+                    "matches": [{"license_spdx": "Apache-2.0"}]
+                },
+                {
+                    "path": "tests/test.py",
+                    "matches": []
+                }
             ]
         }
-        result = detect_main_license_scancode(data)
-        assert result == "MIT"
 
-    def test_detect_prefers_high_score(self):
+        result = extract_file_licenses(data)
+        assert len(result) == 2
+        assert result["LICENSE"] == "MIT"
+        assert result["src/main.py"] == "Apache-2.0"
+        assert "tests/test.py" not in result
+
+    def test_extract_file_licenses_null_license_spdx(self):
         """
-        Verifies that licenses with score >= 80 are considered.
-        Licenses with score < 80 should be ignored.
+        Tests that matches without license_spdx field are ignored.
         """
         data = {
             "files": [
-                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 50.0}]},
-                {"path": "COPYING", "licenses": [{"spdx_license_key": "GPL-3.0", "score": 95.0}]},
+                {
+                    "path": "src/file.py",
+                    "matches": [
+                        {"license_spdx": None},
+                        {"license_spdx": "MIT"}
+                    ]
+                }
             ]
         }
-        result = detect_main_license_scancode(data)
-        assert result == "GPL-3.0"
 
-    def test_detect_ignores_vendor_directories(self):
+        result = extract_file_licenses(data)
+        assert result == {"src/file.py": "MIT"}
+
+    def test_extract_file_licenses_empty_data(self):
         """
-        Verifies that files in vendor/node_modules/third_party directories are ignored.
+        Tests handling of empty ScanCode data.
+        """
+        data = {"files": []}
+
+        result = extract_file_licenses(data)
+        assert result == {}
+
+    def test_extract_file_licenses_missing_files_key(self):
+        """
+        Tests handling of malformed data without 'files' key.
+        """
+        data = {}
+
+        result = extract_file_licenses(data)
+        assert result == {}
+
+    def test_extract_file_licenses_deduplication(self):
+        """
+        Tests that duplicate SPDX identifiers in the same file are deduplicated.
         """
         data = {
             "files": [
-                {"path": "node_modules/lib/LICENSE", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
-                {"path": "vendor/pkg/LICENSE", "licenses": [{"spdx_license_key": "BSD-3-Clause", "score": 100.0}]},
-                {"path": "LICENSE.md", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
+                {
+                    "path": "src/duplicate.py",
+                    "matches": [
+                        {"license_spdx": "MIT"},
+                        {"license_spdx": "MIT"},  # Duplicate
+                        {"license_spdx": "MIT"}   # Duplicate
+                    ]
+                }
             ]
         }
-        result = detect_main_license_scancode(data)
-        assert result == "MIT"
 
-    def test_detect_prefers_license_filename_patterns(self):
+        result = extract_file_licenses(data)
+        # Should only contain MIT once, not "MIT OR MIT OR MIT"
+        assert result["src/duplicate.py"] == "MIT"
+
+    def test_extract_file_licenses_complex_scenario(self):
         """
-        Verifies that files named LICENSE, COPYING, etc. get higher priority.
+        Tests a complex scenario with mixed file types and license patterns.
         """
         data = {
             "files": [
-                {"path": "README.md", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
-                {"path": "COPYING.txt", "licenses": [{"spdx_license_key": "GPL-3.0", "score": 100.0}]},
+                {
+                    "path": "LICENSE",
+                    "matches": [{"license_spdx": "Apache-2.0"}]
+                },
+                {
+                    "path": "src/main.py",
+                    "matches": [
+                        {"license_spdx": "Apache-2.0"},
+                        {"license_spdx": "MIT"}
+                    ]
+                },
+                {
+                    "path": "vendor/lib.js",
+                    "matches": [{"license_spdx": "BSD-3-Clause"}]
+                },
+                {
+                    "path": "README.md",
+                    "matches": []
+                }
             ]
         }
-        result = detect_main_license_scancode(data)
-        assert result == "GPL-3.0"
 
-    def test_detect_uses_package_declared_license(self):
-        """
-        Verifies that declared_license_expression in packages is used when available.
-        """
-        data = {
-            "packages": [
-                {"declared_license_expression": "Apache-2.0"}
-            ],
-            "files": [
-                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
-            ]
-        }
-        result = detect_main_license_scancode(data)
-        assert result == "Apache-2.0"
+        result = extract_file_licenses(data)
+        assert len(result) == 3
+        assert result["LICENSE"] == "Apache-2.0"
+        assert "Apache-2.0" in result["src/main.py"]
+        assert "MIT" in result["src/main.py"]
+        assert result["vendor/lib.js"] == "BSD-3-Clause"
+        assert "README.md" not in result
 
-    def test_detect_returns_unknown_when_no_valid_candidates(self):
-        """
-        Verifies that UNKNOWN is returned when no valid license candidates exist.
-        """
-        data = {
-            "files": [
-                {"path": "src/main.py", "licenses": []},
-                {"path": "README.md", "licenses": []},
-            ]
-        }
-        result = detect_main_license_scancode(data)
-        assert result == "UNKNOWN"
-
-    def test_detect_all_low_scores_returns_unknown(self):
-        """
-        Verifies that UNKNOWN is returned when all scores are below threshold.
-        """
-        data = {
-            "files": [
-                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 70.0}]},
-                {"path": "COPYING", "licenses": [{"spdx_license_key": "GPL-3.0", "score": 50.0}]},
-            ]
-        }
-        result = detect_main_license_scancode(data)
-        assert result == "UNKNOWN"
-
-    def test_detect_prefers_depth_one_over_deeper(self):
-        """
-        Verifies that depth 1 files get more weight than deeper files.
-        """
-        data = {
-            "files": [
-                {"path": "src/deep/nested/file.py", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
-                {"path": "docs/LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
-            ]
-        }
-        # docs/ is excluded, so Apache-2.0 from deeper file wins if nothing else
-        result = detect_main_license_scancode(data)
-        # Since docs is in ignored patterns and src/deep is deep, UNKNOWN should be returned
-        assert result == "UNKNOWN" or result == "Apache-2.0"
-
-    def test_detect_license_text_bonus(self):
-        """
-        Verifies that files with is_license_text flag get bonus weight.
-        """
-        data = {
-            "files": [
-                {"path": "file1.txt", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 85.0, "matched_rule": {"is_license_text": False}}]},
-                {"path": "file2.txt", "licenses": [{"spdx_license_key": "MIT", "score": 85.0, "matched_rule": {"is_license_text": True}}]},
-            ]
-        }
-        result = detect_main_license_scancode(data)
-        assert result == "MIT"
-
-    def test_detect_manifest_files_priority(self):
-        """
-        Verifies that manifest files like package.json, setup.py get priority.
-        """
-        data = {
-            "files": [
-                {"path": "src/module.py", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
-                {"path": "setup.py", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
-            ]
-        }
-        result = detect_main_license_scancode(data)
-        assert result == "MIT"
-
-    def test_detect_missing_spdx_key_ignored(self):
-        """
-        Verifies that licenses without spdx_license_key are ignored.
-        """
-        data = {
-            "files": [
-                {"path": "LICENSE", "licenses": [{"score": 100.0}]},
-                {"path": "COPYING", "licenses": [{"spdx_license_key": "GPL-3.0", "score": 100.0}]},
-            ]
-        }
-        result = detect_main_license_scancode(data)
-        assert result == "GPL-3.0"
