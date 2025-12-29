@@ -230,9 +230,9 @@ ollama list
 
 Questa sezione fornisce chiarezza sulle licenze che governano questo strumento e i suoi componenti.
 
-### 1. Licenza del Tool (MIT)
-Il codice sorgente di questo progetto è rilasciato sotto la **Licenza MIT**.
-È possibile utilizzarlo, modificarlo e distribuirlo liberamente. Vedi il file [LICENSE](LICENSE) per il testo completo.
+### 1. Licenza del Tool (AGPL-3.0)
+Il codice sorgente di questo progetto è rilasciato sotto la **Licenza AGPL v3.0**.
+Vedi il file [LICENSE](LICENSE) per il testo completo.
 
 ### 2. Dipendenza ScanCode (Apache-2.0 / CC-BY-4.0)
 Questo strumento integra il **ScanCode Toolkit** per l'analisi delle licenze. L'uso di ScanCode è soggetto alle seguenti condizioni:

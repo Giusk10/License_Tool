@@ -7,7 +7,6 @@ the parsing and validation of generated code, and the logic for enriching
 analysis results with AI-driven suggestions.
 """
 
-import pytest
 from unittest.mock import patch, mock_open
 from app.services.llm.code_generator import regenerate_code, validate_generated_code
 from app.services.llm.suggestion import ask_llm_for_suggestions, review_document, enrich_with_llm_suggestions
@@ -199,6 +198,42 @@ def test_enrich_with_llm_suggestions_with_regenerated():
         assert result[0]["regenerated_code_path"] == "/path/to/new.py"
 
 
+def test_enrich_with_llm_suggestions_conditional_outcome():
+    """
+    Verify that when compatibility is None and the reason contains
+    'Outcome: conditional', the specific suggestion message is returned
+    and no licenses are proposed.
+    """
+    issues = [{
+        "file_path": "file.py",
+        "detected_license": "GPL",
+        "compatible": None,
+        "reason": "Outcome: conditional - requires additional terms"
+    }]
+    result = enrich_with_llm_suggestions("MIT", issues)
+    assert len(result) == 1
+    assert result[0]["suggestion"] == "License unavailable in Matrix for check compatibility."
+    assert result[0]["licenses"] == ""
+
+
+def test_enrich_with_llm_suggestions_unknown_outcome():
+    """
+    Verify that when compatibility is None and the reason contains
+    'Outcome: unknown', the specific suggestion message is returned
+    and no licenses are proposed.
+    """
+    issues = [{
+        "file_path": "file.py",
+        "detected_license": "GPL",
+        "compatible": None,
+        "reason": "Outcome: unknown - license not found"
+    }]
+    result = enrich_with_llm_suggestions("MIT", issues)
+    assert len(result) == 1
+    assert result[0]["suggestion"] == "License unavailable in Matrix for check compatibility."
+    assert result[0]["licenses"] == ""
+
+
 # ==============================================================================
 # TESTS FOR CODE VALIDATION
 # ==============================================================================
@@ -257,3 +292,4 @@ def test_validate_generated_code_other_language_short():
     """
     code = "hi"
     assert validate_generated_code(code, "javascript") is False
+

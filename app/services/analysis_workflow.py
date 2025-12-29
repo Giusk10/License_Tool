@@ -178,8 +178,6 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     llm_clean = filter_licenses(scan_raw, main_license, path_license)
     file_licenses = extract_file_licenses(llm_clean)
 
-    print(json.dumps(file_licenses, indent=2))
-
     remove_or_clauses = choose_most_permissive_license_in_file(file_licenses)
 
     # 5) Compatibility Check

@@ -175,9 +175,15 @@ def enrich_with_llm_suggestions(
             )
 
         elif issue.get("compatible") is None:
-            suggestion_text = (
-                "The repository main license could not be determined, please click on the toggle 'Get Suggestion' to choose a main license."
-            )
+            # Handle "conditional" or unknown statuses encoded in the reason text
+            reason_text = issue.get("reason", "")
+            if "Outcome: conditional" in reason_text or "Outcome: unknown" in reason_text:
+                # User requested this specific suggestion for conditional/unknown outcomes
+                suggestion_text = "License unavailable in Matrix for check compatibility."
+            else:
+                suggestion_text = (
+                    "The repository main license could not be determined, please click on the toggle 'Get Suggestion' to choose a main license."
+                )
 
         # Case 2: Incompatible File
         else:
