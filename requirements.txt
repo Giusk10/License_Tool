@@ -3,12 +3,11 @@ uvicorn[standard]
 gitpython~=3.1.45
 python-dotenv~=1.2.1
 requests~=2.32.5
-license-expression
 pydantic~=2.12.4
+license-expression
 
 app~=0.0.1
 httpx~=0.28.1
-cryptography~=46.0.3
 dotenv~=0.9.9
 
 pytest~=9.0.1

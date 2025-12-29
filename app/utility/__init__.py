@@ -1,4 +1,3 @@
-#PUO' ESSERE VUOTO
 
 from .config import (
     CALLBACK_URL,

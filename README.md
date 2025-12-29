@@ -117,7 +117,6 @@ Il progetto adotta un approccio ibrido per la gestione delle dipendenze, garante
 È utilizzato per l'installazione immediata dell'ambiente operativo (es. in CI/CD o sviluppo locale veloce). Include librerie essenziali come:
 * **Core**: `fastapi`, `uvicorn`.
 * **Analisi Legale**: `license-expression` (SPDX).
-* **Sicurezza**: `cryptography`, `pymongo`.
 
 ## 🔧 Installazione e Avvio
 

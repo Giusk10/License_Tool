@@ -7,11 +7,9 @@ ZIP file uploads, license analysis execution, and report regeneration.
 """
 
 from typing import Dict
-import httpx
 from fastapi import APIRouter, HTTPException, Body, UploadFile, Form, File
 from fastapi.responses import RedirectResponse, FileResponse
 
-from app.utility.config import CALLBACK_URL
 from app.services.analysis_workflow import (
     perform_cloning,
     perform_initial_scan,
