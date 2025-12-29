@@ -18,6 +18,14 @@ _SYNONYMS: Dict[str, str] = {
     "GPL-2.0+": "GPL-2.0-or-later",
     "LGPL-3.0+": "LGPL-3.0-or-later",
     "LGPL-2.1+": "LGPL-2.1-or-later",
+    "AGPL-3.0+": "AGPL-3.0-or-later",
+    "MPL-2.0+": "MPL-2.0-or-later",
+    "Apache-2.0+": "Apache-2.0-or-later",
+    "MIT+": "MIT-or-later",
+    "BSD-3-Clause+": "BSD-3-Clause-or-later",
+    "BSD-2-Clause+": "BSD-2-Clause-or-later",
+    "CDDL-1.0+": "CDDL-1.0-or-later",
+    "EPL-2.0+": "EPL-2.0-or-later",
 }
 
 

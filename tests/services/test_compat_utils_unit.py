@@ -177,3 +177,89 @@ def test_normalize_parametrized(inp, expected):
     validated across the normalization logic.
     """
     assert cu.normalize_symbol(inp) == expected
+
+
+# ==================================================================================
+#                        TESTS: SYNONYMS DICTIONARY
+# ==================================================================================
+
+@pytest.mark.parametrize("inp,expected", [
+    ("GPL-3.0+", "GPL-3.0-or-later"),
+    ("GPL-2.0+", "GPL-2.0-or-later"),
+    ("LGPL-3.0+", "LGPL-3.0-or-later"),
+    ("LGPL-2.1+", "LGPL-2.1-or-later"),
+    ("AGPL-3.0+", "AGPL-3.0-or-later"),
+    ("MPL-2.0+", "MPL-2.0-or-later"),
+    ("Apache-2.0+", "Apache-2.0-or-later"),
+    ("MIT+", "MIT-or-later"),
+    ("BSD-3-Clause+", "BSD-3-Clause-or-later"),
+    ("BSD-2-Clause+", "BSD-2-Clause-or-later"),
+    ("CDDL-1.0+", "CDDL-1.0-or-later"),
+    ("EPL-2.0+", "EPL-2.0-or-later"),
+])
+def test_normalize_all_synonyms(inp, expected):
+    """
+    Validates that all entries in the _SYNONYMS dictionary are correctly resolved.
+
+    Ensures that common license aliases with '+' suffix are converted to
+    their '-or-later' canonical form.
+    """
+    assert cu.normalize_symbol(inp) == expected
+
+
+def test_normalize_unknown_license_preserved():
+    """
+    Ensures that unknown license strings not in _SYNONYMS are preserved.
+
+    Validates that the normalizer only modifies known patterns and does not
+    alter unrecognized license identifiers (except for trimming).
+    """
+    assert cu.normalize_symbol("CustomLicense-1.0") == "CustomLicense-1.0"
+    assert cu.normalize_symbol("Proprietary") == "Proprietary"
+    assert cu.normalize_symbol("UNKNOWN") == "UNKNOWN"
+
+
+def test_extract_symbols_nested_or_and():
+    """
+    Validates extraction logic for nested OR and AND expressions.
+
+    Ensures that symbols are correctly parsed from deeply nested boolean
+    expressions with mixed operators.
+    """
+    expr = "MIT AND (Apache-2.0 OR GPL-2.0)"
+    syms = cu.extract_symbols(expr)
+    assert "MIT" in syms
+    # Order may vary, check presence
+    assert any(s in ["Apache-2.0", "GPL-2.0"] for s in syms)
+
+
+def test_extract_symbols_single_with_exception():
+    """
+    Validates extraction of license with exception clause.
+
+    Ensures that licenses with WITH exceptions are correctly identified.
+    """
+    expr = "GPL-2.0-only WITH Classpath-exception-2.0"
+    syms = cu.extract_symbols(expr)
+    assert len(syms) >= 1
+
+
+def test_normalize_with_lowercase_variants():
+    """
+    Tests normalization of 'with' keyword in various positions.
+
+    Ensures that all lowercase variants of 'with' are normalized to 'WITH'.
+    """
+    assert cu.normalize_symbol("GPL-2.0 with linking-exception") == "GPL-2.0 WITH linking-exception"
+    assert cu.normalize_symbol("MIT with") == "MIT WITH"
+
+
+def test_extract_symbols_complex_expression():
+    """
+    Validates extraction from a complex real-world SPDX expression.
+    """
+    expr = "(MIT OR Apache-2.0) AND (BSD-2-Clause OR BSD-3-Clause)"
+    syms = cu.extract_symbols(expr)
+    expected = {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause"}
+    assert expected.issubset(set(syms))
+

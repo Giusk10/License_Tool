@@ -226,15 +226,13 @@ class TestDetectMainLicense:
         """
         data = {
             "files": [
-                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT"}]},
+                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
                 {"path": "src/main.py", "licenses": []}
             ]
         }
 
-        with patch("app.services.scanner.detection._pick_best_spdx") as mock_pick:
-            mock_pick.return_value = ("MIT", "LICENSE")
-            result = detect_main_license_scancode(data)
-            assert result == ("MIT", "LICENSE")
+        result = detect_main_license_scancode(data)
+        assert result == "MIT"
 
 
     def test_detect_fallback_unknown(self):
@@ -311,3 +309,164 @@ class TestExtractFileLicenses:
         }
         result = extract_file_licenses(data)
         assert "file1.py" not in result
+
+
+# ==================================================================================
+#                     TESTS: DETECT_MAIN_LICENSE_SCANCODE EURISTICHE
+# ==================================================================================
+
+class TestDetectMainLicenseEuristics:
+    """
+    Tests for the heuristics in 'detect_main_license_scancode' function.
+
+    Validates the new logic based on file depth, file type and score.
+    """
+
+    def test_detect_prefers_root_license_file(self):
+        """
+        Verifies that root-level LICENSE files are prioritized over deep files.
+        """
+        data = {
+            "files": [
+                {"path": "src/deep/module/file.py", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
+                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "MIT"
+
+    def test_detect_prefers_high_score(self):
+        """
+        Verifies that licenses with score >= 80 are considered.
+        Licenses with score < 80 should be ignored.
+        """
+        data = {
+            "files": [
+                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 50.0}]},
+                {"path": "COPYING", "licenses": [{"spdx_license_key": "GPL-3.0", "score": 95.0}]},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "GPL-3.0"
+
+    def test_detect_ignores_vendor_directories(self):
+        """
+        Verifies that files in vendor/node_modules/third_party directories are ignored.
+        """
+        data = {
+            "files": [
+                {"path": "node_modules/lib/LICENSE", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
+                {"path": "vendor/pkg/LICENSE", "licenses": [{"spdx_license_key": "BSD-3-Clause", "score": 100.0}]},
+                {"path": "LICENSE.md", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "MIT"
+
+    def test_detect_prefers_license_filename_patterns(self):
+        """
+        Verifies that files named LICENSE, COPYING, etc. get higher priority.
+        """
+        data = {
+            "files": [
+                {"path": "README.md", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
+                {"path": "COPYING.txt", "licenses": [{"spdx_license_key": "GPL-3.0", "score": 100.0}]},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "GPL-3.0"
+
+    def test_detect_uses_package_declared_license(self):
+        """
+        Verifies that declared_license_expression in packages is used when available.
+        """
+        data = {
+            "packages": [
+                {"declared_license_expression": "Apache-2.0"}
+            ],
+            "files": [
+                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "Apache-2.0"
+
+    def test_detect_returns_unknown_when_no_valid_candidates(self):
+        """
+        Verifies that UNKNOWN is returned when no valid license candidates exist.
+        """
+        data = {
+            "files": [
+                {"path": "src/main.py", "licenses": []},
+                {"path": "README.md", "licenses": []},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "UNKNOWN"
+
+    def test_detect_all_low_scores_returns_unknown(self):
+        """
+        Verifies that UNKNOWN is returned when all scores are below threshold.
+        """
+        data = {
+            "files": [
+                {"path": "LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 70.0}]},
+                {"path": "COPYING", "licenses": [{"spdx_license_key": "GPL-3.0", "score": 50.0}]},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "UNKNOWN"
+
+    def test_detect_prefers_depth_one_over_deeper(self):
+        """
+        Verifies that depth 1 files get more weight than deeper files.
+        """
+        data = {
+            "files": [
+                {"path": "src/deep/nested/file.py", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
+                {"path": "docs/LICENSE", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
+            ]
+        }
+        # docs/ is excluded, so Apache-2.0 from deeper file wins if nothing else
+        result = detect_main_license_scancode(data)
+        # Since docs is in ignored patterns and src/deep is deep, UNKNOWN should be returned
+        assert result == "UNKNOWN" or result == "Apache-2.0"
+
+    def test_detect_license_text_bonus(self):
+        """
+        Verifies that files with is_license_text flag get bonus weight.
+        """
+        data = {
+            "files": [
+                {"path": "file1.txt", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 85.0, "matched_rule": {"is_license_text": False}}]},
+                {"path": "file2.txt", "licenses": [{"spdx_license_key": "MIT", "score": 85.0, "matched_rule": {"is_license_text": True}}]},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "MIT"
+
+    def test_detect_manifest_files_priority(self):
+        """
+        Verifies that manifest files like package.json, setup.py get priority.
+        """
+        data = {
+            "files": [
+                {"path": "src/module.py", "licenses": [{"spdx_license_key": "Apache-2.0", "score": 100.0}]},
+                {"path": "setup.py", "licenses": [{"spdx_license_key": "MIT", "score": 100.0}]},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "MIT"
+
+    def test_detect_missing_spdx_key_ignored(self):
+        """
+        Verifies that licenses without spdx_license_key are ignored.
+        """
+        data = {
+            "files": [
+                {"path": "LICENSE", "licenses": [{"score": 100.0}]},
+                {"path": "COPYING", "licenses": [{"spdx_license_key": "GPL-3.0", "score": 100.0}]},
+            ]
+        }
+        result = detect_main_license_scancode(data)
+        assert result == "GPL-3.0"

@@ -87,12 +87,11 @@ def test_detect_main_license_with_unknown_files():
 
     # --- PHASE 1: Main License Detection Verification ---
     # The logic must ignore sub-file licenses and select the root LICENSE file
-    main_license, license_path = detect_main_license_scancode(mock_scancode_output)
+    main_license = detect_main_license_scancode(mock_scancode_output)
 
-    print(f"\nMain License detected: {main_license} (on {license_path})")
+    print(f"\nMain License detected: {main_license}")
 
     assert main_license == "MIT", "Main license should be MIT"
-    assert license_path == "LICENSE", "Main license file should be LICENSE"
 
     # --- PHASE 2: Granular File Analysis Verification ---
     # The function must map every file to its specific license, including UNKNOWNs
