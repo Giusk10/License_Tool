@@ -93,14 +93,12 @@ def regenerate_code(
         return None
 
 
-def validate_generated_code(code: str, language: str = "python") -> bool:
+def validate_generated_code(code: str) -> bool:
     """
-    Validates the generated code to ensure it's not empty, not too short,
-    and syntactically valid for the given language.
+    Validates the generated code to ensure it's not empty and not too short.
 
     Args:
         code (str): The generated code string.
-        language (str): The programming language (default: "python").
 
     Returns:
         bool: True if the code passes validation, False otherwise.
@@ -112,12 +110,4 @@ def validate_generated_code(code: str, language: str = "python") -> bool:
     if len(stripped) <= 10:  # Avoid very short or empty responses
         return False
 
-    if language.lower() == "python":
-        try:
-            compile(stripped, '<string>', 'exec')
-            return True
-        except SyntaxError:
-            return False
-
-    # For other languages, just check length for now
     return True
