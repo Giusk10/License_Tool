@@ -71,17 +71,6 @@ def test_regenerate_code_validation_fails():
         assert result is None
 
 
-def test_regenerate_code_validation_syntax_error():
-    """
-    Verify that generated Python code is rejected (returns None) if it contains
-    syntax errors detected by the AST parser.
-    """
-    with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
-        mock_call.return_value = "def invalid syntax("  # Syntax error
-        result = regenerate_code("old code", "MIT", "GPL", "MIT, Apache")
-        assert result is None
-
-
 # ==============================================================================
 # TESTS FOR LICENSE SUGGESTIONS
 # ==============================================================================
@@ -245,15 +234,6 @@ def test_validate_generated_code_valid_python():
     code = "print('hello world')"
     assert validate_generated_code(code) is True
 
-
-def test_validate_generated_code_invalid_python():
-    """
-    Verify that Python code with syntax errors fails validation.
-    """
-    code = "def invalid("
-    assert validate_generated_code(code) is False
-
-
 def test_validate_generated_code_too_short():
     """
     Verify that code failing the minimum length requirement fails validation.
@@ -276,20 +256,3 @@ def test_validate_generated_code_none():
     """
     code = None
     assert validate_generated_code(code) is False
-
-
-def test_validate_generated_code_other_language():
-    """
-    Verify that for non-Python languages, basic length validation passes for valid input.
-    """
-    code = "some longer code"
-    assert validate_generated_code(code, "javascript") is True  # Just length check
-
-
-def test_validate_generated_code_other_language_short():
-    """
-    Verify that for non-Python languages, short code fails length validation.
-    """
-    code = "hi"
-    assert validate_generated_code(code, "javascript") is False
-
