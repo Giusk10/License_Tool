@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Github, ArrowRight, Upload } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo-minimal.png';
 import axios from 'axios';
 
 const Home = () => {
