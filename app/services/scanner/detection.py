@@ -14,10 +14,9 @@ import os
 import json
 import logging
 import subprocess
-from typing import Dict, Tuple, Union, List, Any
+from typing import Dict, List, Any, Tuple
 
 from app.utility.config import SCANCODE_BIN, OUTPUT_BASE_DIR
-from app.services.scanner.main_spdx_utilities import _pick_best_spdx
 
 logger = logging.getLogger(__name__)
 
@@ -130,64 +129,94 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
         logger.exception("Error during ScanCode output processing")
         raise RuntimeError(f"Failed to process ScanCode output: {e}") from e
 
-
-def detect_main_license_scancode(data: Dict[str, Any]) -> Union[Tuple[str, str], str]:
+def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
     """
-    Identifies the main license of the project from ScanCode results.
-
-    Strategy:
-    1. Prioritize files named 'LICENSE' or 'license'.
-    2. Fallback to 'COPYING' files.
-    3. Last resort: check other relevant files containing license keywords.
-
-    Args:
-        data (Dict[str, Any]): The ScanCode JSON data.
-
-    Returns:
-        Union[Tuple[str, str], str]: A tuple (spdx_expression, file_path) if found,
-        otherwise the string "UNKNOWN".
+    Rileva la licenza principale usando euristiche basate su profondità,
+    tipologia di file e score di ScanCode.
     """
-    license_candidates = []
-    copying_candidates = []
-    other_candidates = []
+
+    # 1. Controlla se ScanCode ha rilevato pacchetti (es. package.json, pom.xml)
+    # Questa è spesso la "Dichiarata" ed è molto affidabile.
+    if "packages" in data and data["packages"]:
+        # Prendi il primo pacchetto trovato alla root o quasi
+        for pkg in data["packages"]:
+            if pkg.get("declared_license_expression"):
+                return pkg.get("declared_license_expression")
+
+    candidates = []
 
     for entry in data.get("files", []):
-        path = entry.get("path") or ""
-        if not path:
+        path = entry.get("path", "")
+        licenses = entry.get("license_detections", [])
+
+        if not licenses:
             continue
 
-        lower_path = path.lower()
-        basename = os.path.basename(lower_path)
-
-        # Skip notice or copyright files for main license detection
-        if basename.startswith("notice") or basename.startswith("copyright"):
+        # Ignora match con confidenza bassa
+        if entry.get("percentage_of_license_text", 0) < 80.0:
             continue
 
-        # Classify candidates
-        if basename.startswith("license"):
-            license_candidates.append(entry)
-        elif basename.startswith("copying"):
-            copying_candidates.append(entry)
-        elif "license" in lower_path or "copying" in lower_path:
-            other_candidates.append(entry)
+        # Calcoliamo la profondità del file (0 = root)
+        depth = path.count("/")
+        filename = os.path.basename(path).lower()
 
-    # 1. Attempt primary choice: LICENSE files
-    result = _pick_best_spdx(license_candidates)
-    if result:
-        return result
+        # --- EURISTICHE DI PUNTEGGIO ---
 
-    # 2. Attempt fallback: COPYING files
-    result = _pick_best_spdx(copying_candidates)
-    if result:
-        return result
+        # Filtro 1: Ignora directory spazzatura
+        if any(x in path.lower() for x in ["node_modules", "vendor", "third_party", "test", "docs"]):
+            continue
 
-    # 3. Last resort: other relevant paths
-    result = _pick_best_spdx(other_candidates)
-    if result:
-        return result
+        for lic in licenses:
 
-    return "UNKNOWN"
+            spdx = lic.get("license_expression_spdx")
+            if not spdx:
+                continue
 
+            weight = 0
+
+            # BONUS 1: Posizione (Root is King)
+            if depth == 0:
+                weight += 100
+            elif depth == 1:
+                weight += 50
+            else:
+                weight += 0  # File profondi valgono poco per la main license
+
+            # BONUS 2: Nome del file
+            if filename in ["license", "license.txt", "license.md", "copying", "copying.txt"]:
+                weight += 100
+            elif filename.startswith("license") or filename.startswith("copying"):
+                weight += 80
+            elif filename in ["readme", "readme.md", "readme.txt"]:
+                weight += 60  # La licenza è spesso menzionata nel README
+            elif filename in ["package.json", "setup.py", "pom.xml", "cargo.toml"]:
+                weight += 90  # File di manifesto
+
+            # BONUS 3: Match Coverage (Quanto del file è licenza?)
+            # Se un file è 100% testo di licenza, è molto rilevante.
+            # (ScanCode a volte fornisce match_coverage o start/end_line)
+            if lic.get("matched_rule", {}).get("is_license_text"):
+                weight += 40
+
+            candidates.append({
+                "spdx": spdx,
+                "weight": weight,
+                "path": path,
+                "score": lic.get("score")
+            })
+
+    if not candidates:
+        return "UNKNOWN"
+
+    # Ordina i candidati per peso decrescente
+    candidates.sort(key=lambda x: x["weight"], reverse=True)
+
+    # Debug: Stampa i top 3 candidati per capire cosa sta succedendo
+    # for c in candidates[:3]:
+    #     print(f"Candidate: {c['spdx']} | Weight: {c['weight']} | Path: {c['path']}")
+
+    # Ritorna il vincitore
+    return candidates[0]["spdx"], candidates[0]["path"]
 
 def extract_file_licenses(scancode_data: Dict[str, Any]) -> Dict[str, str]:
     """
@@ -220,6 +249,6 @@ def extract_file_licenses(scancode_data: Dict[str, Any]) -> Dict[str, str]:
         if len(unique_spdx) == 1:
             results[path] = unique_spdx[0]
         else:
-            results[path] = " AND ".join(unique_spdx)
+            results[path] = " OR ".join(unique_spdx)
 
     return results

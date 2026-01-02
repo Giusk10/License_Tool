@@ -19,6 +19,32 @@ import {
     Download, HelpCircle
 } from 'lucide-react';
 
+// Helper function to extract unique detected licenses from analysis data
+const extractDetectedLicenses = (analysisData) => {
+    if (!analysisData || !analysisData.issues) return [];
+
+    const licenses = new Set();
+
+    // Add main license if present and not unknown
+    if (analysisData.main_license &&
+        analysisData.main_license !== 'UNKNOWN' &&
+        analysisData.main_license !== 'UNLICENSE') {
+        licenses.add(analysisData.main_license);
+    }
+
+    // Add all detected licenses from issues
+    analysisData.issues.forEach(issue => {
+        if (issue.detected_license &&
+            issue.detected_license !== 'Unknown' &&
+            issue.detected_license !== 'UNKNOWN' &&
+            issue.detected_license !== 'None') {
+            licenses.add(issue.detected_license);
+        }
+    });
+
+    return Array.from(licenses);
+};
+
 const Callback = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -335,7 +361,7 @@ const Callback = () => {
                                                 gap: '0.3rem'
                                             }}
                                         >
-                                            <Lightbulb size={14} /> Get Suggestion
+                                            <Lightbulb size={16} /> Get Suggestion
                                         </button>
                                     )}
                                     {licenseSuggestion && (
@@ -399,7 +425,7 @@ const Callback = () => {
                                                     <div key={idx} className="glass-panel" style={{
                                                         background: 'rgba(21, 28, 51, 0.18)',
                                                         padding: '1.5rem',
-                                                        borderLeft: `4px solid ${issue.compatible ? '#219625ff' : '#f44336'}`
+                                                        borderLeft: `4px solid ${issue.compatible === true ? '#219625ff' : (issue.compatible === false ? '#f44336' : '#ffab00')}`
                                                     }}>
                                                         {/* Container Flex principale */}
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
@@ -535,6 +561,7 @@ const Callback = () => {
                 <LicenseSuggestionForm
                     owner={cloneData.owner}
                     repo={cloneData.repo}
+                    detectedLicenses={analysisData ? extractDetectedLicenses(analysisData) : []}
                     onClose={() => setShowLicenseSuggestionForm(false)}
                     onSuggestionReceived={(suggestion) => {
                         setLicenseSuggestion(suggestion);

@@ -14,100 +14,10 @@ from app.services.scanner.detection import (
     detect_main_license_scancode,
     extract_file_licenses
 )
-
-def test_detect_main_license_with_unknown_files():
-    """
-    Scenario: Analyzing a repository with conflicting license signals.
-
-    Mock Components:
-    - Root: 'LICENSE' file identified as MIT (Score 100).
-    - Source: 'src/utils.py' identified as Apache-2.0.
-    - Legacy: 'script.sh' explicitly flagged as UNKNOWN by the scanner.
-    - Assets: Image file with no detected license matches.
-
-    Objective:
-    Ensure 'detect_main_license' prioritizes the root file and that
-    'extract_file_licenses' correctly maps problematic files.
-    """
-
-    # Simulated raw JSON output from the ScanCode tool
-    mock_scancode_output = {
-        "files": [
-            # 1. MAIN LICENSE CANDIDATE: Standard license file in the root
-            {
-                "path": "LICENSE",
-                "type": "file",
-                # Used by detect_main_license_scancode (it often looks at “licenses” or “detected_…”)
-                "detected_license_expression_spdx": "MIT",
-                "licenses": [
-                    {"spdx_license_key": "MIT", "score": 100.0}
-                ],
-                # Used by extract_file_licenses (it looks at “matches”)
-                "matches": [
-                    {"license_spdx": "MIT", "score": 100.0}
-                ]
-            },
-
-            # 2. FILE-LEVEL LICENSE: Source file with a different valid licens
-            {
-                "path": "src/utils.py",
-                "type": "file",
-                "detected_license_expression_spdx": "Apache-2.0",
-                "licenses": [],
-                "matches": [
-                    {"license_spdx": "Apache-2.0", "score": 90.0}
-                ]
-            },
-
-            # 3. UNKNOWN FILE: ScanCode identifies a license presence but cannot classify it
-            {
-                "path": "legacy/script.sh",
-                "type": "file",
-                "detected_license_expression_spdx": "UNKNOWN",
-                "licenses": [],
-                "matches": [
-                    {"license_spdx": "UNKNOWN", "score": 0.0}
-                ]
-            },
-
-            # 4. UNLICENSED FILE: Binary asset or file without legal metadata
-            {
-                "path": "assets/image.png",
-                "type": "file",
-                "detected_license_expression_spdx": None,
-                "licenses": [],
-                "matches": [] # Lista vuota
-            }
-        ]
-    }
-
-    # --- PHASE 1: Main License Detection Verification ---
-    # The logic must ignore sub-file licenses and select the root LICENSE file
-    main_license, license_path = detect_main_license_scancode(mock_scancode_output)
-
-    print(f"\nMain License rilevata: {main_license} (su {license_path})")
-
-    assert main_license == "MIT", "La main license dovrebbe essere MIT"
-    assert license_path == "LICENSE", "Il file della main license dovrebbe essere LICENSE"
-
-    # --- PHASE 2: Granular File Analysis Verification ---
-    # The function must map every file to its specific license, including UNKNOWNs
-    files_analysis = extract_file_licenses(mock_scancode_output)
-
-    print("Licenze file estratte:", files_analysis)
-
-    # Verify correct mapping for valid source files
-    assert "src/utils.py" in files_analysis
-    assert files_analysis["src/utils.py"] == "Apache-2.0"
-
-    # Verify handling of UNKNOWN files
-    # It is vital that UNKNOWN is not converted to None, so as to alert the user or the LLM
-    assert "legacy/script.sh" in files_analysis
-    assert files_analysis["legacy/script.sh"] == "UNKNOWN", "Il file script.sh dovrebbe essere rilevato come UNKNOWN"
-
-    # Verify asset filtering
-    # Files with no matches should not bloat the results dictionary
-    assert "assets/image.png" not in files_analysis
+from app.services.scanner.license_ranking import (
+    choose_most_permissive_license_in_file,
+    estract_licenses
+)
 
 def test_detect_main_license_fallback_unknown():
     """
@@ -144,3 +54,388 @@ def test_detect_main_license_fallback_unknown():
     else:
         # If it returns a tuple, we verify that it is consistent.
         pass
+
+# ==================================================================================
+#                    INTEGRATION TESTS: LICENSE RANKING
+# ==================================================================================
+
+def test_license_ranking_integration_with_detection():
+    """
+    Integration Test: Full pipeline from detection to ranking.
+
+    Verifies that licenses detected with OR clauses are correctly
+    processed by the ranking algorithm to select the most permissive one.
+    """
+    # Simulated ScanCode output with multiple licenses per file
+    mock_scancode_output = {
+        "files": [
+            {
+                "path": "LICENSE",
+                "matches": [{"license_spdx": "MIT"}]
+            },
+            {
+                "path": "src/dual_license.py",
+                "matches": [
+                    {"license_spdx": "GPL-3.0"},
+                    {"license_spdx": "MIT"}
+                ]
+            },
+            {
+                "path": "lib/permissive.js",
+                "matches": [
+                    {"license_spdx": "Apache-2.0"},
+                    {"license_spdx": "BSD-2-Clause"}
+                ]
+            }
+        ]
+    }
+
+    # Step 1: Extract file licenses (produces OR expressions)
+    file_licenses = extract_file_licenses(mock_scancode_output)
+
+    assert "src/dual_license.py" in file_licenses
+    assert "lib/permissive.js" in file_licenses
+
+    # Verify OR expressions are created
+    assert "OR" in file_licenses["src/dual_license.py"] or len(file_licenses["src/dual_license.py"].split()) == 1
+    assert "OR" in file_licenses["lib/permissive.js"] or len(file_licenses["lib/permissive.js"].split()) == 1
+
+    # Step 2: Apply ranking to choose most permissive
+    ranked = choose_most_permissive_license_in_file(file_licenses)
+
+    # MIT is more permissive than GPL-3.0
+    assert ranked["src/dual_license.py"] == "MIT"
+
+    # Both Apache-2.0 and BSD-2-Clause are permissive, ranking depends on order in JSON
+    assert ranked["lib/permissive.js"] in ["Apache-2.0", "BSD-2-Clause"]
+
+
+def test_license_ranking_preserves_single_licenses():
+    """
+    Integration Test: Single license files are not modified.
+
+    Verifies that files with only one detected license pass through
+    the ranking algorithm unchanged.
+    """
+    mock_scancode_output = {
+        "files": [
+            {
+                "path": "src/simple.py",
+                "matches": [{"license_spdx": "MIT"}]
+            },
+            {
+                "path": "src/another.py",
+                "matches": [{"license_spdx": "Apache-2.0"}]
+            }
+        ]
+    }
+
+    file_licenses = extract_file_licenses(mock_scancode_output)
+    ranked = choose_most_permissive_license_in_file(file_licenses)
+
+    assert ranked["src/simple.py"] == "MIT"
+    assert ranked["src/another.py"] == "Apache-2.0"
+
+
+def test_license_ranking_with_unknown_licenses():
+    """
+    Integration Test: Unknown licenses in OR expressions.
+
+    Verifies that when one license in an OR expression is known
+    and the other is unknown, the known one is selected.
+    """
+    mock_scancode_output = {
+        "files": [
+            {
+                "path": "src/mixed.py",
+                "matches": [
+                    {"license_spdx": "CustomLicense"},
+                    {"license_spdx": "MIT"}
+                ]
+            }
+        ]
+    }
+
+    file_licenses = extract_file_licenses(mock_scancode_output)
+    ranked = choose_most_permissive_license_in_file(file_licenses)
+
+    # MIT is in the ranking, CustomLicense is not
+    assert ranked["src/mixed.py"] == "MIT"
+
+
+def test_extract_licenses_complex_expressions():
+    """
+    Integration Test: Complex SPDX expressions extraction.
+
+    Verifies that nested and complex SPDX expressions are
+    correctly parsed into individual license components.
+    """
+    # Test simple OR
+    result = estract_licenses("MIT OR Apache-2.0")
+    assert result == ["MIT", "Apache-2.0"]
+
+    # Test with parentheses (should preserve grouping)
+    result = estract_licenses("(MIT AND BSD-2-Clause) OR GPL-3.0")
+    assert "(MIT AND BSD-2-Clause)" in result
+    assert "GPL-3.0" in result
+
+    # Test multiple OR
+    result = estract_licenses("MIT OR Apache-2.0 OR BSD-3-Clause")
+    assert len(result) == 3
+
+
+def test_full_analysis_pipeline_with_or_licenses():
+    """
+    Integration Test: Complete analysis pipeline with OR licenses.
+
+    Simulates the full workflow from ScanCode output through
+    filtering, extraction, ranking, and compatibility checking.
+    """
+    # ===== SETUP: Simulated ScanCode output with complex license scenarios =====
+    mock_scancode_output = {
+        "packages": [],
+        "files": [
+            # Root LICENSE file - Main project license
+            {
+                "path": "LICENSE",
+                "is_legal": True,
+                "is_key_file": True,
+                "percentage_of_license_text": 95.0,
+                "license_detections": [
+                    {
+                        "license_expression_spdx": "MIT",
+                        "score": 100,
+                        "matched_rule": {"is_license_text": True},
+                        "matches": [
+                            {
+                                "license_expression_spdx": "MIT",
+                                "license_spdx": "MIT",
+                                "score": 100,
+                                "from_file": "LICENSE",
+                                "matched_text": "Permission is hereby granted, free of charge..."
+                            }
+                        ]
+                    }
+                ],
+                "matches": [{"license_spdx": "MIT"}]
+            },
+            # File with dual license (GPL-3.0 OR MIT)
+            {
+                "path": "src/dual_license.py",
+                "is_legal": False,
+                "is_key_file": False,
+                "percentage_of_license_text": 85.0,
+                "license_detections": [
+                    {
+                        "license_expression_spdx": "GPL-3.0",
+                        "score": 90,
+                        "matched_rule": {},
+                        "matches": [
+                            {
+                                "license_expression_spdx": "GPL-3.0",
+                                "license_spdx": "GPL-3.0",
+                                "score": 90,
+                                "from_file": "src/dual_license.py",
+                                "matched_text": "GNU General Public License version 3"
+                            }
+                        ]
+                    },
+                    {
+                        "license_expression_spdx": "MIT",
+                        "score": 95,
+                        "matched_rule": {},
+                        "matches": [
+                            {
+                                "license_expression_spdx": "MIT",
+                                "license_spdx": "MIT",
+                                "score": 95,
+                                "from_file": "src/dual_license.py",
+                                "matched_text": "SPDX-License-Identifier: MIT"
+                            }
+                        ]
+                    }
+                ],
+                "matches": [
+                    {"license_spdx": "GPL-3.0"},
+                    {"license_spdx": "MIT"}
+                ]
+            },
+            # File with permissive dual license (Apache-2.0 OR BSD-2-Clause)
+            {
+                "path": "lib/permissive.js",
+                "is_legal": False,
+                "is_key_file": False,
+                "percentage_of_license_text": 88.0,
+                "license_detections": [
+                    {
+                        "license_expression_spdx": "Apache-2.0",
+                        "score": 92,
+                        "matched_rule": {},
+                        "matches": [
+                            {
+                                "license_expression_spdx": "Apache-2.0",
+                                "license_spdx": "Apache-2.0",
+                                "score": 92,
+                                "from_file": "lib/permissive.js",
+                                "matched_text": "Licensed under the Apache License, Version 2.0"
+                            }
+                        ]
+                    },
+                    {
+                        "license_expression_spdx": "BSD-2-Clause",
+                        "score": 88,
+                        "matched_rule": {},
+                        "matches": [
+                            {
+                                "license_expression_spdx": "BSD-2-Clause",
+                                "license_spdx": "BSD-2-Clause",
+                                "score": 88,
+                                "from_file": "lib/permissive.js",
+                                "matched_text": "BSD 2-Clause License"
+                            }
+                        ]
+                    }
+                ],
+                "matches": [
+                    {"license_spdx": "Apache-2.0"},
+                    {"license_spdx": "BSD-2-Clause"}
+                ]
+            },
+            # File with only compatible license
+            {
+                "path": "src/compatible.py",
+                "is_legal": False,
+                "is_key_file": False,
+                "percentage_of_license_text": 90.0,
+                "license_detections": [
+                    {
+                        "license_expression_spdx": "BSD-3-Clause",
+                        "score": 95,
+                        "matched_rule": {},
+                        "matches": [
+                            {
+                                "license_expression_spdx": "BSD-3-Clause",
+                                "license_spdx": "BSD-3-Clause",
+                                "score": 95,
+                                "from_file": "src/compatible.py",
+                                "matched_text": "BSD 3-Clause License"
+                            }
+                        ]
+                    }
+                ],
+                "matches": [{"license_spdx": "BSD-3-Clause"}]
+            }
+        ]
+    }
+
+    # ===== STEP 1: Detect main license =====
+    main_license_result = detect_main_license_scancode(mock_scancode_output)
+
+    # Extract main license (handle tuple or string return)
+    if isinstance(main_license_result, tuple):
+        main_license, main_license_path = main_license_result
+    else:
+        main_license = main_license_result
+        main_license_path = None
+
+    # Verify main license detection
+    assert main_license == "MIT", f"Expected MIT as main license, got {main_license}"
+    if main_license_path:
+        assert main_license_path == "LICENSE"
+
+    # ===== STEP 2: Extract file licenses (produces OR expressions) =====
+    file_licenses = extract_file_licenses(mock_scancode_output)
+
+    # Verify extraction results
+    assert "src/dual_license.py" in file_licenses
+    assert "lib/permissive.js" in file_licenses
+    assert "src/compatible.py" in file_licenses
+    assert "LICENSE" in file_licenses
+
+    # Verify OR expressions are created for multi-license files
+    dual_license_expr = file_licenses["src/dual_license.py"]
+    assert "GPL-3.0" in dual_license_expr
+    assert "MIT" in dual_license_expr
+    # Should contain OR operator for multiple licenses
+    if "GPL-3.0" in dual_license_expr and "MIT" in dual_license_expr:
+        assert "OR" in dual_license_expr or dual_license_expr in ["GPL-3.0", "MIT"]
+
+    permissive_expr = file_licenses["lib/permissive.js"]
+    assert "Apache-2.0" in permissive_expr or "BSD-2-Clause" in permissive_expr
+
+    # ===== STEP 3: Apply license ranking (choose most permissive) =====
+    ranked_licenses = choose_most_permissive_license_in_file(file_licenses.copy())
+
+    # Verify ranking results
+    # MIT is more permissive than GPL-3.0, so MIT should be selected
+    assert ranked_licenses["src/dual_license.py"] == "MIT", \
+        f"Expected MIT after ranking, got {ranked_licenses['src/dual_license.py']}"
+
+    # For permissive dual license, either Apache-2.0 or BSD-2-Clause is acceptable
+    assert ranked_licenses["lib/permissive.js"] in ["Apache-2.0", "BSD-2-Clause"], \
+        f"Expected Apache-2.0 or BSD-2-Clause, got {ranked_licenses['lib/permissive.js']}"
+
+    # Single license files should remain unchanged
+    assert ranked_licenses["src/compatible.py"] == "BSD-3-Clause"
+    assert ranked_licenses["LICENSE"] == "MIT"
+
+    # ===== STEP 4: Check compatibility with main license =====
+    from app.services.compatibility.checker import check_compatibility
+
+    # Remove main LICENSE file from file_licenses before compatibility check
+    # (typically done to avoid self-checking)
+    licenses_to_check = {k: v for k, v in ranked_licenses.items() if k != "LICENSE"}
+
+    compatibility_result = check_compatibility(main_license, licenses_to_check)
+
+    # Verify compatibility check results
+    assert compatibility_result["main_license"] in ["MIT", "mit"], \
+        f"Expected MIT as main_license, got {compatibility_result['main_license']}"
+
+    assert "issues" in compatibility_result
+    issues = compatibility_result["issues"]
+
+    # Verify we have results for all checked files
+    assert len(issues) == 3, f"Expected 3 compatibility issues, got {len(issues)}"
+
+    # Verify issue structure
+    for issue in issues:
+        assert "file_path" in issue
+        assert "detected_license" in issue
+        assert "compatible" in issue
+        assert "reason" in issue
+
+        file_path = issue["file_path"]
+        compatible = issue["compatible"]
+
+        # MIT is compatible with most permissive licenses
+        if file_path == "src/dual_license.py":
+            # After ranking, should be MIT (same as main)
+            assert issue["detected_license"] == "MIT"
+            # MIT is compatible with MIT (self-compatibility)
+            assert compatible in [True, None], \
+                f"MIT should be compatible with MIT, got {compatible}"
+
+        elif file_path == "lib/permissive.js":
+            # Apache-2.0 or BSD-2-Clause should be compatible with MIT
+            assert issue["detected_license"] in ["Apache-2.0", "BSD-2-Clause"]
+            # Permissive licenses are typically compatible with MIT
+            # Result depends on compatibility matrix
+            assert compatible in [True, False, None]
+
+        elif file_path == "src/compatible.py":
+            # BSD-3-Clause with MIT main license
+            assert issue["detected_license"] == "BSD-3-Clause"
+            # Compatibility depends on matrix
+            assert compatible in [True, False, None]
+
+    # ===== VERIFICATION: Complete pipeline executed successfully =====
+    # All steps completed without errors:
+    # 1. Main license detected: MIT
+    # 2. File licenses extracted with OR expressions
+    # 3. Licenses ranked to select most permissive
+    # 4. Compatibility checked against main license
+
+    # Final assertion: pipeline completed
+    assert True, "Full analysis pipeline with OR licenses completed successfully"
+

@@ -17,18 +17,19 @@ License_Tool/
 │   ├── controllers/        # Definizione degli endpoint API e gestione rotte
 │   ├── models/             # Schemi Pydantic per la validazione dei dati
 │   ├── services/           # Logica di business e workflow di analisi
-│   │   ├── compatibility/  # Algoritmi per il calcolo della compatibilità licenze
-│   │   ├── downloader/     # Servizi per il download dei repository processati
-│   │   ├── github/         # Client per l'integrazione con le API GitHub e OAuth
-│   │   ├── llm/            # Moduli per l'interazione con Ollama e rigenerazione codice
-│   │   └── scanner/        # Integrazione con ScanCode Toolkit e filtraggio risultati
-│   └── utility/            # Gestione configurazioni (.env), variabili d'ambiente e helper
+│   │   ├── compatibility/  # Algoritmi compatibilità, matrice e parser SPDX
+│   │   ├── downloader/     # Servizi per il download e creazione archivi ZIP
+│   │   ├── github/         # Client per operazioni Git e integrazione GitHub
+│   │   ├── llm/            # Integrazione Ollama per suggerimenti e codice
+│   │   └── scanner/        # Logica di rilevamento licenze e filtraggio file
+│   └── utility/            # Configurazione app e variabili d'ambiente
+├── docs/                   # Documentazione tecnica, guide e note legali
 ├── frontend/               # Interfaccia Utente (React + Vite)
 ├── tests/                  # Suite di test unitari e di integrazione
-├── pyproject.toml          # Metadata del progetto e configurazione build system
+├── pyproject.toml          # Configurazione build system e metadati progetto
 ├── requirements.txt        # Elenco dipendenze Python per installazione rapida
-├── LICENSE                 # Testo della Licenza MIT del progetto
-└── THRID_PART_NOTICE       # Documentazione obbligatoria per componenti di terze parti
+├── start-all-services.ps1  # Script PowerShell per l'avvio rapido dei servizi
+└── LICENSE                 # Testo della Licenza del progetto
 ```
 
 ## 🚀 Panoramica del Sistema
@@ -40,6 +41,7 @@ Il tool implementa un workflow completo di analisi e correzione:
 3.  **Analisi di Compatibilità**: Un motore interno confronta le licenze rilevate con la licenza target del progetto, identificando eventuali conflitti legali.
 4.  **Enrichment AI (Ollama)**: I risultati vengono arricchiti da un LLM che spiega il conflitto e suggerisce soluzioni pratiche.
 5.  **Rigenerazione del Codice**: Possibilità di riscrivere automaticamente i file che presentano conflitti (es. file con licenza Copyleft in progetti permissivi) mantenendo la logica originale ma rimuovendo il codice problematico.
+6.  **Suggerimento Licenza**: In caso di Licenza principale non specificata, tramite un form dove vengono specificati requisisti e costraint [LICENSE SUGGESTION GUIDE](docs/LICENSE_SUGGESTION_GUIDE.md), raccomanda la licenza utilizzare utilizzando un LLM 
 
 ---
 
@@ -47,11 +49,10 @@ Il tool implementa un workflow completo di analisi e correzione:
 
 Prima di installare il progetto, assicurati di avere i seguenti componenti installati e attivi sulla tua macchina:
 
-1.  **Python 3.10+**
+1.  **Python 3.10-3.13**
 2.  **Node.js & npm** (per il frontend)
-3.  **MongoDB**: Deve essere installato e in esecuzione (default porta 27017).
-4.  **Ollama**: Deve essere installato e in esecuzione con i modelli necessari scaricati (es. `llama3`, `codellama`).
-5.  **ScanCode Toolkit**: Deve essere installato localmente. Il percorso dell'eseguibile dovrà essere specificato nel file di configurazione.
+3.  **Ollama**: Deve essere installato e in esecuzione con i modelli necessari scaricati (es. `llama3`, `codellama`).
+4.  **ScanCode Toolkit**: Deve essere installato localmente. Il percorso dell'eseguibile dovrà essere specificato nel file di configurazione.
 
 ### Configurazione Variabili d'Ambiente (.env)
 
@@ -60,13 +61,6 @@ Il backend richiede un file `.env` nella root del progetto (`License_Tool/`) per
 Crea un file chiamato `.env` e compilalo seguendo questo template (adatta i percorsi al tuo OS):
 
 ```ini
-# --- Configurazione Database ---
-MONGO_URI="mongodb://localhost:27017"
-DATABASE_NAME="license_tool_db"
-COLLECTION_NAME="scans"
-# Chiave segreta per cifrare i token GitHub nel DB (generare una stringa random sicura)
-ENCRYPTION_KEY="tua_chiave_segreta_molto_lunga_e_sicura"
-
 # --- Integrazione ScanCode ---
 # Percorso assoluto dell'eseguibile di ScanCode (es. su Linux/Mac o Windows)
 SCANCODE_BIN="/path/to/scancode-toolkit/scancode"
@@ -123,7 +117,6 @@ Il progetto adotta un approccio ibrido per la gestione delle dipendenze, garante
 È utilizzato per l'installazione immediata dell'ambiente operativo (es. in CI/CD o sviluppo locale veloce). Include librerie essenziali come:
 * **Core**: `fastapi`, `uvicorn`.
 * **Analisi Legale**: `license-expression` (SPDX).
-* **Sicurezza**: `cryptography`, `pymongo`.
 
 ## 🔧 Installazione e Avvio
 
@@ -236,9 +229,9 @@ ollama list
 
 Questa sezione fornisce chiarezza sulle licenze che governano questo strumento e i suoi componenti.
 
-### 1. Licenza del Tool (MIT)
-Il codice sorgente di questo progetto è rilasciato sotto la **Licenza MIT**.
-È possibile utilizzarlo, modificarlo e distribuirlo liberamente. Vedi il file [LICENSE](LICENSE) per il testo completo.
+### 1. Licenza del Tool (AGPL-3.0)
+Il codice sorgente di questo progetto è rilasciato sotto la **Licenza AGPL v3.0**.
+Vedi il file [LICENSE](LICENSE) per il testo completo.
 
 ### 2. Dipendenza ScanCode (Apache-2.0 / CC-BY-4.0)
 Questo strumento integra il **ScanCode Toolkit** per l'analisi delle licenze. L'uso di ScanCode è soggetto alle seguenti condizioni:
@@ -247,7 +240,7 @@ Questo strumento integra il **ScanCode Toolkit** per l'analisi delle licenze. L'
 * **Dati di Rilevamento (Dataset):** CC-BY-4.0 (Creative Commons Attribuzione 4.0 Internazionale).
 
 **Obbligo di Avviso:**
-Come richiesto dalla Licenza Apache 2.0, tutti gli avvisi di copyright e le licenze dei componenti di terze parti di ScanCode sono documentati e distribuiti nel file **[THIRD_PART_NOTICE](THRID_PART_NOTICE)**.
+Come richiesto dalla Licenza Apache 2.0, tutti gli avvisi di copyright e le licenze dei componenti di terze parti di ScanCode sono documentati e distribuiti nel file **[THIRD_PARTY_NOTICE](docs/THIRD_PARTY_NOTICE)**.
 
 **Attribuzione Dati ScanCode:**
 > Copyright (c) nexB Inc. e altri. Tutti i diritti riservati. ScanCode è un marchio di nexB Inc. SPDX-License-Identifier: CC-BY-4.0. Vedi https://creativecommons.org/licenses/by/4.0/legalcode per il testo della licenza. Vedi https://github.com/nexB/scancode-toolkit per supporto o download.

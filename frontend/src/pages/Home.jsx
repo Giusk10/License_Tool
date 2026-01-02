@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Github, ArrowRight, Upload } from 'lucide-react';
+import logo from '../assets/logo-minimal.png';
 import axios from 'axios';
 
 const Home = () => {
@@ -96,12 +97,15 @@ const Home = () => {
             </div>
         );
     }
-
     return (
         <div className="container">
             <div className="glass-panel form-group">
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.2rem', marginTop: '1rem' }}>
-                    <Github size={62} color="#fff" />
+                    <img
+                        src={logo}
+                        alt="Logo"
+                        style={{ width: '150px', height: '150px' }}
+                    />
                 </div>
                 <h1 style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>License Checker</h1>
                 <p style={{ fontSize: '1.12rem', marginBottom: '2rem' }}>Analyze GitHub repositories for license compatibility.</p>
