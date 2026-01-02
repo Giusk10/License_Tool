@@ -100,14 +100,14 @@ const Home = () => {
     return (
         <div className="container">
             <div className="glass-panel form-group">
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.2rem', marginTop: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
                     <img
                         src={logo}
                         alt="Logo"
                         style={{ width: '150px', height: '150px' }}
                     />
                 </div>
-                <h1 style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>License Checker</h1>
+                <h1 style={{ fontSize: '3.5rem', marginBottom: '0.5rem', marginTop: '-1rem'}}>License Checker</h1>
                 <p style={{ fontSize: '1.12rem', marginBottom: '2rem' }}>Analyze GitHub repositories for license compatibility.</p>
 
                 <form onSubmit={handleAnalyze} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
