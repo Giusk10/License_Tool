@@ -1,123 +1,122 @@
-# Script per avviare tutti i servizi necessari per License Tool
-# Uso: .\start-all-services.ps1
+# Script to start all necessary services for the License Tool
+# Usage: .\start-all-services.ps1
 
 Write-Host "================================================" -ForegroundColor Cyan
-Write-Host "   License Tool - Avvio Servizi" -ForegroundColor Cyan
+Write-Host "   License Tool - Starting Services             " -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Controlla se Ollama è installato
-Write-Host "1. Verifico installazione Ollama..." -ForegroundColor Yellow
+# Check if Ollama is installed
+Write-Host "1. Checking Ollama installation..." -ForegroundColor Yellow
 $ollamaPath = Get-Command ollama -ErrorAction SilentlyContinue
 if (-not $ollamaPath) {
-    Write-Host "   [ERRORE] Ollama non è installato!" -ForegroundColor Red
-    Write-Host "   Scaricalo da: https://ollama.ai/download" -ForegroundColor Red
+    Write-Host "   [ERROR] Ollama is not installed!" -ForegroundColor Red
+    Write-Host "   Download it from: https://ollama.ai/download" -ForegroundColor Red
     exit 1
 }
-Write-Host "   [OK] Ollama trovato: $($ollamaPath.Source)" -ForegroundColor Green
+Write-Host "   [OK] Ollama found: $($ollamaPath.Source)" -ForegroundColor Green
 
-# Verifica se Ollama è già in esecuzione
+# Check if Ollama is already running
 Write-Host ""
-Write-Host "2. Verifico se Ollama è già in esecuzione..." -ForegroundColor Yellow
+Write-Host "2. Checking if Ollama is already running..." -ForegroundColor Yellow
 try {
     $response = Invoke-WebRequest -Uri "http://localhost:11434/api/version" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-    Write-Host "   [OK] Ollama è già in esecuzione!" -ForegroundColor Green
+    Write-Host "   [OK] Ollama is already running!" -ForegroundColor Green
 } catch {
-    Write-Host "   Ollama non è in esecuzione. Avvio in corso..." -ForegroundColor Yellow
+    Write-Host "   Ollama is not running. Starting now..." -ForegroundColor Yellow
 
-    # Avvia Ollama in una nuova finestra
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "Write-Host 'Ollama Server' -ForegroundColor Cyan; Write-Host 'Non chiudere questa finestra!' -ForegroundColor Yellow; Write-Host ''; ollama serve" -WindowStyle Normal
+    # Start Ollama in a new window
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "Write-Host 'Ollama Server' -ForegroundColor Cyan; Write-Host 'Do not close this window!' -ForegroundColor Yellow; Write-Host ''; ollama serve" -WindowStyle Normal
 
-    Write-Host "   Attendo che Ollama si avvii..." -ForegroundColor Yellow
+    Write-Host "   Waiting for Ollama to start..." -ForegroundColor Yellow
     Start-Sleep -Seconds 5
 
-    # Verifica che si sia avviato
+    # Verify startup
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:11434/api/version" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
-        Write-Host "   [OK] Ollama avviato con successo!" -ForegroundColor Green
+        Write-Host "   [OK] Ollama started successfully!" -ForegroundColor Green
     } catch {
-        Write-Host "   [ERRORE] Ollama non risponde. Verifica manualmente." -ForegroundColor Red
+        Write-Host "   [ERROR] Ollama is not responding. Please check manually." -ForegroundColor Red
         exit 1
     }
 }
 
-# Verifica modelli installati
+# Check installed AI models
 Write-Host ""
-Write-Host "3. Verifico modelli AI installati..." -ForegroundColor Yellow
+Write-Host "3. Checking installed AI models..." -ForegroundColor Yellow
 $models = ollama list 2>&1 | Out-String
 $hasDeepseek = $models -match "deepseek"
 $hasQwen = $models -match "qwen"
 
 if (-not $hasDeepseek) {
-    Write-Host "   [ATTENZIONE] Modello deepseek-r1 non trovato!" -ForegroundColor Yellow
-    Write-Host "   Scaricalo con: ollama pull deepseek-r1:1.5b" -ForegroundColor Yellow
+    Write-Host "   [WARNING] deepseek-r1 model not found!" -ForegroundColor Yellow
+    Write-Host "   Download it with: ollama pull deepseek-r1:1.5b" -ForegroundColor Yellow
 }
 
 if (-not $hasQwen) {
-    Write-Host "   [ATTENZIONE] Modello qwen2.5-coder non trovato!" -ForegroundColor Yellow
-    Write-Host "   Scaricalo con: ollama pull qwen2.5-coder:1.5b" -ForegroundColor Yellow
+    Write-Host "   [WARNING] qwen2.5-coder model not found!" -ForegroundColor Yellow
+    Write-Host "   Download it with: ollama pull qwen2.5-coder:1.5b" -ForegroundColor Yellow
 }
 
 if ($hasDeepseek -and $hasQwen) {
-    Write-Host "   [OK] Tutti i modelli necessari sono installati!" -ForegroundColor Green
+    Write-Host "   [OK] All necessary models are installed!" -ForegroundColor Green
 }
 
-# Verifica se Python è installato
+# Check if Python is installed
 Write-Host ""
-Write-Host "4. Verifico installazione Python..." -ForegroundColor Yellow
+Write-Host "4. Checking Python installation..." -ForegroundColor Yellow
 $pythonPath = Get-Command python -ErrorAction SilentlyContinue
 if (-not $pythonPath) {
-    Write-Host "   [ERRORE] Python non trovato!" -ForegroundColor Red
+    Write-Host "   [ERROR] Python not found!" -ForegroundColor Red
     exit 1
 }
-Write-Host "   [OK] Python trovato: $($pythonPath.Source)" -ForegroundColor Green
+Write-Host "   [OK] Python found: $($pythonPath.Source)" -ForegroundColor Green
 
-# Avvia il backend FastAPI
+# Start FastAPI Backend
 Write-Host ""
-Write-Host "5. Avvio Backend FastAPI..." -ForegroundColor Yellow
+Write-Host "5. Starting FastAPI Backend..." -ForegroundColor Yellow
 $backendPath = Get-Location
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$backendPath'; Write-Host 'Backend FastAPI' -ForegroundColor Cyan; Write-Host 'Non chiudere questa finestra!' -ForegroundColor Yellow; Write-Host ''; uvicorn app.main:app --reload" -WindowStyle Normal
-Write-Host "   [OK] Backend avviato su http://localhost:8000" -ForegroundColor Green
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$backendPath'; Write-Host 'Backend FastAPI' -ForegroundColor Cyan; Write-Host 'Do not close this window!' -ForegroundColor Yellow; Write-Host ''; uvicorn app.main:app --reload" -WindowStyle Normal
+Write-Host "   [OK] Backend started at http://localhost:8000" -ForegroundColor Green
 
-# Verifica se npm è installato
+# Check if npm is installed
 Write-Host ""
-Write-Host "6. Verifico installazione Node.js/npm..." -ForegroundColor Yellow
+Write-Host "6. Checking Node.js/npm installation..." -ForegroundColor Yellow
 $npmPath = Get-Command npm -ErrorAction SilentlyContinue
 if (-not $npmPath) {
-    Write-Host "   [ERRORE] npm non trovato!" -ForegroundColor Red
+    Write-Host "   [ERROR] npm not found!" -ForegroundColor Red
     exit 1
 }
-Write-Host "   [OK] npm trovato: $($npmPath.Source)" -ForegroundColor Green
+Write-Host "   [OK] npm found: $($npmPath.Source)" -ForegroundColor Green
 
-# Avvia il frontend React
+# Start React Frontend
 Write-Host ""
-Write-Host "7. Avvio Frontend React..." -ForegroundColor Yellow
+Write-Host "7. Starting React Frontend..." -ForegroundColor Yellow
 $frontendPath = Join-Path $backendPath "frontend"
 if (Test-Path $frontendPath) {
     Start-Sleep -Seconds 3
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$frontendPath'; Write-Host 'Frontend React' -ForegroundColor Cyan; Write-Host 'Non chiudere questa finestra!' -ForegroundColor Yellow; Write-Host ''; npm run dev" -WindowStyle Normal
-    Write-Host "   [OK] Frontend avviato su http://localhost:5173" -ForegroundColor Green
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$frontendPath'; Write-Host 'Frontend React' -ForegroundColor Cyan; Write-Host 'Do not close this window!' -ForegroundColor Yellow; Write-Host ''; npm run dev" -WindowStyle Normal
+    Write-Host "   [OK] Frontend started at http://localhost:5173" -ForegroundColor Green
 } else {
-    Write-Host "   [ERRORE] Cartella frontend non trovata!" -ForegroundColor Red
+    Write-Host "   [ERROR] Frontend folder not found!" -ForegroundColor Red
 }
 
-# Riepilogo
+# Summary
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Cyan
-Write-Host "   Tutti i servizi sono stati avviati!" -ForegroundColor Green
+Write-Host "   All services have been started!              " -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Servizi in esecuzione:" -ForegroundColor White
+Write-Host "Running Services:" -ForegroundColor White
 Write-Host "  - Ollama:   http://localhost:11434" -ForegroundColor White
 Write-Host "  - Backend:  http://localhost:8000" -ForegroundColor White
 Write-Host "  - Frontend: http://localhost:5173" -ForegroundColor White
 Write-Host ""
-Write-Host "Apri il browser su: http://localhost:5173" -ForegroundColor Cyan
+Write-Host "Open your browser at: http://localhost:5173" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "IMPORTANTE: Non chiudere le finestre dei servizi!" -ForegroundColor Yellow
-Write-Host "Premi CTRL+C in questa finestra per uscire." -ForegroundColor Gray
+Write-Host "IMPORTANT: Do not close the service windows!" -ForegroundColor Yellow
+Write-Host "Press CTRL+C in this window to exit." -ForegroundColor Gray
 Write-Host ""
 
-# Mantieni la finestra aperta
-Read-Host "Premi INVIO per chiudere..."
-
+# Keep the window open
+Read-Host "Press ENTER to close..."
