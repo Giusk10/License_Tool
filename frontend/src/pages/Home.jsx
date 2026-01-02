@@ -104,7 +104,7 @@ const Home = () => {
                     <img
                         src={logo}
                         alt="Logo"
-                        style={{ width: '62px', height: '62px' }}
+                        style={{ width: '150px', height: '150px' }}
                     />
                 </div>
                 <h1 style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>License Checker</h1>
