@@ -129,16 +129,23 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
         logger.exception("Error during ScanCode output processing")
         raise RuntimeError(f"Failed to process ScanCode output: {e}") from e
 
+
 def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
     """
-    Rileva la licenza principale usando euristiche basate su profondità,
-    tipologia di file e score di ScanCode.
+    Detects the main license using heuristics based on depth, file type, and ScanCode score.
+
+    Args:
+        data (Dict[str, Any]): The parsed ScanCode JSON output.
+
+    Returns:
+        Tuple[str, str]: A tuple containing the main license SPDX expression and the path of the file where it was detected.
+        Returns ("UNKNOWN", None) if no valid license is found.
     """
 
-    # 1. Controlla se ScanCode ha rilevato pacchetti (es. package.json, pom.xml)
-    # Questa è spesso la "Dichiarata" ed è molto affidabile.
+    # 1. Check if ScanCode detected packages (e.g., package.json, pom.xml)
+    # This is often the "Declared" license and is very reliable.
     if "packages" in data and data["packages"]:
-        # Prendi il primo pacchetto trovato alla root o quasi
+        # Take the first package found at the root or near it
         for pkg in data["packages"]:
             if pkg.get("declared_license_expression"):
                 return pkg.get("declared_license_expression")
@@ -152,17 +159,17 @@ def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
         if not licenses:
             continue
 
-        # Ignora match con confidenza bassa
+        # Ignore matches with low confidence
         if entry.get("percentage_of_license_text", 0) < 80.0:
             continue
 
-        # Calcoliamo la profondità del file (0 = root)
+        # Calculate file depth (0 = root)
         depth = path.count("/")
         filename = os.path.basename(path).lower()
 
-        # --- EURISTICHE DI PUNTEGGIO ---
+        # --- SCORING HEURISTICS ---
 
-        # Filtro 1: Ignora directory spazzatura
+        # Filter 1: Ignore junk directories
         if any(x in path.lower() for x in ["node_modules", "vendor", "third_party", "test", "docs"]):
             continue
 
@@ -174,27 +181,27 @@ def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
 
             weight = 0
 
-            # BONUS 1: Posizione (Root is King)
+            # BONUS 1: Position (Root is King)
             if depth == 0:
                 weight += 100
             elif depth == 1:
                 weight += 50
             else:
-                weight += 0  # File profondi valgono poco per la main license
+                weight += 0  # Deep files are worth little for the main license
 
-            # BONUS 2: Nome del file
+            # BONUS 2: File name
             if filename in ["license", "license.txt", "license.md", "copying", "copying.txt"]:
                 weight += 100
             elif filename.startswith("license") or filename.startswith("copying"):
                 weight += 80
             elif filename in ["readme", "readme.md", "readme.txt"]:
-                weight += 60  # La licenza è spesso menzionata nel README
+                weight += 60  # The license is often mentioned in the README
             elif filename in ["package.json", "setup.py", "pom.xml", "cargo.toml"]:
-                weight += 90  # File di manifesto
+                weight += 90  # Manifest file
 
-            # BONUS 3: Match Coverage (Quanto del file è licenza?)
-            # Se un file è 100% testo di licenza, è molto rilevante.
-            # (ScanCode a volte fornisce match_coverage o start/end_line)
+            # BONUS 3: Match Coverage (How much of the file is license?)
+            # If a file is 100% license text, it is very relevant.
+            # (ScanCode sometimes provides match_coverage or start/end_line)
             if lic.get("matched_rule", {}).get("is_license_text"):
                 weight += 40
 
@@ -208,15 +215,16 @@ def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
     if not candidates:
         return "UNKNOWN"
 
-    # Ordina i candidati per peso decrescente
+    # Sort candidates by descending weight
     candidates.sort(key=lambda x: x["weight"], reverse=True)
 
-    # Debug: Stampa i top 3 candidati per capire cosa sta succedendo
+    # Debug: Print top 3 candidates to understand what is happening
     # for c in candidates[:3]:
     #     print(f"Candidate: {c['spdx']} | Weight: {c['weight']} | Path: {c['path']}")
 
-    # Ritorna il vincitore
+    # Return the winner
     return candidates[0]["spdx"], candidates[0]["path"]
+
 
 def extract_file_licenses(scancode_data: Dict[str, Any]) -> Dict[str, str]:
     """
