@@ -5,36 +5,66 @@
 # =============================
 
 # --- Log e file temporanei delle build ---
-logs                 # Cartella dei log generata dall'applicazione
-*.log                # Qualsiasi file con estensione .log
-npm-debug.log*       # Log di debug di npm
-yarn-debug.log*      # Log di debug di yarn
-yarn-error.log*      # Log di errore di yarn
-pnpm-debug.log*      # Log di debug di pnpm
-lerna-debug.log*     # Log di debug di lerna
+# Cartella dei log generata dall'applicazione
+logs
+# Qualsiasi file con estensione .log
+*.log
+# Log di debug di npm
+npm-debug.log*
+# Log di debug di yarn
+yarn-debug.log*
+# Log di errore di yarn
+yarn-error.log*
+# Log di debug di pnpm
+pnpm-debug.log*
+# Log di debug di lerna
+lerna-debug.log*
 
-frontend/node_modules    # Dipendenze frontend (Node.js)
-dist-ssr                # Output di build SSR
-*.local                 # File locali temporanei
+# Dipendenze frontend (Node.js)
+frontend/node_modules
+# Output di build SSR
+dist-ssr
+# File locali temporanei
+*.local
 
 # --- File e cartelle degli editor ---
-.vscode/*               # Configurazioni locali di Visual Studio Code
-!.vscode/extensions.json # Eccezione: mantieni la lista delle estensioni consigliate
-.idea/                  # Configurazioni di JetBrains/IntelliJ
-.DS_Store               # File di sistema MacOS
-*.suo                   # File di soluzione Visual Studio
-*.ntvs*                 # File temporanei Node Tools for Visual Studio
-*.njsproj               # Progetti Node.js per Visual Studio
-*.sln                   # Soluzioni Visual Studio
-*.sw?                   # Swap file temporanei
-*.iml                   # File di progetto IntelliJ
+# Configurazioni locali di Visual Studio Code
+.vscode/*
+# Eccezione: mantieni la lista delle estensioni consigliate
+!.vscode/extensions.json
+ # Configurazioni di JetBrains/IntelliJ
+.idea/
+# File di sistema MacOS
+.DS_Store
+# File di soluzione Visual Studio
+*.suo
+# File temporanei Node Tools for Visual Studio
+*.ntvs*
+# Progetti Node.js per Visual Studio
+*.njsproj
+# Soluzioni Visual Studio
+*.sln
+# Swap file temporanei
+*.sw?
+# File di progetto IntelliJ
+*.iml
 
-__pycache__/            # Cache bytecode Python
-*.py[cod]               # File compilati Python
-*$py.class              # File di classe Python generati
-.venv/                  # Ambiente virtuale Python
-venv/                   # Ambiente virtuale Python
-.env                    # File di variabili d'ambiente
+# Cache bytecode Python
+__pycache__/
+# File compilati Python
+*.py[cod]
+# File di classe Python generati
+*$py.class
+# Ambiente virtuale Python
+.venv/
+# Ambiente virtuale Python
+venv/
+# File di variabili d'ambiente
+.env
 
-.coverage               # File di copertura dei test
-*.egg-info/             # Metadati dei pacchetti Python
+# File di copertura dei test
+.coverage
+# Metadati dei pacchetti Python
+*.egg-info/
+# Directory di copertura HTML dei test
+/htmlcov/
