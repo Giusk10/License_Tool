@@ -5,10 +5,12 @@
     ".DS_Store", "*.db", "*.swp", "*.bak", "*.tmp", "*.log",
 
     "node_modules", "bower_components", ".npm", ".yarn",
-    "dist", "build", "out", "public",
+    "dist", "build", "out", "public", "coverage",
     ".next", ".nuxt",
     "*.min.js", "*.min.css", "*.map",
-    "package-lock.json", "yarn.lock",
+    "package-lock.json", "yarn.lock", "composer.lock", "pnpm-lock.yaml",
+    ".eslintrc.json", "tsconfig.json", "jsconfig.json", "vercel.json",
+    "matrixseqexpl.json", "license_rules.json", "license_order_permissive.json",
 
     "venv", ".venv", "env", "__pycache__",
     "*.pyc", "*.pyo", "*.pyd",
@@ -47,6 +49,7 @@
 
     "*.pem", "*.crt", "*.csr", "*.der", "*.key", "*.p12", "*.jks",
     "config.log", "config.status", "autom4te.cache",
-    "*.json"
+
+    "HISTORY", "HISTORY.*", "History"
   ]
 }
