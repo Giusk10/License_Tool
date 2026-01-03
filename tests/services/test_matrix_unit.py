@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 from app.services.compatibility import matrix
 
 
-# Verify that _coerce_status correctly normalizes known statuses
+# Verifica che _coerce_status normalizzi correttamente stati conosciuti
 def test_coerce_status_known_values():
     assert matrix._coerce_status("yes") == "yes"
     assert matrix._coerce_status("same") == "yes"
@@ -15,7 +15,7 @@ def test_coerce_status_known_values():
     assert matrix._coerce_status("conditional") == "conditional"
 
 
-# Verify that unknown or non-string statuses are converted to "unknown"
+# Verifica che stati sconosciuti o non-stringa siano convertiti a "unknown"
 def test_coerce_status_unknown_values():
     assert matrix._coerce_status("maybe") == "unknown"
     assert matrix._coerce_status("") == "unknown"
@@ -23,7 +23,7 @@ def test_coerce_status_unknown_values():
     assert matrix._coerce_status(123) == "unknown"
 
 
-# Simulates the legacy format {"matrix": {...}} and verifies normalization
+# Simula il formato legacy {"matrix": {...}} e verifica la normalizzazione
 def test_load_matrix_old_format(monkeypatch):
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: {
         "matrix": {
@@ -36,7 +36,7 @@ def test_load_matrix_old_format(monkeypatch):
     assert result["gpl"]["apache"] == "no"
 
 
-# Simulates the modern format as a list of entries with compatibility
+# Simula il formato moderno come lista di voci con compatibilità
 def test_load_matrix_new_list_format(monkeypatch):
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: [
         {
@@ -53,7 +53,7 @@ def test_load_matrix_new_list_format(monkeypatch):
     assert result["mit"]["gpl"] == "no"
 
 
-# Simulates the format with "licenses" key and verifies compatibility
+# Simula il formato con chiave "licenses" e verifica la compatibilità
 def test_load_matrix_licenses_format(monkeypatch):
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: {
         "licenses": [
@@ -70,42 +70,42 @@ def test_load_matrix_licenses_format(monkeypatch):
     assert result["apache"]["mit"] == "yes"
 
 
-# Verify that invalid rows (e.g., non-dict) are ignored
+# Verifica che righe invalide (ad es., non-dict) siano ignorate
 def test_load_matrix_invalid_row(monkeypatch):
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: {
         "matrix": {
-            "GPL": "yes"  # invalid value, must be ignored
+            "GPL": "yes"  # valore invalido, deve essere ignorato
         }
     })
     monkeypatch.setattr(matrix, "normalize_symbol", lambda s: s.lower())
     result = matrix.load_professional_matrix()
-    assert result == {}  # no valid rows
+    assert result == {}  # nessuna riga valida
 
 
-# Verify that if the file is unavailable, an empty dict is returned
+# Verifica che se il file è non disponibile, venga restituito un dict vuoto
 def test_load_matrix_missing_file(monkeypatch):
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: None)
     result = matrix.load_professional_matrix()
     assert result == {}
 
 
-# Verify that get_matrix returns the already loaded matrix (cache)
+# Verifica che get_matrix restituisca la matrice già caricata (cache)
 def test_get_matrix_returns_cached(monkeypatch):
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: {
         "matrix": {"MIT": {"Apache": "yes"}}
     })
     monkeypatch.setattr(matrix, "normalize_symbol", lambda s: s.lower())
-    # manually reload
+    # ricarica manualmente
     reloaded = matrix.load_professional_matrix()
     cached = matrix.get_matrix()
-    # must be equal to the matrix loaded at import
+    # deve essere uguale alla matrice caricata all'import
     assert cached == matrix._PRO_MATRIX
     assert cached == reloaded or isinstance(cached, dict)
 
 
-# Test for _read_matrix_json with existing file
+# Test per _read_matrix_json con file esistente
 def test_read_matrix_json_file_exists(tmp_path, monkeypatch):
-    """Verify that _read_matrix_json correctly reads an existing JSON file"""
+    """Verifica che _read_matrix_json legga correttamente un file JSON esistente"""
     import json
     test_file = tmp_path / "matrixseqexpl.json"
     test_data = {"matrix": {"MIT": {"Apache": "yes"}}}
@@ -116,13 +116,13 @@ def test_read_matrix_json_file_exists(tmp_path, monkeypatch):
     assert result == test_data
 
 
-# Test for _read_matrix_json with non-existent file (fallback to None)
+# Test per _read_matrix_json con file non esistente (fallback a None)
 def test_read_matrix_json_file_not_found(tmp_path, monkeypatch):
-    """Verify that _read_matrix_json returns None if the file does not exist"""
+    """Verifica che _read_matrix_json restituisca None se il file non esiste"""
     nonexistent_path = str(tmp_path / "nonexistent.json")
     monkeypatch.setattr(matrix, "_MATRIXSEQEXPL_PATH", nonexistent_path)
 
-    # Mock importlib.resources to return None
+    # Mock importlib.resources per restituire None
     import sys
     if 'importlib.resources' in sys.modules:
         monkeypatch.setattr("importlib.resources.files", lambda x: None, raising=False)
@@ -130,41 +130,41 @@ def test_read_matrix_json_file_not_found(tmp_path, monkeypatch):
     result = matrix._read_matrix_json()
     assert result is None
 
-# Test for load_professional_matrix with old format without valid rows
+# Test per load_professional_matrix con vecchio formato senza voci valide
 def test_load_matrix_old_format_no_valid_entries(monkeypatch):
-    """Verify that invalid entries are filtered in the old format"""
+    """Verifica che voci invalide siano filtrate nel vecchio formato"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: {
         "matrix": {
-            "GPL": {"MIT": "invalid_status"},  # invalid status
+            "GPL": {"MIT": "invalid_status"},  # stato invalido
         }
     })
     monkeypatch.setattr(matrix, "normalize_symbol", lambda s: s.lower())
     result = matrix.load_professional_matrix()
-    # Must include the entry with status "unknown"
+    # Deve includere la voce con stato "unknown"
     assert "gpl" in result
     assert result["gpl"]["mit"] == "unknown"
 
 
-# Test for load_professional_matrix with list containing non-dict entries
+# Test per load_professional_matrix con lista contenente voci non-dict
 def test_load_matrix_list_format_invalid_entries(monkeypatch):
-    """Verify that non-dict entries in the list are ignored"""
+    """Verifica che voci non-dict nella lista siano ignorate"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: [
-        "string entry",  # non-dict, must be ignored
+        "string entry",  # non-dict, deve essere ignorato
         {"name": "MIT", "compatibilities": [{"name": "GPL", "compatibility": "yes"}]},
-        123,  # non-dict, must be ignored
+        123,  # non-dict, deve essere ignorato
     ])
     monkeypatch.setattr(matrix, "normalize_symbol", lambda s: s.lower())
     result = matrix.load_professional_matrix()
     assert "mit" in result
     assert result["mit"]["gpl"] == "yes"
-    assert len(result) == 1  # only MIT is valid
+    assert len(result) == 1  # solo MIT è valido
 
 
-# Test for load_professional_matrix with list having entries without name
+# Test per load_professional_matrix con lista avente voci senza nome
 def test_load_matrix_list_format_missing_name(monkeypatch):
-    """Verify that entries without name are ignored"""
+    """Verifica che voci senza nome siano ignorate"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: [
-        {"compatibilities": [{"name": "GPL", "compatibility": "yes"}]},  # missing "name"
+        {"compatibilities": [{"name": "GPL", "compatibility": "yes"}]},  # manca "name"
         {"name": "MIT", "compatibilities": [{"name": "Apache", "compatibility": "no"}]},
     ])
     monkeypatch.setattr(matrix, "normalize_symbol", lambda s: s.lower())
@@ -173,16 +173,16 @@ def test_load_matrix_list_format_missing_name(monkeypatch):
     assert len(result) == 1
 
 
-# Test for load_professional_matrix with list having non-dict compatibilities
+# Test per load_professional_matrix con lista avente compatibilità non-dict
 def test_load_matrix_list_format_invalid_compatibilities(monkeypatch):
-    """Verify that non-dict compatibilities are ignored"""
+    """Verifica che compatibilità non-dict siano ignorate"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: [
         {
             "name": "MIT",
             "compatibilities": [
                 "invalid",  # non-dict
                 {"name": "GPL", "compatibility": "yes"},
-                {"name": "Apache"},  # missing compatibility/status
+                {"name": "Apache"},  # manca compatibility/status
             ]
         }
     ])
@@ -193,12 +193,12 @@ def test_load_matrix_list_format_invalid_compatibilities(monkeypatch):
     assert result["mit"]["apache"] == "unknown"  # status None -> unknown
 
 
-# Test for load_professional_matrix with licenses format having invalid entries
+# Test per load_professional_matrix con formato licenses avente voci invalide
 def test_load_matrix_licenses_format_invalid_entries(monkeypatch):
-    """Verify that invalid entries in the licenses format are ignored"""
+    """Verifica che voci invalide nel formato licenses siano ignorate"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: {
         "licenses": [
-            "not a dict",  # must be ignored
+            "not a dict",  # deve essere ignorato
             {"name": "MIT", "compatibilities": [{"name": "GPL", "compatibility": "yes"}]},
         ]
     })
@@ -207,9 +207,9 @@ def test_load_matrix_licenses_format_invalid_entries(monkeypatch):
     assert "mit" in result
     assert result["mit"]["gpl"] == "yes"
 
-# Test for load_professional_matrix with exception during normalization
+# Test per load_professional_matrix con eccezione durante la normalizzazione
 def test_load_matrix_exception_during_normalization(monkeypatch):
-    """Verify that exceptions during normalization are handled"""
+    """Verifica che eccezioni durante la normalizzazione siano gestite"""
     def raise_error():
         raise RuntimeError("Test error")
 
@@ -218,9 +218,9 @@ def test_load_matrix_exception_during_normalization(monkeypatch):
     assert result == {}
 
 
-# Test for load_professional_matrix with unknown format
+# Test per load_professional_matrix con formato sconosciuto
 def test_load_matrix_unknown_format(monkeypatch):
-    """Verify that unknown formats return an empty dict"""
+    """Verifica che formati sconosciuti restituiscano un dict vuoto"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: {
         "unknown_key": {"data": "value"}
     })
@@ -228,22 +228,22 @@ def test_load_matrix_unknown_format(monkeypatch):
     assert result == {}
 
 
-# Test for _coerce_status with whitespace
+# Test per _coerce_status con spazi bianchi
 def test_coerce_status_with_whitespace(monkeypatch):
-    """Verify that _coerce_status handles whitespace"""
+    """Verifica che _coerce_status gestisca spazi bianchi"""
     assert matrix._coerce_status("  yes  ") == "yes"
     assert matrix._coerce_status(" NO ") == "no"
     assert matrix._coerce_status("\tconditional\n") == "conditional"
 
 
-# Test for load_professional_matrix with compatibilities having only status
+# Test per load_professional_matrix con compatibilità aventi solo campo status
 def test_load_matrix_list_format_status_field(monkeypatch):
-    """Verify that the 'status' field works if 'compatibility' is not present"""
+    """Verifica che il campo 'status' funzioni se 'compatibility' non è presente"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: [
         {
             "name": "MIT",
             "compatibilities": [
-                {"name": "GPL", "status": "conditional"},  # uses "status" instead of "compatibility"
+                {"name": "GPL", "status": "conditional"},  # usa "status" invece di "compatibility"
             ]
         }
     ])
@@ -252,9 +252,9 @@ def test_load_matrix_list_format_status_field(monkeypatch):
     assert result["mit"]["gpl"] == "conditional"
 
 
-# Test for old format with entry returning values after normalization
+# Test per vecchio formato con voci che restituiscono valori dopo normalizzazione
 def test_load_matrix_old_format_with_normalization(monkeypatch):
-    """Verify that normalization works correctly in the old format"""
+    """Verifica che la normalizzazione funzioni correttamente nel vecchio formato"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: {
         "matrix": {
             "GPL-3.0": {"MIT": "same", "Apache-2.0": "conditional"}
@@ -266,24 +266,24 @@ def test_load_matrix_old_format_with_normalization(monkeypatch):
     assert result["gpl3.0"]["apache2.0"] == "conditional"
 
 
-# Test for _read_matrix_json with fallback to importlib.resources
+# Test per _read_matrix_json con fallback a importlib.resources
 def test_read_matrix_json_importlib_resources_fallback(tmp_path, monkeypatch):
-    """Verify that _read_matrix_json uses importlib.resources as fallback"""
+    """Verifica che _read_matrix_json usi importlib.resources come fallback"""
     import json
     from unittest.mock import MagicMock, mock_open
 
-    # Simulates non-existent file on filesystem
+    # Simula file non esistente sul filesystem
     nonexistent_path = str(tmp_path / "nonexistent.json")
     monkeypatch.setattr(matrix, "_MATRIXSEQEXPL_PATH", nonexistent_path)
 
-    # Mock importlib.resources with files() API
+    # Mock importlib.resources con API files()
     test_data = {"matrix": {"MIT": {"Apache": "yes"}}}
     mock_files = MagicMock()
     mock_path = MagicMock()
     mock_path.read_text.return_value = json.dumps(test_data)
     mock_files.return_value.joinpath.return_value = mock_path
 
-    # Mock __package__ to allow fallback
+    # Mock __package__ per permettere fallback
     monkeypatch.setattr(matrix, "__package__", "app.services.compatibility")
 
     import importlib.resources as resources
@@ -293,14 +293,14 @@ def test_read_matrix_json_importlib_resources_fallback(tmp_path, monkeypatch):
     assert result == test_data
 
 
-# Test for _read_matrix_json with importlib.resources raising FileNotFoundError
+# Test per _read_matrix_json con importlib.resources che solleva FileNotFoundError
 def test_read_matrix_json_importlib_resources_file_not_found(tmp_path, monkeypatch):
-    """Verify that _read_matrix_json handles FileNotFoundError from importlib.resources"""
+    """Verifica che _read_matrix_json gestisca FileNotFoundError da importlib.resources"""
     nonexistent_path = str(tmp_path / "nonexistent.json")
     monkeypatch.setattr(matrix, "_MATRIXSEQEXPL_PATH", nonexistent_path)
     monkeypatch.setattr(matrix, "__package__", "app.services.compatibility")
 
-    # Mock importlib.resources to raise FileNotFoundError
+    # Mock importlib.resources per sollevare FileNotFoundError
     mock_files = MagicMock()
     mock_files.return_value.joinpath.side_effect = FileNotFoundError("Resource not found")
 
@@ -311,9 +311,9 @@ def test_read_matrix_json_importlib_resources_file_not_found(tmp_path, monkeypat
     assert result is None
 
 
-# Test for _read_matrix_json with importlib.resources without files() (old API)
+# Test per _read_matrix_json con importlib.resources senza files() (vecchia API)
 def test_read_matrix_json_importlib_resources_old_api(tmp_path, monkeypatch):
-    """Verify that _read_matrix_json uses open_text() if files() is not available"""
+    """Verifica che _read_matrix_json usi open_text() se files() non è disponibile"""
     import json
     from unittest.mock import MagicMock
 
@@ -321,7 +321,7 @@ def test_read_matrix_json_importlib_resources_old_api(tmp_path, monkeypatch):
     monkeypatch.setattr(matrix, "_MATRIXSEQEXPL_PATH", nonexistent_path)
     monkeypatch.setattr(matrix, "__package__", "app.services.compatibility")
 
-    # Mock importlib.resources without files()
+    # Mock importlib.resources senza files()
     test_data = {"matrix": {"MIT": {"GPL": "no"}}}
     mock_open_text_result = MagicMock()
     mock_open_text_result.read.return_value = json.dumps(test_data)
@@ -333,9 +333,9 @@ def test_read_matrix_json_importlib_resources_old_api(tmp_path, monkeypatch):
     result = matrix._read_matrix_json()
     assert result == test_data
 
-# Test for load_professional_matrix with old format returning empty dict
+# Test per load_professional_matrix con vecchio formato che restituisce dict vuoto
 def test_load_matrix_old_format_returns_empty_on_no_valid_rows(monkeypatch):
-    """Verify that old format without valid dict rows returns empty dict"""
+    """Verifica che vecchio formato senza righe dict valide restituisca dict vuoto"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: {
         "matrix": {
             "GPL": [],  # non-dict
@@ -347,9 +347,9 @@ def test_load_matrix_old_format_returns_empty_on_no_valid_rows(monkeypatch):
     assert result == {}
 
 
-# Test for load_professional_matrix with list format returning empty dict
+# Test per load_professional_matrix con formato lista che restituisce dict vuoto
 def test_load_matrix_list_format_returns_empty_on_no_valid_entries(monkeypatch):
-    """Verify that list format without valid entries returns empty dict"""
+    """Verifica che formato lista senza voci valide restituisca dict vuoto"""
     monkeypatch.setattr(matrix, "_read_matrix_json", lambda: [
         "not a dict",
         123,
@@ -359,9 +359,9 @@ def test_load_matrix_list_format_returns_empty_on_no_valid_entries(monkeypatch):
     result = matrix.load_professional_matrix()
     assert result == {}
 
-# Test for load_professional_matrix with normalize_symbol raising exception
+# Test per load_professional_matrix con normalize_symbol che solleva eccezione
 def test_load_matrix_normalize_symbol_exception(monkeypatch):
-    """Verify that exceptions in normalize_symbol are handled"""
+    """Verifica che eccezioni in normalize_symbol siano gestite"""
     def failing_normalize(s):
         raise ValueError("Normalize failed")
 
@@ -372,3 +372,4 @@ def test_load_matrix_normalize_symbol_exception(monkeypatch):
 
     result = matrix.load_professional_matrix()
     assert result == {}
+

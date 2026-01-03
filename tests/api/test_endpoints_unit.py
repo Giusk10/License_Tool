@@ -1,16 +1,16 @@
 """
-Analysis Controllers Integration Test Module.
+Modulo di test di integrazione dei controller di analisi.
 
-This module orchestrates integration tests for the analysis controller endpoints
-defined in `app.controllers.analysis`. It verifies the end-to-end workflow,
-ensuring that API endpoints respond correctly and communicate effectively
-with mocked backend services.
+Questo modulo orchestra test di integrazione per gli endpoint del controller di analisi
+definiti in `app.controllers.analysis`. Verifica il flusso di lavoro end-to-end,
+garantendo che gli endpoint API rispondano correttamente e comunichino efficacemente
+con i servizi backend mockati.
 
-The suite covers:
-1. GitHub OAuth Authentication (Redirect and Callback).
-2. ZIP Archive Management (Upload and validation).
-3. Analysis Lifecycle (License scanning and schema validation).
-4. Post-processing (Code regeneration and artifact download).
+La suite copre:
+1. Autenticazione OAuth GitHub (Redirect e Callback).
+2. Gestione archivi ZIP (Caricamento e validazione).
+3. Ciclo di vita dell'analisi (Scansione licenze e validazione schema).
+4. Post-elaborazione (Rigenerazione codice e download artefatti).
 """
 
 import pytest
@@ -24,15 +24,15 @@ client = TestClient(app)
 
 
 # ==================================================================================
-#                                     FIXTURES
+#                                     FIXTURE
 # ==================================================================================
 
 @pytest.fixture
 def mock_creds():
     """
-     Simulates the retrieval of GitHub OAuth credentials (CLIENT_ID, SECRET).
-     Returns:
-         MagicMock: A mock object returning 'MOCK_CLIENT_ID'.
+     Simula il recupero delle credenziali OAuth GitHub (CLIENT_ID, SECRET).
+     Restituisce:
+         MagicMock: Un oggetto mock che restituisce 'MOCK_CLIENT_ID'.
      """
     with patch("app.controllers.analysis.github_auth_credentials") as m:
         m.return_value = "MOCK_CLIENT_ID"
@@ -42,9 +42,9 @@ def mock_creds():
 @pytest.fixture
 def mock_httpx_client():
     """
-     Mocks external asynchronous HTTP calls.
-     Primarily used to intercept the GitHub token exchange request
-     without performing actual network I/O.
+     Mocka le chiamate HTTP asincrone esterne.
+     Utilizzato principalmente per intercettare la richiesta di scambio token GitHub
+     senza eseguire I/O di rete effettivo.
      """
     with patch("app.controllers.analysis.httpx.AsyncClient.post", new_callable=AsyncMock) as m:
         yield m
@@ -52,73 +52,73 @@ def mock_httpx_client():
 
 @pytest.fixture
 def mock_cloning():
-    """Mocks the repository cloning service (git clone)."""
+    """Mocka il servizio di clonazione repository (git clone)."""
     with patch("app.controllers.analysis.perform_cloning") as m:
         yield m
 
 
 @pytest.fixture
 def mock_scan():
-    """Mocks the initial scanning service (ScanCode + LLM Analysis)."""
+    """Mocka il servizio di scansione iniziale (ScanCode + Analisi LLM)."""
     with patch("app.controllers.analysis.perform_initial_scan") as m:
         yield m
 
 
 @pytest.fixture
 def mock_regen():
-    """Mocks the code regeneration and correction process via LLM."""
+    """Mocka il processo di rigenerazione e correzione codice via LLM."""
     with patch("app.controllers.analysis.perform_regeneration") as m:
         yield m
 
 
 @pytest.fixture
 def mock_zip_upload():
-    """Mocks the service responsible for uploading and extracting ZIP files."""
+    """Mocka il servizio responsabile del caricamento e dell'estrazione dei file ZIP."""
     with patch("app.controllers.analysis.perform_upload_zip") as m:
         yield m
 
 
 @pytest.fixture
 def mock_download():
-    """Mocks the final ZIP package preparation for download."""
+    """Mocka la preparazione finale del pacchetto ZIP per il download."""
     with patch("app.controllers.analysis.perform_download") as m:
         yield m
 
 
-# Aliases for backward compatibility with existing tests
+# Alias per compatibilità all'indietro con i test esistenti
 @pytest.fixture
 def mock_env_credentials(mock_creds):
-    """Alias for mock_creds."""
+    """Alias per mock_creds."""
     return mock_creds
 
 
 @pytest.fixture
 def mock_httpx_post(mock_httpx_client):
-    """Alias for mock_httpx_client."""
+    """Alias per mock_httpx_client."""
     return mock_httpx_client
 
 
 @pytest.fixture
 def mock_clone(mock_cloning):
-    """Alias for mock_cloning."""
+    """Alias per mock_cloning."""
     return mock_cloning
 
 
 @pytest.fixture
 def mock_upload_zip(mock_zip_upload):
-    """Alias for mock_zip_upload."""
+    """Alias per mock_zip_upload."""
     return mock_zip_upload
 
 # ==================================================================================
-#                                   TESTS: ZIP
+#                                   TEST: ZIP
 # ==================================================================================
 
 def test_upload_zip_success(mock_zip_upload):
     """
-    Verifies successful ZIP file upload and processing.
+    Verifica il caricamento e l'elaborazione riuscita di un file ZIP.
 
-    Ensures the controller correctly receives binary data and returns
-    the 'cloned_from_zip' status.
+    Garantisce che il controller riceva correttamente i dati binari e restituisca
+    lo stato 'cloned_from_zip'.
     """
     mock_zip_upload.return_value = "/tmp/extracted_zip"
 
@@ -134,11 +134,11 @@ def test_upload_zip_success(mock_zip_upload):
 
 def test_upload_zip_bad_file(mock_zip_upload):
     """
-    Tests error handling for invalid or corrupt ZIP file uploads.
+    Testa la gestione degli errori per caricamenti di file ZIP non validi o corrotti.
 
-    Verifies that if the underlying ZIP service raises a ValueError (e.g.,
-    due to a corrupt archive or incorrect file type), the controller
-    correctly returns a 400 Bad Request status with the error details.
+    Verifica che se il servizio ZIP sottostante genera un ValueError (ad es.,
+    a causa di un archivio corrotto o tipo di file errato), il controller
+    restituisca correttamente uno stato 400 Bad Request con i dettagli dell'errore.
     """
     mock_zip_upload.side_effect = ValueError("Not a valid zip")
 
@@ -150,18 +150,18 @@ def test_upload_zip_bad_file(mock_zip_upload):
 
 
 # ==================================================================================
-#                                TESTS: ANALYSIS
+#                                TEST: ANALISI
 # ==================================================================================
 
 def test_analyze_success_correct_schema(mock_scan):
     """
-    Validates the /analyze endpoint against the AnalyzeResponse schema.
+    Valida l'endpoint /analyze rispetto allo schema AnalyzeResponse.
 
-    Ensures that:
-    - The JSON response contains 'main_license' and 'issues'.
-    - Undefined fields (e.g., 'compatibility_score') are excluded from the response.
+    Garantisce che:
+    - La risposta JSON contenga 'main_license' e 'issues'.
+    - I campi non definiti (ad es., 'compatibility_score') siano esclusi dalla risposta.
     """
-    # Mock aligned with AnalyzeResponse in schemas.py
+    # Mock allineato con AnalyzeResponse in schemas.py
     mock_scan.return_value = {
         "repository": "user/repo",
         "main_license": "MIT",
@@ -186,18 +186,18 @@ def test_analyze_success_correct_schema(mock_scan):
     assert len(data["issues"]) == 1
     assert data["issues"][0]["detected_license"] == "GPL"
 
-    # Verify that fields not existing in the schema are not present
+    # Verifica che i campi non esistenti nello schema non siano presenti
     assert "compatibility_score" not in data
 
 
 def test_analyze_internal_error(mock_scan):
     """
-    Verifies API resilience against unexpected backend service failures.
+    Verifica la resilienza dell'API contro fallimenti imprevisti del servizio backend.
 
-    Ensures that if the scanning service encounters a critical error
-    (e.g., database connection failure or unhandled exception), the
-    controller catches the crash and returns a 500 Internal Server Error
-    status instead of exposing raw exception data.
+    Garantisce che se il servizio di scansione incontra un errore critico
+    (ad es., fallimento connessione database o eccezione non gestita), il
+    controller catturi il crash e restituisca uno stato 500 Internal Server Error
+    invece di esporre dati di eccezione grezzi.
     """
     mock_scan.side_effect = Exception("Database error")
 
@@ -208,17 +208,17 @@ def test_analyze_internal_error(mock_scan):
 
 
 # ==================================================================================
-#                                TESTS: REGENERATE
+#                                TEST: RIGENERA
 # ==================================================================================
 
 def test_regenerate_success(mock_regen):
     """
-    Verifies the code regeneration logic.
+    Verifica la logica di rigenerazione del codice.
 
-    Checks that the controller correctly splits the 'repository' string
-    into 'owner' and 'repo' before calling the service.
+    Controlla che il controller divida correttamente la stringa 'repository'
+    in 'owner' e 'repo' prima di chiamare il servizio.
     """
-    # Simulate the input payload (which is a previous AnalyzeResponse)
+    # Simula il payload di input (che è un AnalyzeResponse precedente)
     payload = {
         "repository": "facebook/react",
         "main_license": "MIT",
@@ -226,14 +226,14 @@ def test_regenerate_success(mock_regen):
         "report_path": "path"
     }
 
-    # The service returns an updated object
+    # Il servizio restituisce un oggetto aggiornato
     mock_regen.return_value = payload
 
     response = client.post("/api/regenerate", json=payload)
 
     assert response.status_code == 200
 
-    # Verify correct parameter passing (split owner/repo)
+    # Verifica il passaggio corretto dei parametri (split owner/repo)
     mock_regen.assert_called_once()
     kwargs = mock_regen.call_args[1]
     assert kwargs["owner"] == "facebook"
@@ -242,12 +242,12 @@ def test_regenerate_success(mock_regen):
 
 def test_regenerate_bad_repo_string(mock_regen):
     """
-    Validates the handling of malformed repository identifiers during regeneration.
+    Valida la gestione di identificatori di repository malformati durante la rigenerazione.
 
-    The regeneration endpoint requires the 'repository' field to follow the
-    'owner/repo' slash format. This test ensures that if a string without
-    a slash is provided, the API correctly identifies the format error
-    and returns a 400 Bad Request status.
+    L'endpoint di rigenerazione richiede che il campo 'repository' segua il
+    formato 'owner/repo' con slash. Questo test garantisce che se viene fornita una stringa senza
+    slash, l'API identifichi correttamente l'errore di formato
+    e restituisca uno stato 400 Bad Request.
     """
     payload = {
         "repository": "invalid-string",
@@ -262,21 +262,21 @@ def test_regenerate_bad_repo_string(mock_regen):
 
 
 # ==================================================================================
-#                                TESTS: DOWNLOAD
+#                                TEST: DOWNLOAD
 # ==================================================================================
 
 def test_download_success(mock_download, tmp_path):
     """
-    Verifies the archival and delivery of analyzed projects.
+    Verifica l'archiviazione e la consegna di progetti analizzati.
 
-    Uses pytest's 'tmp_path' to create a physical file, ensuring FastAPI's
-    FileResponse can serve the content without errors.
+    Utilizza 'tmp_path' di pytest per creare un file fisico, garantendo che FastAPI's
+    FileResponse possa servire il contenuto senza errori.
     """
-    # 1. Create a temporary physical file
+    # 1. Crea un file fisico temporaneo
     fake_zip = tmp_path / "archive.zip"
     fake_zip.write_bytes(b"DATA")
 
-    # 2. The mock returns the path of this file
+    # 2. Il mock restituisce il percorso di questo file
     mock_download.return_value = str(fake_zip)
 
     response = client.post("/api/download", json={"owner": "u", "repo": "r"})
@@ -289,11 +289,11 @@ def test_download_success(mock_download, tmp_path):
 
 def test_download_missing_repo(mock_download):
     """
-    Validates error handling for download requests of non-existent repositories.
+    Valida la gestione degli errori per richieste di download di repository non esistenti.
 
-    Ensures that if the download service cannot find the requested repository
-    on disk (raising a ValueError), the API responds with a 400 Bad Request
-    status and provides a clear error message in the response detail.
+    Garantisce che se il servizio di download non riesce a trovare il repository richiesto
+    su disco (generando un ValueError), l'API risponda con uno stato 400 Bad Request
+    e fornisca un messaggio di errore chiaro nel dettaglio della risposta.
     """
     mock_download.side_effect = ValueError("Repo not cloned")
 
@@ -304,20 +304,20 @@ def test_download_missing_repo(mock_download):
 
 
 # ==================================================================================
-#                       ADDITIONAL UNIT TESTS (NEWLY REQUESTED)
+#                       TEST UNITARI AGGIUNTIVI (NUOVAMENTE RICHIESTI)
 # ==================================================================================
 
 def test_analyze_with_schema_validation(mock_scan):
     """
-     Validates the analysis endpoint response against the AnalyzeResponse schema.
+     Valida la risposta dell'endpoint di analisi rispetto allo schema AnalyzeResponse.
 
-     The test ensures that the response contains the required 'repository',
-     'main_license', and 'issues' list, strictly following the defined Pydantic schema.
+     Il test garantisce che la risposta contenga i campi richiesti 'repository',
+     'main_license' e la lista 'issues', seguendo rigorosamente lo schema Pydantic definito.
 
-     Args:
-         mock_scan: Mock for the initial scanning service.
+     Argomenti:
+         mock_scan: Mock per il servizio di scansione iniziale.
      """
-    # Mock compliant with your schema (WITHOUT 'analysis', WITH 'main_license')
+    # Mock conforme al tuo schema (SENZA 'analysis', CON 'main_license')
     mock_res = {
         "repository": "test/repo",
         "main_license": "MIT",
@@ -339,10 +339,10 @@ def test_analyze_with_schema_validation(mock_scan):
 
 def test_analyze_missing_required_params():
     """
-    Verifies that missing required parameters trigger a validation error.
+    Verifica che i parametri obbligatori mancanti attivino un errore di validazione.
 
-    If either 'owner' or 'repo' is missing from the request body,
-    the API must return a 400 error.
+    Se 'owner' o 'repo' mancano dal corpo della richiesta,
+    l'API deve restituire un errore 400.
     """
     response = client.post("/api/analyze", json={"owner": "solo_owner"})
     assert response.status_code == 400
@@ -350,17 +350,16 @@ def test_analyze_missing_required_params():
 
 def test_regenerate_with_payload_validation(mock_regen):
     """
-       Verifies the regeneration flow with a valid analysis payload.
+       Verifica il flusso di rigenerazione con un payload di analisi valido.
 
-       This test ensures that the controller can process a previously
-       generated AnalyzeResponse and pass the details back to the LLM
-       regeneration service.
+       Questo test garantisce che il controller possa elaborare un AnalyzeResponse
+       generato in precedenza e passare i dettagli al servizio di rigenerazione LLM.
 
-       Args:
-           mock_regen: Mock for the code regeneration service.
+       Argomenti:
+           mock_regen: Mock per il servizio di rigenerazione codice.
        """
 
-    # Payload INPUT (Must have main_license, issues)
+    # Payload INPUT (Deve avere main_license, issues)
     payload = {
         "repository": "facebook/react",
         "main_license": "MIT",
@@ -389,16 +388,17 @@ def test_regenerate_with_payload_validation(mock_regen):
 
 def test_regenerate_invalid_format():
     """
-    Handles cases where the repository string lacks the required slash.
+    Gestisce i casi in cui la stringa repository manca dello slash richiesto.
 
-    Ensures a 400 error is returned when the repository identifier
-    is improperly formatted, even if the JSON structure is valid.
+    Garantisce che venga restituito un errore 400 quando l'identificatore repository
+    è formattato in modo improprio, anche se la struttura JSON è valida.
     """
     payload = {
         "repository": "noslash",
         "main_license": "N/A",
         "issues": []
     }
+
     response = client.post("/api/regenerate", json=payload)
 
     assert response.status_code == 400
@@ -407,10 +407,10 @@ def test_regenerate_invalid_format():
 
 def test_download_zip_success(mock_download, tmp_path):
     """
-    Tests successful retrieval of the analyzed ZIP package.
+    Testa il recupero riuscito del pacchetto ZIP analizzato.
 
-    Validates the response headers and ensures the binary content
-    is correctly streamed to the client.
+    Valida le intestazioni di risposta e garantisce che il contenuto binario
+    sia trasmesso correttamente al client.
     """
     dummy_zip = tmp_path / "fake.zip"
     dummy_zip.write_bytes(b"DATA")
@@ -425,10 +425,10 @@ def test_download_zip_success(mock_download, tmp_path):
 
 def test_download_error_handling(mock_download):
     """
-    Verifies error handling when a requested repository package is missing.
+    Verifica la gestione degli errori quando un pacchetto repository richiesto è mancante.
 
-    Ensures that a 400 error is returned if the download service
-    cannot find the specified repository on disk.
+    Garantisce che venga restituito un errore 400 se il servizio di download
+    non riesce a trovare il repository specificato su disco.
     """
     mock_download.side_effect = ValueError("Not found")
     response = client.post("/api/download", json={"owner": "u", "repo": "r"})
@@ -437,10 +437,10 @@ def test_download_error_handling(mock_download):
 
 def test_upload_zip_with_file_validation(mock_upload_zip, tmp_path):
     """
-     Verifies the ZIP upload endpoint with a temporary physical file.
+     Verifica l'endpoint di caricamento ZIP con un file fisico temporaneo.
 
-     Tests the integration between the multipart file upload and
-     the backend service that extracts the archive.
+     Testa l'integrazione tra il caricamento multipart del file e
+     il servizio backend che estrae l'archivio.
      """
     fake_zip = tmp_path / "test.zip"
     fake_zip.write_bytes(b"content")
@@ -459,15 +459,15 @@ def test_upload_zip_with_file_validation(mock_upload_zip, tmp_path):
 
 
 # ==================================================================================
-#                            LICENSE SUGGESTION TESTS
+#                            TEST SUGGERIMENTO LICENZA
 # ==================================================================================
 
 def test_suggest_license_success():
     """
-    Testing the suggest_license endpoint successfully.
+    Test dell'endpoint suggest_license con successo.
 
-    Verify that the /api/suggest-license endpoint returned
-    a valid license suggestion based on the requirements provided.
+    Verifica che l'endpoint /api/suggest-license restituisca
+    un suggerimento di licenza valido basato sui requisiti forniti.
     """
     payload = {
         "owner": "testowner",
@@ -501,9 +501,9 @@ def test_suggest_license_success():
 
 def test_suggest_license_minimal_requirements():
     """
-    Test suggest_license with minimum requirements.
+    Test suggest_license con requisiti minimi.
 
-    Verify that the endpoint works even with minimum requirements (required fields only).
+    Verifica che l'endpoint funzioni anche con requisiti minimi (solo campi richiesti).
     """
     payload = {
         "owner": "testowner",
@@ -526,10 +526,10 @@ def test_suggest_license_minimal_requirements():
 
 def test_suggest_license_with_constraints():
     """
-    Test suggest_license with specific constraints.
+    Test suggest_license con vincoli specifici.
 
-    Verify that custom constraints are correctly processed
-    by the suggestion system.
+    Verifica che i vincoli personalizzati siano elaborati correttamente
+    dal sistema di suggerimento.
     """
     payload = {
         "owner": "testowner",
@@ -559,10 +559,10 @@ def test_suggest_license_with_constraints():
 
 def test_suggest_license_error_handling():
     """
-    Test suggest_license with an AI service error.
+    Test suggest_license con un errore del servizio AI.
 
-    Verify that suggestion service errors
-    are handled correctly and return a 500 error.
+    Verifica che gli errori del servizio di suggerimento
+    siano gestiti correttamente e restituiscano un errore 500.
     """
     payload = {
         "owner": "testowner",
@@ -581,27 +581,27 @@ def test_suggest_license_error_handling():
 
 def test_suggest_license_invalid_payload():
     """
-    Test suggest_license with invalid payload.
+    Test suggest_license con payload non valido.
 
-    Verify that the endpoint rejects malformed payloads
-    with Pydantic validation.
+    Verifica che l'endpoint rifiuti payload malformati
+    con validazione Pydantic.
     """
     payload = {
         "owner": "testowner"
-        # Missing mandatory repo
+        # Mancante repo obbligatorio
     }
 
     response = client.post("/api/suggest-license", json=payload)
 
-    assert response.status_code == 422  # Unprocessable Entity (Pydantic validation)
+    assert response.status_code == 422  # Unprocessable Entity (validazione Pydantic)
 
 
 def test_suggest_license_with_detected_licenses():
     """
-    Test suggest_license with the provided detected_licenses.
+    Test suggest_license con detected_licenses fornite.
 
-    Verify that the endpoint correctly processes detected licenses
-    and passes them to the suggester.
+    Verifica che l'endpoint elabori correttamente le licenze rilevate
+    e le passi al suggeritore.
     """
     payload = {
         "owner": "testowner",
@@ -627,7 +627,7 @@ def test_suggest_license_with_detected_licenses():
     assert data["suggested_license"] == "Apache-2.0"
     assert "compatible" in data["explanation"].lower()
 
-    # Verify detected_licenses was passed to the function
+    # Verifica che detected_licenses sia stato passato alla funzione
     mock_suggest.assert_called_once()
     call_args, call_kwargs = mock_suggest.call_args
     assert "detected_licenses" in call_kwargs
@@ -636,9 +636,9 @@ def test_suggest_license_with_detected_licenses():
 
 def test_suggest_license_with_empty_detected_licenses():
     """
-    Test suggest_license with an empty detected_licenses.
+    Test suggest_license con detected_licenses vuoto.
 
-    Verify that an empty detected_licenses list is handled correctly.
+    Verifica che una lista detected_licenses vuota sia gestita correttamente.
     """
     payload = {
         "owner": "testowner",
@@ -660,17 +660,17 @@ def test_suggest_license_with_empty_detected_licenses():
     data = response.json()
     assert data["suggested_license"] == "MIT"
 
-    # Verify empty list was passed
+    # Verifica che la lista vuota sia stata passata
     call_kwargs = mock_suggest.call_args[1]
     assert call_kwargs["detected_licenses"] == []
 
 
 def test_suggest_license_without_detected_licenses():
     """
-    Test suggest_license without detected_licenses (field omitted).
+    Test suggest_license senza detected_licenses (campo omesso).
 
-    Verify that the endpoint works correctly when detected_licenses
-    is not provided in the payload.
+    Verifica che l'endpoint funzioni correttamente quando detected_licenses
+    non è fornito nel payload.
     """
     payload = {
         "owner": "testowner",
@@ -692,6 +692,7 @@ def test_suggest_license_without_detected_licenses():
     data = response.json()
     assert data["suggested_license"] == "LGPL-3.0"
 
-    # Verify None was passed when field is omitted
+    # Verifica che None sia stato passato quando il campo è omesso
     call_kwargs = mock_suggest.call_args[1]
     assert call_kwargs["detected_licenses"] is None
+

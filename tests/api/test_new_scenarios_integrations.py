@@ -1,12 +1,12 @@
 """
-Core Services Integration Test Module.
+Modulo di test di integrazione dei servizi core.
 
-This module validates the integration between the application's core services,
-including persistence (MongoDB), repository management (GitHub),
-license scanning (ScanCode), and the AI-driven code regeneration workflow.
+Questo modulo valida l'integrazione tra i servizi core dell'applicazione,
+inclusi persistenza (MongoDB), gestione repository (GitHub),
+scansione licenze (ScanCode), e il flusso di lavoro di rigenerazione basato su AI.
 
-It ensures that data flows correctly between the service layers and that
-file system operations—such as cloning and code overwriting—behave as expected.
+Garantisce che i dati fluiscano correttamente tra i livelli di servizio e che
+le operazioni del file system—come clonazione e sovrascrittura del codice—si comportino come previsto.
 """
 
 import pytest
@@ -26,24 +26,24 @@ def client():
     return TestClient(app)
 
 # ==================================================================================
-#                          TEST SUITE: LICENSE SCANNING
+#                          SUITE DI TEST: SCANSIONE LICENZE
 # ==================================================================================
 
 class TestIntegrationScanner:
     """
-    Tests the integration with the ScanCode binary on the file system.
+    Testa l'integrazione con il binario ScanCode sul file system.
     """
     def test_scancode_on_small_folder(self):
         """
-        Executes a real license detection scan on a local temporary directory.
+        Esegue una scansione reale di rilevamento licenze su una directory temporanea locale.
 
-        Process:
-        1. Creates a temporary workspace using `tempfile`.
-        2. Writes a dummy Python file containing an explicit MIT license header.
-        3. Invokes `run_scancode` to verify that the file is detected and parsed.
+        Processo:
+        1. Crea uno spazio di lavoro temporaneo utilizzando `tempfile`.
+        2. Scrive un file Python dummy contenente un'intestazione di licenza MIT esplicita.
+        3. Invoca `run_scancode` per verificare che il file sia rilevato e analizzato.
 
-        Note:
-            This test is skipped if the ScanCode binary is not installed in the system.
+        Nota:
+            Questo test viene saltato se il binario ScanCode non è installato nel sistema.
         """
         from app.services.scanner.detection import run_scancode
 
@@ -70,7 +70,7 @@ class TestIntegrationScanner:
 
 class TestIntegrationCodeGeneratorFileSystem:
     """
-    Validates the full cycle of code correction and file system updates.
+    Valida il ciclo completo di correzione del codice e aggiornamenti del file system.
     """
     @patch('app.services.analysis_workflow.detect_main_license_scancode')
     @patch('app.services.analysis_workflow.regenerate_code')
@@ -82,16 +82,16 @@ class TestIntegrationCodeGeneratorFileSystem:
     def test_full_regeneration_cycle(self, mock_enrich, mock_compat, mock_extract, mock_filter, mock_scancode,
                                      mock_regenerate, mock_detect):
         """
-        Verifies that incompatible code is correctly overwritten on disk.
+        Verifica che il codice incompatibile sia correttamente sovrascritto su disco.
 
-        Logical Workflow:
-        1. Setup: Create a temporary repository directory and a file with GPL code.
-        2. Execution: Call `perform_regeneration` with a mock LLM response (MIT code).
-        3. Validation: Read the file from disk to confirm the content has been
-           successfully updated and the old incompatible code is gone.
+        Flusso logico:
+        1. Setup: Crea una directory repository temporanea e un file con codice GPL.
+        2. Esecuzione: Chiama `perform_regeneration` con una risposta LLM mock (codice MIT).
+        3. Validazione: Leggi il file dal disco per confermare che il contenuto sia stato
+           aggiornato con successo e che il vecchio codice incompatibile sia andato.
 
-        Returns:
-            None: Asserts file content equality.
+        Restituisce:
+            None: Asserisce l'uguaglianza del contenuto del file.
         """
         # Setup mocks
         mock_regenerate.return_value = "# MIT License\n\ndef hello():\n    print('Hello MIT')\n"
@@ -137,21 +137,21 @@ class TestIntegrationCodeGeneratorFileSystem:
                 assert new_content != original_content
 
 # ==================================================================================
-#                       TEST SUITE: CODE REGENERATION & I/O
+#                       SUITE DI TEST: RIGENERAZIONE CODICE & I/O
 # ==================================================================================
 
 class TestIntegrationErrorHandling:
     """
-    Tests the robustness of the API when backend services fail.
+    Testa la robustezza dell'API quando i servizi backend falliscono.
     """
     @patch('app.controllers.analysis.perform_download')
     def test_download_service_failure_propagation(self, mock_download, client):
         """
-        Checks the mapping of service-level exceptions to HTTP responses.
+        Controlla la mappatura delle eccezioni a livello di servizio alle risposte HTTP.
 
-        Ensures that if the download service raises a `PermissionError`,
-        the API layer catches it and returns a 500 status with a clean
-        JSON error message instead of crashing.
+        Garantisce che se il servizio di download genera un `PermissionError`,
+        il livello API lo catturi e restituisca uno stato 500 con un messaggio di errore JSON pulito
+        invece di crashare.
         """
         # Mock perform_download to raise an exception
         mock_download.side_effect = PermissionError("Permission denied")
@@ -165,21 +165,21 @@ class TestIntegrationErrorHandling:
 
 
 # ==================================================================================
-#                       NEW INTEGRATION TESTS FOR WORKFLOWS
+#                       NUOVI TEST DI INTEGRAZIONE PER WORKFLOW
 # ==================================================================================
 
 class TestIntegrationCloneWorkflow:
     """
-    Comprehensive tests for the repository cloning workflow.
+    Test completi per il workflow di clonazione repository.
     """
 
     @patch('app.controllers.analysis.perform_cloning')
     def test_clone_repository_complete_flow(self, mock_clone, client):
         """
-        Test the complete repository cloning workflow.
+        Testa il workflow completo di clonazione repository.
 
-        Verifies that the cloning process works end-to-end from
-        the endpoint to the service.
+        Verifica che il processo di clonazione funzioni end-to-end dall'
+        endpoint al servizio.
         """
         mock_clone.return_value = "/tmp/test_clones/testowner_testrepo"
 
@@ -199,9 +199,9 @@ class TestIntegrationCloneWorkflow:
     @patch('app.controllers.analysis.perform_cloning')
     def test_clone_repository_with_special_chars(self, mock_clone, client):
         """
-        Tests cloning with special characters in the name.
+        Testa la clonazione con caratteri speciali nel nome.
 
-        Verifies that repositories with complex names are handled correctly.
+        Verifica che i repository con nomi complessi siano gestiti correttamente.
         """
         mock_clone.return_value = "/tmp/test_clones/org-name_repo.test"
 
@@ -217,16 +217,16 @@ class TestIntegrationCloneWorkflow:
 
 class TestIntegrationAnalysisWorkflow:
     """
-    Comprehensive tests for the analysis workflow.
+    Test completi per il workflow di analisi.
     """
 
     @patch('app.controllers.analysis.perform_initial_scan')
     def test_analysis_with_multiple_issues(self, mock_scan, client):
         """
-        Tests analysis with multiple license issues.
+        Testa l'analisi con più problemi di licenza.
 
-        Verifies that the system correctly handles repositories
-        with multiple incompatible files.
+        Verifica che il sistema gestisca correttamente repository
+        con più file incompatibili.
         """
         mock_scan.return_value = AnalyzeResponse(
             repository="owner/repo",
@@ -268,9 +268,9 @@ class TestIntegrationAnalysisWorkflow:
     @patch('app.controllers.analysis.perform_initial_scan')
     def test_analysis_with_license_suggestion_needed(self, mock_scan, client):
         """
-        Tests analysis that requires a license suggestion.
+        Testa l'analisi che richiede un suggerimento di licenza.
 
-        Verifies that the `needs_license_suggestion` flag is correctly set.
+        Verifica che il flag `needs_license_suggestion` sia correttamente impostato.
         """
         mock_scan.return_value = AnalyzeResponse(
             repository="owner/repo",
@@ -292,16 +292,16 @@ class TestIntegrationAnalysisWorkflow:
 
 class TestIntegrationRegenerationWorkflow:
     """
-    Comprehensive tests for the regeneration workflow.
+    Test completi per il workflow di rigenerazione.
     """
 
     @patch('app.controllers.analysis.perform_regeneration')
     def test_regeneration_reduces_issues(self, mock_regen, client):
         """
-        Tests that regeneration reduces compatibility issues.
+        Testa che la rigenerazione riduca i problemi di compatibilità.
 
-        Simulates a scenario where, after regeneration,
-        some issues are resolved.
+        Simula uno scenario in cui, dopo la rigenerazione,
+        alcuni problemi vengono risolti.
         """
         # Previous analysis with 2 issues
         previous = {
@@ -346,16 +346,16 @@ class TestIntegrationRegenerationWorkflow:
 
 class TestIntegrationLicenseSuggestion:
     """
-    Integration tests for the license suggestion system.
+    Test di integrazione per il sistema di suggerimento licenze.
     """
 
     @patch('app.controllers.analysis.suggest_license_based_on_requirements')
     def test_license_suggestion_complete_workflow(self, mock_suggest, client):
         """
-        Tests the complete license suggestion workflow.
+        Testa il workflow completo di suggerimento licenze.
 
-        Verifies that the system can suggest an appropriate license
-        based on user requirements.
+        Verifica che il sistema possa suggerire una licenza appropriata
+        basata sui requisiti dell'utente.
         """
         mock_suggest.return_value = {
             "suggested_license": "Apache-2.0",
@@ -385,10 +385,10 @@ class TestIntegrationLicenseSuggestion:
     @patch('app.controllers.analysis.suggest_license_based_on_requirements')
     def test_license_suggestion_for_copyleft(self, mock_suggest, client):
         """
-        Tests suggestion for copyleft licenses.
+        Testa il suggerimento per licenze copyleft.
 
-        Verifies that the system correctly suggests copyleft licenses
-        when requested.
+        Verifica che il sistema suggerisca correttamente licenze copyleft
+        quando richiesto.
         """
         mock_suggest.return_value = {
             "suggested_license": "GPL-3.0",
@@ -417,16 +417,16 @@ class TestIntegrationLicenseSuggestion:
 
 class TestIntegrationZipUploadWorkflow:
     """
-    Integration tests for ZIP upload.
+    Test di integrazione per il caricamento ZIP.
     """
 
     @patch('app.controllers.analysis.perform_upload_zip')
     def test_zip_upload_and_analyze_workflow(self, mock_upload, client):
         """
-        Tests complete workflow: ZIP upload + analysis.
+        Testa il workflow completo: caricamento ZIP + analisi.
 
-        Verifies that a repository uploaded via ZIP can
-        be successfully analyzed.
+        Verifica che un repository caricato via ZIP possa
+        essere analizzato con successo.
         """
         # Step 1: Upload ZIP
         mock_upload.return_value = "/tmp/test_clones/uploaded_repo"
@@ -460,16 +460,16 @@ class TestIntegrationZipUploadWorkflow:
 
 class TestIntegrationErrorScenarios:
     """
-    Integration tests for error scenarios.
+    Test di integrazione per scenari di errore.
     """
 
     @patch('app.controllers.analysis.perform_cloning')
     def test_clone_failure_then_retry(self, mock_clone, client):
         """
-        Tests cloning failure followed by a retry.
+        Testa il fallimento della clonazione seguito da un retry.
 
-        Verifies that the system correctly handles cloning errors
-        and allows for a retry.
+        Verifica che il sistema gestisca correttamente gli errori di clonazione
+        e permetta un retry.
         """
         # First call fails
         mock_clone.side_effect = ValueError("Network error")

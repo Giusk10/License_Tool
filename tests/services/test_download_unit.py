@@ -1,15 +1,15 @@
 """
-Download Service Unit Test Module.
+Modulo di test unitario del servizio di download.
 
-This module contains unit tests for `app.services.downloader.download_service`.
-It ensures that locally cloned repositories can be correctly archived into
-ZIP files, handling various scenarios such as missing directories, special
-characters, and existing archive overwrites.
+Questo modulo contiene test unitari per `app.services.downloader.download_service`.
+Garantisce che i repository clonati localmente possano essere correttamente archiviati in
+file ZIP, gestendo vari scenari come directory mancanti, caratteri speciali e
+sovrascritture di archivi esistenti.
 
-The suite focuses on:
-1. Archive Creation: Correct use of shutil to generate valid ZIP files.
-2. File System Integrity: Verification of paths and content within the archive.
-3. Error Resilience: Handling of non-existent repositories and empty folders.
+La suite si concentra su:
+1. Creazione archivio: Uso corretto di shutil per generare file ZIP validi.
+2. Integrità file system: Verifica di percorsi e contenuto all'interno dell'archivio.
+3. Resilienza errori: Gestione di repository non esistenti e cartelle vuote.
 """
 
 import os
@@ -20,25 +20,25 @@ import pytest
 from app.services.downloader.download_service import perform_download
 
 # ==================================================================================
-#                          TEST CLASS: PERFORM DOWNLOAD
+#                          CLASSE DI TEST: ESEGUI DOWNLOAD
 # ==================================================================================
 
 class TestPerformDownload:
     """
-    Test suite for the 'perform_download' function.
+    Suite di test per la funzione 'perform_download'.
 
-    Verifies that the service correctly identifies the local repository path
-    and compresses it into a predictable ZIP structure.
+    Verifica che il servizio identifichi correttamente il percorso del repository locale
+    e lo comprima in una struttura ZIP prevedibile.
     """
 
     def test_perform_download_success(self, tmp_path):
         """
-        Validates the successful archival of a standard repository.
+        Valida l'archiviazione riuscita di un repository standard.
 
-        Ensures that:
-        - The generated ZIP path is correct.
-        - The physical ZIP file is created.
-        - The archive contents match the source directory structure.
+        Garantisce che:
+        - Il percorso ZIP generato sia corretto.
+        - Il file ZIP fisico sia creato.
+        - Il contenuto dell'archivio corrisponda alla struttura della directory sorgente.
         """
         # Setup test directory
         clone_base_dir = str(tmp_path / "clones")
@@ -80,10 +80,10 @@ class TestPerformDownload:
 
     def test_perform_download_repository_not_found(self, tmp_path):
         """
-        Tests the error handling for missing repositories.
+        Testa la gestione degli errori per repository mancanti.
 
-        Verifies that a ValueError is raised with a descriptive message
-        if the function is called for a repository that hasn't been cloned yet.
+        Verifica che venga sollevato un ValueError con un messaggio descrittivo
+        se la funzione viene chiamata per un repository che non è stato ancora clonato.
         """
         clone_base_dir = str(tmp_path / "clones")
         os.makedirs(clone_base_dir, exist_ok=True)
@@ -101,10 +101,10 @@ class TestPerformDownload:
 
     def test_perform_download_creates_zip_with_correct_name(self, tmp_path):
         """
-        Verifies the naming convention for the generated archives.
+        Verifica la convenzione di denominazione per gli archivi generati.
 
-        Ensures the archive follows the pattern '{owner}_{repo}_download.zip'
-        to maintain consistency across the application.
+        Garantisce che l'archivio segua il pattern '{owner}_{repo}_download.zip'
+        per mantenere la consistenza nell'applicazione.
         """
         clone_base_dir = str(tmp_path / "clones")
         os.makedirs(clone_base_dir, exist_ok=True)
@@ -128,10 +128,10 @@ class TestPerformDownload:
 
     def test_perform_download_handles_special_characters_in_names(self, tmp_path):
         """
-        Tests resilience against non-standard characters in identifiers.
+        Testa la resilienza contro caratteri non standard negli identificatori.
 
-        Ensures that dots, dashes, and underscores in owner or repository
-        names do not break the file system operations or archive creation.
+        Garantisce che punti, trattini e sottolineature nei nomi owner o repository
+        non rompano le operazioni del file system o la creazione dell'archivio.
         """
         clone_base_dir = str(tmp_path / "clones")
         os.makedirs(clone_base_dir, exist_ok=True)
@@ -154,11 +154,11 @@ class TestPerformDownload:
 
     def test_perform_download_overwrites_existing_zip(self, tmp_path):
         """
-        Ensures the service handles existing archives correctly (Idempotency).
+        Garantisce che il servizio gestisca correttamente gli archivi esistenti (Idempotenza).
 
-        Validates that if a ZIP with the same name already exists, it is
-        overwritten with a fresh, valid archive instead of causing a
-        WriteError or corruption.
+        Valida che se un ZIP con lo stesso nome esiste già, venga
+        sovrascritto con un archivio fresco e valido invece di causare un
+        WriteError o corruzione.
         """
         clone_base_dir = str(tmp_path / "clones")
         os.makedirs(clone_base_dir, exist_ok=True)
@@ -192,11 +192,11 @@ class TestPerformDownload:
 
     def test_perform_download_empty_repository(self, tmp_path):
         """
-        Checks behavior when archiving an empty directory.
+        Controlla il comportamento quando si archivia una directory vuota.
 
-        Ensures that the service can still create a valid (though small) ZIP
-        file for a repository that contains no files, maintaining
-        API consistency.
+        Garantisce che il servizio possa ancora creare un file ZIP valido (sebbene piccolo)
+        per un repository che non contiene file, mantenendo
+        la consistenza dell'API.
         """
         clone_base_dir = str(tmp_path / "clones")
         os.makedirs(clone_base_dir, exist_ok=True)

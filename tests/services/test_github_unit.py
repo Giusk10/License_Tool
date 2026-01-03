@@ -8,10 +8,10 @@ from app.services.github.github_client import clone_repo, _handle_remove_readonl
 
 
 class TestHandleRemoveReadonly:
-    """Tests for the handle_remove_readonly function."""
+    """Test per la funzione handle_remove_readonly."""
 
     def test_handle_remove_readonly_removes_readonly_flag(self, tmp_path):
-        """Verify that the function removes the ReadOnly flag and calls the removal function."""
+        """Verifica che la funzione rimuova il flag ReadOnly e chiami la funzione di rimozione."""
         # Create a test file
         test_file = tmp_path / "readonly_file.txt"
         test_file.write_text("test content")
@@ -30,14 +30,14 @@ class TestHandleRemoveReadonly:
 
 
 class TestCloneRepo:
-    """Tests for the clone_repo function."""
+    """Test per la funzione clone_repo."""
 
     @patch("app.services.github.github_client.Repo.clone_from")
     @patch("app.services.github.github_client.shutil.rmtree")
     @patch("app.services.github.github_client.os.path.exists")
     @patch("app.services.github.github_client.os.makedirs")
     def test_clone_repo_success(self, mock_makedirs, mock_exists, mock_rmtree, mock_clone_from, tmp_path):
-        """Test successful clone_repo."""
+        """Testa clone_repo riuscito."""
         mock_exists.return_value = False
         mock_clone_from.return_value = None
 
@@ -53,7 +53,7 @@ class TestCloneRepo:
     @patch("app.services.github.github_client.os.path.exists")
     @patch("app.services.github.github_client.os.makedirs")
     def test_clone_repo_with_cleanup(self, mock_makedirs, mock_exists, mock_rmtree, mock_clone_from, tmp_path):
-        """Test clone_repo with cleanup of existing directory."""
+        """Testa clone_repo con pulizia della directory esistente."""
         mock_exists.return_value = True
         mock_clone_from.return_value = None
 
@@ -67,7 +67,7 @@ class TestCloneRepo:
     @patch("app.services.github.github_client.os.path.exists")
     @patch("app.services.github.github_client.os.makedirs")
     def test_clone_repo_git_error(self, mock_makedirs, mock_exists, mock_clone_from):
-        """Test clone_repo with Git error."""
+        """Testa clone_repo con errore Git."""
         mock_exists.return_value = False
         mock_clone_from.side_effect = GitCommandError("clone", "Authentication failed")
 
@@ -82,7 +82,7 @@ class TestCloneRepo:
     @patch("app.services.github.github_client.os.path.exists")
     @patch("app.services.github.github_client.os.makedirs")
     def test_clone_repo_filesystem_error(self, mock_makedirs, mock_exists, mock_rmtree, mock_clone_from):
-        """Test clone_repo with filesystem error."""
+        """Testa clone_repo con errore del file system."""
         mock_exists.return_value = True
         mock_rmtree.side_effect = OSError("Permission denied")
 

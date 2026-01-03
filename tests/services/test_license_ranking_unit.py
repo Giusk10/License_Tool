@@ -1,14 +1,14 @@
 """
-License Ranking Service Unit Test Module.
+Modulo di test unitario del servizio di ranking delle licenze.
 
-This module contains unit tests for the license ranking logic in
-`app.services.scanner.license_ranking`. It validates the functions used to
-extract licenses from SPDX expressions and rank them by permissiveness.
+Questo modulo contiene test unitari per la logica di ranking delle licenze in
+`app.services.scanner.license_ranking`. Valida le funzioni utilizzate per
+estrarre licenze da espressioni SPDX e rankarle per permissività.
 
-The suite covers:
-1. License Extraction: Parsing complex SPDX expressions with OR/AND operators.
-2. License Ranking: Selecting the most permissive license from alternatives.
-3. JSON Loading: Proper handling of the permissiveness ranking file.
+La suite copre:
+1. Estrazione licenze: Analisi di espressioni SPDX complesse con operatori OR/AND.
+2. Ranking licenze: Selezione della licenza più permissiva tra alternative.
+3. Caricamento JSON: Gestione corretta del file di ranking della permissività.
 """
 
 import pytest
@@ -21,83 +21,83 @@ from app.services.scanner.license_ranking import (
 
 
 # ==================================================================================
-#                     TEST CLASS: LICENSE EXTRACTION
+#                     CLASSE DI TEST: ESTRAZIONE LICENZE
 # ==================================================================================
 
 class TestExtractLicenses:
     """
-    Tests for the 'estract_licenses' function.
+    Test per la funzione 'estract_licenses'.
 
-    Validates the parsing of SPDX expressions to extract individual license
-    identifiers, handling both simple and complex expressions.
+    Valida l'analisi delle espressioni SPDX per estrarre identificatori di licenza individuali,
+    gestendo sia espressioni semplici che complesse.
     """
 
     def test_extract_single_license(self):
-        """Verifies extraction of a single license without operators."""
+        """Verifica l'estrazione di una singola licenza senza operatori."""
         result = estract_licenses("MIT")
         assert result == ["MIT"]
 
     def test_extract_simple_or_expression(self):
-        """Verifies extraction from a simple OR expression."""
+        """Verifica l'estrazione da un'espressione OR semplice."""
         result = estract_licenses("MIT OR Apache-2.0")
         assert result == ["MIT", "Apache-2.0"]
 
     def test_extract_multiple_or_expressions(self):
-        """Verifies extraction from multiple OR expressions."""
+        """Verifica l'estrazione da più espressioni OR."""
         result = estract_licenses("MIT OR Apache-2.0 OR GPL-3.0")
         assert result == ["MIT", "Apache-2.0", "GPL-3.0"]
 
     def test_extract_with_parentheses(self):
         """
-        Verifies that parentheses are preserved in the result.
+        Verifica che le parentesi siano preservate nel risultato.
 
-        The function should not split inside parentheses at depth > 0.
+        La funzione non dovrebbe dividere dentro parentesi a profondità > 0.
         """
         result = estract_licenses("(MIT AND BSD-2-Clause) OR Apache-2.0")
         assert result == ["(MIT AND BSD-2-Clause)", "Apache-2.0"]
 
     def test_extract_nested_parentheses(self):
-        """Verifies handling of deeply nested parentheses."""
+        """Verifica la gestione di parentesi profondamente annidate."""
         result = estract_licenses("((MIT OR ISC) AND BSD-2-Clause) OR Apache-2.0")
         assert result == ["((MIT OR ISC) AND BSD-2-Clause)", "Apache-2.0"]
 
     def test_extract_empty_string(self):
-        """Verifies handling of empty input."""
+        """Verifica la gestione di input vuoto."""
         result = estract_licenses("")
         assert result == []
 
     def test_extract_none_input(self):
-        """Verifies handling of None input."""
+        """Verifica la gestione di input None."""
         result = estract_licenses(None)
         assert result == []
 
     def test_extract_with_only_and_operator(self):
-        """Verifies that AND expressions without OR return as single item."""
+        """Verifica che espressioni AND senza OR restituiscano come singolo elemento."""
         result = estract_licenses("MIT AND Apache-2.0")
         # No OR at depth 0, so entire expression is one result
         assert result == ["MIT AND Apache-2.0"]
 
     def test_extract_preserves_whitespace_trimmed(self):
-        """Verifies that whitespace is properly trimmed from results."""
+        """Verifica che gli spazi bianchi siano correttamente rimossi dai risultati."""
         result = estract_licenses("  MIT   OR   Apache-2.0  ")
         assert result == ["MIT", "Apache-2.0"]
 
 
 # ==================================================================================
-#                     TEST CLASS: CHOOSE MOST PERMISSIVE LICENSE
+#                     CLASSE DI TEST: SCEGLI LICENZA PIÙ PERMISSIVA
 # ==================================================================================
 
 class TestChooseMostPermissiveLicense:
     """
-    Tests for the 'choose_most_permissive_license_in_file' function.
+    Test per la funzione 'choose_most_permissive_license_in_file'.
 
-    Validates the ranking algorithm that selects the most permissive license
-    when a file has multiple license options.
+    Valida l'algoritmo di ranking che seleziona la licenza più permissiva
+    quando un file ha più opzioni di licenza.
     """
 
     @pytest.fixture
     def mock_rank_rules(self):
-        """Provides a mock ranking configuration."""
+        """Fornisce una configurazione di ranking mock."""
         return {
             "license_order_permissive": [
                 "MIT",
@@ -109,14 +109,14 @@ class TestChooseMostPermissiveLicense:
         }
 
     def test_single_license_unchanged(self, mock_rank_rules):
-        """Verifies that files with single license are not modified."""
+        """Verifica che i file con licenza singola non siano modificati."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "MIT"}
             result = choose_most_permissive_license_in_file(licenses)
             assert result["file1.py"] == "MIT"
 
     def test_or_expression_chooses_most_permissive(self, mock_rank_rules):
-        """Verifies that OR expressions result in the most permissive license."""
+        """Verifica che espressioni OR risultino nella licenza più permissiva."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "GPL-3.0 OR MIT"}
             result = choose_most_permissive_license_in_file(licenses)
@@ -124,7 +124,7 @@ class TestChooseMostPermissiveLicense:
             assert result["file1.py"] == "MIT"
 
     def test_multiple_or_expression(self, mock_rank_rules):
-        """Verifies ranking with multiple OR alternatives."""
+        """Verifica il ranking con più alternative OR."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "AGPL-3.0 OR Apache-2.0 OR GPL-3.0"}
             result = choose_most_permissive_license_in_file(licenses)
@@ -132,7 +132,7 @@ class TestChooseMostPermissiveLicense:
             assert result["file1.py"] == "Apache-2.0"
 
     def test_and_expression_unchanged(self, mock_rank_rules):
-        """Verifies that AND-only expressions are not modified."""
+        """Verifica che espressioni solo AND non siano modificate."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "MIT AND Apache-2.0"}
             result = choose_most_permissive_license_in_file(licenses)
@@ -142,7 +142,7 @@ class TestChooseMostPermissiveLicense:
             assert "MIT" in result["file1.py"] or "Apache-2.0" in result["file1.py"]
 
     def test_multiple_files_processed(self, mock_rank_rules):
-        """Verifies that multiple files are processed correctly."""
+        """Verifica che più file siano elaborati correttamente."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {
                 "file1.py": "GPL-3.0 OR MIT",
@@ -155,7 +155,7 @@ class TestChooseMostPermissiveLicense:
             assert result["file3.py"] == "Apache-2.0"
 
     def test_unknown_license_fallback(self, mock_rank_rules):
-        """Verifies handling of licenses not in the ranking."""
+        """Verifica la gestione di licenze non nel ranking."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "UnknownLicense OR MIT"}
             result = choose_most_permissive_license_in_file(licenses)
@@ -163,7 +163,7 @@ class TestChooseMostPermissiveLicense:
             assert result["file1.py"] == "MIT"
 
     def test_all_unknown_licenses(self, mock_rank_rules):
-        """Verifies handling when all licenses are unknown."""
+        """Verifica la gestione quando tutte le licenze sono sconosciute."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "LicenseA OR LicenseB"}
             result = choose_most_permissive_license_in_file(licenses)
@@ -171,7 +171,7 @@ class TestChooseMostPermissiveLicense:
             assert result["file1.py"] in ["LicenseA", "LicenseB"]
 
     def test_empty_dict_returns_empty(self, mock_rank_rules):
-        """Verifies that empty input returns empty result."""
+        """Verifica che input vuoto restituisca risultato vuoto."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {}
             result = choose_most_permissive_license_in_file(licenses)
@@ -179,18 +179,18 @@ class TestChooseMostPermissiveLicense:
 
 
 # ==================================================================================
-#                     TEST CLASS: LOAD JSON RANK
+#                     CLASSE DI TEST: CARICA JSON RANK
 # ==================================================================================
 
 class TestLoadJsonRank:
     """
-    Tests for the 'load_json_rank' function.
+    Test per la funzione 'load_json_rank'.
 
-    Validates the loading and parsing of the permissiveness ranking JSON file.
+    Valida il caricamento e l'analisi del file JSON di ranking della permissività.
     """
 
     def test_load_json_rank_success(self):
-        """Verifies successful loading of the ranking file."""
+        """Verifica il caricamento riuscito del file di ranking."""
         # This test uses the actual file in the project
         result = load_json_rank()
         assert "license_order_permissive" in result
@@ -200,13 +200,13 @@ class TestLoadJsonRank:
         assert "MIT" in result["license_order_permissive"]
 
     def test_load_json_rank_file_not_found(self):
-        """Verifies error handling when the ranking file is missing."""
+        """Verifica la gestione degli errori quando il file di ranking è mancante."""
         with patch('os.path.exists', return_value=False):
             with pytest.raises(FileNotFoundError, match="Unable to find the rules file"):
                 load_json_rank()
 
     def test_load_json_rank_valid_structure(self):
-        """Verifies the structure of the loaded ranking data."""
+        """Verifica la struttura dei dati di ranking caricati."""
         result = load_json_rank()
         # Check that permissive licenses appear before restrictive ones
         order = result["license_order_permissive"]
@@ -217,17 +217,17 @@ class TestLoadJsonRank:
 
 
 # ==================================================================================
-#                     TEST CLASS: EDGE CASES
+#                     CLASSE DI TEST: CASI LIMITE
 # ==================================================================================
 
 class TestLicenseRankingEdgeCases:
     """
-    Tests for edge cases and complex scenarios in license ranking.
+    Test per casi limite e scenari complessi nel ranking delle licenze.
     """
 
     @pytest.fixture
     def mock_rank_rules(self):
-        """Provides a mock ranking configuration."""
+        """Fornisce una configurazione di ranking mock."""
         return {
             "license_order_permissive": [
                 "0BSD",
@@ -241,7 +241,7 @@ class TestLicenseRankingEdgeCases:
         }
 
     def test_complex_nested_expression(self, mock_rank_rules):
-        """Tests handling of complex nested SPDX expressions."""
+        """Testa la gestione di espressioni SPDX annidate complesse."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "(MIT AND BSD-2-Clause) OR Apache-2.0"}
             result = choose_most_permissive_license_in_file(licenses)
@@ -249,7 +249,7 @@ class TestLicenseRankingEdgeCases:
             assert result["file1.py"] in ["(MIT AND BSD-2-Clause)", "Apache-2.0"]
 
     def test_or_plus_version_suffixes(self, mock_rank_rules):
-        """Tests handling of OR-later version suffixes."""
+        """Testa la gestione di suffissi di versione OR-later."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "GPL-2.0-or-later OR MIT"}
             result = choose_most_permissive_license_in_file(licenses)
@@ -257,7 +257,7 @@ class TestLicenseRankingEdgeCases:
             assert result["file1.py"] == "MIT"
 
     def test_preserves_original_dict_reference(self, mock_rank_rules):
-        """Verifies that the function modifies and returns the same dict."""
+        """Verifica che la funzione modifichi e restituisca lo stesso dict."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "GPL-3.0 OR MIT"}
             result = choose_most_permissive_license_in_file(licenses)
@@ -265,9 +265,8 @@ class TestLicenseRankingEdgeCases:
             assert result is licenses
 
     def test_whitespace_in_expression(self, mock_rank_rules):
-        """Tests handling of extra whitespace in expressions."""
+        """Testa la gestione di spazi bianchi extra nelle espressioni."""
         with patch('app.services.scanner.license_ranking.load_json_rank', return_value=mock_rank_rules):
             licenses = {"file1.py": "  GPL-3.0   OR   MIT  "}
             result = choose_most_permissive_license_in_file(licenses)
             assert result["file1.py"] == "MIT"
-

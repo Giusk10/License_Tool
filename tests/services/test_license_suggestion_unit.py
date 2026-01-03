@@ -1,10 +1,10 @@
 """
 test: services/llm/test_license_suggestion_unit.py
 
-Unit Tests for License Suggestion Feature.
+Test unitari per la funzionalità di suggerimento licenze.
 
-This module tests the license recommendation functionality including
-the endpoint integration, service logic, LLM interaction, and requirement validation.
+Questo modulo testa la funzionalità di raccomandazione licenze inclusi
+l'integrazione endpoint, la logica del servizio, l'interazione LLM e la validazione requisiti.
 """
 
 import pytest
@@ -22,13 +22,13 @@ client = TestClient(app)
 
 
 class TestLicenseSuggestionEndpoint:
-    """Test cases for the /api/suggest-license endpoint."""
+    """Casi di test per l'endpoint /api/suggest-license."""
 
     def test_suggest_license_success(self):
         """
-        Test successful license suggestion request.
-        Verifies that providing valid requirements returns a 200 OK response
-        with the expected JSON structure containing a suggestion, explanation, and alternatives.
+        Testa richiesta di suggerimento licenze riuscita.
+        Verifica che fornire requisiti validi restituisca una risposta 200 OK
+        con la struttura JSON prevista contenente suggerimento, spiegazione e alternative.
         """
         payload = {
             "owner": "test_owner",
@@ -62,9 +62,9 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_with_detected_licenses(self):
         """
-        Test license suggestion when existing licenses are detected in the project.
-        Verifies that the detected licenses are included in the prompt sent to the LLM
-        and that the response reflects compatibility with them.
+        Testa suggerimento licenze quando licenze esistenti sono rilevate nel progetto.
+        Verifica che le licenze rilevate siano incluse nel prompt inviato all'LLM
+        e che la risposta rifletta la compatibilità con esse.
         """
         payload = {
             "owner": "test_owner",
@@ -101,9 +101,9 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_with_detected_gpl_should_suggest_compatible(self):
         """
-        Test that detecting a GPL license results in a compatible suggestion.
-        Ensures that if the project already contains GPL code, the suggestion
-        respects the strong copyleft requirements.
+        Testa che il rilevamento di una licenza GPL risulti in un suggerimento compatibile.
+        Garantisce che se il progetto contiene già codice GPL, il suggerimento
+        rispetti i requisiti di strong copyleft.
         """
         payload = {
             "owner": "test_owner",
@@ -137,9 +137,9 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_with_empty_detected_licenses(self):
         """
-        Test that an empty detected_licenses list is handled correctly.
-        Verifies that the prompt does not include the 'EXISTING LICENSES' section
-        when the list is empty.
+        Testa che una lista detected_licenses vuota sia gestita correttamente.
+        Verifica che il prompt non includa la sezione 'EXISTING LICENSES'
+        quando la lista è vuota.
         """
         payload = {
             "owner": "test_owner",
@@ -170,8 +170,8 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_with_strong_copyleft(self):
         """
-        Test license suggestion with strong copyleft requirement.
-        Verifies that selecting 'strong' copyleft results in appropriate suggestions (e.g., GPL).
+        Testa suggerimento licenze con requisito strong copyleft.
+        Verifica che selezionare 'strong' copyleft risulti in suggerimenti appropriati (ad es., GPL).
         """
         payload = {
             "owner": "test_owner",
@@ -203,8 +203,8 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_llm_failure_fallback(self):
         """
-        Test fallback behavior when the LLM service fails or returns invalid data.
-        Verifies that the system defaults to a safe suggestion (e.g., MIT) if the LLM response is invalid.
+        Testa comportamento di fallback quando il servizio LLM fallisce o restituisce dati invalidi.
+        Verifica che il sistema utilizzi come default un suggerimento sicuro (ad es., MIT) se la risposta LLM è invalida.
         """
         payload = {
             "owner": "test_owner",
@@ -231,12 +231,12 @@ class TestLicenseSuggestionEndpoint:
 
 
 class TestLicenseRecommenderService:
-    """Test cases for the license_recommender service logic."""
+    """Casi di test per la logica del servizio license_recommender."""
 
     def test_needs_license_suggestion_no_main_license(self):
         """
-        Test `needs_license_suggestion` when no main license exists.
-        Should return True if the main license is 'Unknown', 'None', or empty.
+        Testa `needs_license_suggestion` quando non esiste una licenza principale.
+        Dovrebbe restituire True se la licenza principale è 'Unknown', 'None', o vuota.
         """
         issues = [
             {"detected_license": "MIT", "compatible": True}
@@ -249,8 +249,8 @@ class TestLicenseRecommenderService:
 
     def test_needs_license_suggestion_not_needed(self):
         """
-        Test `needs_license_suggestion` when a main license is already present.
-        Should return False.
+        Testa `needs_license_suggestion` quando una licenza principale è già presente.
+        Dovrebbe restituire False.
         """
         issues = [
             {"detected_license": "MIT", "compatible": True},
@@ -262,8 +262,8 @@ class TestLicenseRecommenderService:
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_based_on_requirements_permissive(self, mock_llm):
         """
-        Test `suggest_license_based_on_requirements` for permissive license requirements.
-        Verifies that the service correctly calls the LLM and parses the response.
+        Testa `suggest_license_based_on_requirements` per requisiti di licenza permissiva.
+        Verifica che il servizio chiami correttamente l'LLM e analizzi la risposta.
         """
         mock_llm.return_value = '''
         {
@@ -292,7 +292,7 @@ class TestLicenseRecommenderService:
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_with_detected_licenses_in_prompt(self, mock_llm):
         """
-        Test that `detect_licenses` are correctly formatted and included in the LLM prompt string.
+        Testa che `detect_licenses` siano correttamente formattate e incluse nella stringa prompt LLM.
         """
         mock_llm.return_value = '''
         {
@@ -324,7 +324,7 @@ class TestLicenseRecommenderService:
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_without_detected_licenses(self, mock_llm):
         """
-        Test that the prompt is constructed correctly when no detected licenses are provided.
+        Testa che il prompt sia costruito correttamente quando non vengono fornite licenze rilevate.
         """
         mock_llm.return_value = '''
         {
@@ -350,8 +350,8 @@ class TestLicenseRecommenderService:
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_json_parsing_error(self, mock_llm):
         """
-        Test robustness against malformed JSON responses from the LLM.
-        Should catch the parsing error and return the fallback license.
+        Testa robustezza contro risposte JSON malformate dall'LLM.
+        Dovrebbe catturare l'errore di analisi e restituire la licenza di fallback.
         """
         mock_llm.return_value = "This is not valid JSON"
 
@@ -371,8 +371,8 @@ class TestLicenseRecommenderService:
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_with_markdown_wrapper(self, mock_llm):
         """
-        Test that Markdown code blocks (```json ... ```) are stripped from the LLM response
-        before parsing.
+        Testa che i blocchi di codice Markdown (```json ... ```) siano rimossi dalla risposta LLM
+        prima dell'analisi.
         """
         mock_llm.return_value = '''```json
         {
@@ -394,13 +394,13 @@ class TestLicenseRecommenderService:
 
 
 class TestAnalyzeResponseWithSuggestion:
-    """Test cases for AnalyzeResponse schema validation regarding the suggestion flag."""
+    """Casi di test per la validazione schema AnalyzeResponse riguardo al flag suggestion."""
 
     @patch('app.controllers.analysis.perform_initial_scan')
     def test_analyze_sets_needs_suggestion_flag(self, mock_scan):
         """
-        Test that the analyze endpoint correctly sets the 'needs_license_suggestion' flag
-        in the response when the main license is unknown.
+        Testa che l'endpoint analyze imposti correttamente il flag 'needs_license_suggestion'
+        nella risposta quando la licenza principale è sconosciuta.
         """
         from app.models.schemas import AnalyzeResponse
 

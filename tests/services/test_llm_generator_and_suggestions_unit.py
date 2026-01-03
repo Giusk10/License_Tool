@@ -1,10 +1,10 @@
 """
 test: services/llm/test_llm_generator_and_suggestions_unit.py
 
-Unit tests for the LLM-based code generation and license suggestion services.
-These tests verify the interaction with the LLM API wrappers (mocked),
-the parsing and validation of generated code, and the logic for enriching
-analysis results with AI-driven suggestions.
+Test unitari per i servizi di generazione codice basato su LLM e suggerimento licenze.
+Questi test verificano l'interazione con i wrapper API LLM (mockati),
+l'analisi e la validazione del codice generato, e la logica per arricchire
+i risultati di analisi con suggerimenti basati su AI.
 """
 
 from unittest.mock import patch, mock_open
@@ -13,13 +13,13 @@ from app.services.llm.suggestion import ask_llm_for_suggestions, review_document
 
 
 # ==============================================================================
-# TESTS FOR CODE GENERATION
+# TEST PER GENERAZIONE CODICE
 # ==============================================================================
 
 def test_regenerate_code_success_with_markdown():
     """
-    Verify that code generation works correctly when the LLM output includes
-    Markdown code blocks (e.g., ```python ... ```). The blocks should be stripped.
+    Verifica che la generazione codice funzioni correttamente quando l'output LLM include
+    blocchi di codice Markdown (ad es., ```python ... ```). I blocchi dovrebbero essere rimossi.
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
         mock_call.return_value = "```python\nprint('hello')\n```"
@@ -29,8 +29,8 @@ def test_regenerate_code_success_with_markdown():
 
 def test_regenerate_code_success_no_markdown():
     """
-    Verify that code generation works correctly when the LLM returns raw code
-    without any Markdown formatting.
+    Verifica che la generazione codice funzioni correttamente quando l'LLM restituisce codice grezzo
+    senza alcuna formattazione Markdown.
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
         mock_call.return_value = "print('hello')"
@@ -40,7 +40,7 @@ def test_regenerate_code_success_no_markdown():
 
 def test_regenerate_code_no_response():
     """
-    Verify that the function returns None if the LLM backend returns no response
+    Verifica che la funzione restituisca None se il backend LLM non restituisce risposta
     (None).
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
@@ -51,8 +51,8 @@ def test_regenerate_code_no_response():
 
 def test_regenerate_code_exception():
     """
-    Verify that exceptions raised during the LLM call are caught and handled
-    gracefully, returning None.
+    Verifica che le eccezioni sollevate durante la chiamata LLM siano catturate e gestite
+    con grazia, restituendo None.
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
         mock_call.side_effect = Exception("error")
@@ -62,8 +62,8 @@ def test_regenerate_code_exception():
 
 def test_regenerate_code_validation_fails():
     """
-    Verify that generated code is rejected (returns None) if it fails general
-    validation checks (e.g., being too short).
+    Verifica che il codice generato sia rifiutato (restituisce None) se fallisce i controlli
+    di validazione generali (ad es., essere troppo corto).
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
         mock_call.return_value = "short"  # Too short
@@ -72,13 +72,13 @@ def test_regenerate_code_validation_fails():
 
 
 # ==============================================================================
-# TESTS FOR LICENSE SUGGESTIONS
+# TEST PER SUGGERIMENTI LICENZE
 # ==============================================================================
 
 def test_ask_llm_for_suggestions():
     """
-    Verify that `ask_llm_for_suggestions` correctly invokes the LLM with the
-    issue details and returns the license string suggested by the model.
+    Verifica che `ask_llm_for_suggestions` invochi correttamente l'LLM con i
+    dettagli del problema e restituisca la stringa di licenza suggerita dal modello.
     """
     issue = {"file_path": "file.py", "detected_license": "GPL", "reason": "incompatible"}
     with patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
@@ -89,8 +89,8 @@ def test_ask_llm_for_suggestions():
 
 def test_review_document_success():
     """
-    Verify that `review_document` reads the file content, sends it to the LLM,
-    and extracts the advice contained within the expected XML tags (<advice>).
+    Verifica che `review_document` legga il contenuto del file, lo invii all'LLM,
+    ed estragga il consiglio contenuto nei tag XML previsti (<advice>).
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
@@ -102,8 +102,8 @@ def test_review_document_success():
 
 def test_review_document_no_tags():
     """
-    Verify that `review_document` returns None if the LLM response does not
-    contain the required XML tags to extract the advice.
+    Verifica che `review_document` restituisca None se la risposta LLM non
+    contiene i tag XML richiesti per estrarre il consiglio.
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
@@ -115,7 +115,7 @@ def test_review_document_no_tags():
 
 def test_review_document_file_error():
     """
-    Verify that `review_document` handles file I/O errors gracefully (returns None).
+    Verifica che `review_document` gestisca gli errori I/O file con grazia (restituisce None).
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', side_effect=Exception("error")):
@@ -125,7 +125,7 @@ def test_review_document_file_error():
 
 def test_review_document_llm_error():
     """
-    Verify that `review_document` handles LLM API errors gracefully (returns None).
+    Verifica che `review_document` gestisca gli errori API LLM con grazia (restituisce None).
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
@@ -136,8 +136,8 @@ def test_review_document_llm_error():
 
 def test_enrich_with_llm_suggestions_compatible():
     """
-    Verify that for issues marked as 'compatible', the enrichment logic adds a
-    standard 'No action needed' message without calling the LLM.
+    Verifica che per problemi marcati come 'compatible', la logica di arricchimento aggiunga un
+    messaggio standard 'No action needed' senza chiamare l'LLM.
     """
     issues = [{"file_path": "file.py", "detected_license": "MIT", "compatible": True, "reason": "ok"}]
     result = enrich_with_llm_suggestions("MIT", issues)
@@ -148,8 +148,8 @@ def test_enrich_with_llm_suggestions_compatible():
 
 def test_enrich_with_llm_suggestions_incompatible_code():
     """
-    Verify that for incompatible code files, the enrichment logic calls
-    `ask_llm_for_suggestions` and populates the results.
+    Verifica che per file di codice incompatibili, la logica di arricchimento chiami
+    `ask_llm_for_suggestions` e popoli i risultati.
     """
     issues = [{"file_path": "file.py", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
     with patch('app.services.llm.suggestion.ask_llm_for_suggestions') as mock_ask:
@@ -162,8 +162,8 @@ def test_enrich_with_llm_suggestions_incompatible_code():
 
 def test_enrich_with_llm_suggestions_incompatible_doc():
     """
-    Verify that for incompatible documentation files (e.g., .md), the enrichment logic
-    calls `review_document` instead of the code suggestion flow.
+    Verifica che per file di documentazione incompatibili (ad es., .md), la logica di arricchimento
+    chiami `review_document` invece del flusso di suggerimento codice.
     """
     issues = [{"file_path": "file.md", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
     with patch('app.services.llm.suggestion.review_document') as mock_review:
@@ -176,8 +176,8 @@ def test_enrich_with_llm_suggestions_incompatible_doc():
 
 def test_enrich_with_llm_suggestions_with_regenerated():
     """
-    Verify that if a mapping of regenerated code paths is provided, the issue
-    is updated with the path to the new file.
+    Verifica che se viene fornito un mapping di percorsi di codice rigenerato, il problema
+    sia aggiornato con il percorso al nuovo file.
     """
     issues = [{"file_path": "file.py", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
     regenerated_map = {"file.py": "/path/to/new.py"}
@@ -189,9 +189,9 @@ def test_enrich_with_llm_suggestions_with_regenerated():
 
 def test_enrich_with_llm_suggestions_conditional_outcome():
     """
-    Verify that when compatibility is None and the reason contains
-    'Outcome: conditional', the specific suggestion message is returned
-    and no licenses are proposed.
+    Verifica che quando la compatibilità è None e la ragione contiene
+    'Outcome: conditional', venga restituito il messaggio di suggerimento specifico
+    e non vengano proposte licenze.
     """
     issues = [{
         "file_path": "file.py",
@@ -207,9 +207,9 @@ def test_enrich_with_llm_suggestions_conditional_outcome():
 
 def test_enrich_with_llm_suggestions_unknown_outcome():
     """
-    Verify that when compatibility is None and the reason contains
-    'Outcome: unknown', the specific suggestion message is returned
-    and no licenses are proposed.
+    Verifica che quando la compatibilità è None e la ragione contiene
+    'Outcome: unknown', venga restituito il messaggio di suggerimento specifico
+    e non vengano proposte licenze.
     """
     issues = [{
         "file_path": "file.py",
@@ -224,19 +224,19 @@ def test_enrich_with_llm_suggestions_unknown_outcome():
 
 
 # ==============================================================================
-# TESTS FOR CODE VALIDATION
+# TEST PER VALIDAZIONE CODICE
 # ==============================================================================
 
 def test_validate_generated_code_valid_python():
     """
-    Verify that valid Python code passes validation.
+    Verifica che codice Python valido passi la validazione.
     """
     code = "print('hello world')"
     assert validate_generated_code(code) is True
 
 def test_validate_generated_code_too_short():
     """
-    Verify that code failing the minimum length requirement fails validation.
+    Verifica che codice che fallisce il requisito di lunghezza minima fallisca la validazione.
     """
     code = "hi"
     assert validate_generated_code(code) is False
@@ -244,7 +244,7 @@ def test_validate_generated_code_too_short():
 
 def test_validate_generated_code_empty():
     """
-    Verify that empty code strings fail validation.
+    Verifica che stringhe di codice vuote falliscano la validazione.
     """
     code = ""
     assert validate_generated_code(code) is False
@@ -252,7 +252,7 @@ def test_validate_generated_code_empty():
 
 def test_validate_generated_code_none():
     """
-    Verify that None fails validation.
+    Verifica che None fallisca la validazione.
     """
     code = None
     assert validate_generated_code(code) is False
