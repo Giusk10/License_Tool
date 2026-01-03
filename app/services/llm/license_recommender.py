@@ -89,7 +89,7 @@ def suggest_license_based_on_requirements(
         requirements_text += f"\n\n### EXISTING LICENSES IN PROJECT\n{detected_text}\n\n**IMPORTANT**: The recommended license MUST be compatible with ALL existing licenses listed above. If incompatible, choose an alternative that ensures compatibility."
 
     prompt = f"""### ROLE
-You are an expert in open source software licensing. Your task is to recommend 
+You are an expert in open source software licensing. Your task is to recommend
 the most appropriate license for a software project based on the user's requirements.
 
 ### USER REQUIREMENTS
@@ -117,7 +117,10 @@ Respond ONLY with the JSON object, nothing else."""
         response = call_ollama_deepseek(prompt)
 
         # Clean up response (remove markdown code blocks if present)
-        response = response.strip()
+        response = response.strip() if response else ""
+        if not response:
+            logger.error("LLM response is empty or None.")
+            raise ValueError("Empty response from LLM")
         if response.startswith("```json"):
             response = response[7:]
         if response.startswith("```"):
@@ -135,7 +138,7 @@ Respond ONLY with the JSON object, nothing else."""
             "alternatives": result.get("alternatives", ["Apache-2.0", "BSD-3-Clause"])
         }
 
-    except json.JSONDecodeError as e:
+    except (json.JSONDecodeError, ValueError) as e:
         logger.error("Failed to parse LLM response as JSON: %s", e)
         logger.debug("Raw response: %s", response)
 
@@ -143,8 +146,8 @@ Respond ONLY with the JSON object, nothing else."""
         return {
             "suggested_license": "MIT",
             "explanation": "Based on your requirements, MIT License is recommended as it's permissive "
-                          "and widely used. It allows commercial use, modification, and distribution "
-                          "with minimal restrictions.",
+                           "and widely used. It allows commercial use, modification, and distribution "
+                           "with minimal restrictions.",
             "alternatives": ["Apache-2.0", "BSD-3-Clause", "ISC"]
         }
 
@@ -155,7 +158,7 @@ Respond ONLY with the JSON object, nothing else."""
         return {
             "suggested_license": "MIT",
             "explanation": "An error occurred during analysis. MIT License is suggested as a safe "
-                          "default permissive license.",
+                           "default permissive license.",
             "alternatives": ["Apache-2.0", "BSD-3-Clause"]
         }
 
