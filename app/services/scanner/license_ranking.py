@@ -4,16 +4,15 @@ from typing import Dict
 
 
 def choose_most_permissive_license_in_file(licenses: Dict[str, str]) -> Dict[str, str]:
-
     """
-    Chooses the most permissive license from a list of licenses for each file.
-    This is a placeholder function and should be implemented based on specific
-    permissiveness criteria.
+    Sceglie la licenza più permissiva da una lista di licenze per ogni file.
+    Questa è una funzione segnaposto e dovrebbe essere implementata in base a criteri
+    specifici di permissività.
 
     Args:
-        licenses (Dict[str, str]): A dictionary mapping file paths to their detected SPDX expression.
+        licenses (Dict[str, str]): Un dizionario che mappa i percorsi dei file alla loro espressione SPDX rilevata.
     Returns:
-        Dict[str, str]: A dictionary mapping file paths to the most permissive license SPDX expression
+        Dict[str, str]: Un dizionario che mappa i percorsi dei file all'espressione SPDX della licenza più permissiva
     """
 
     for file_path, license_expr in licenses.items():
@@ -30,6 +29,10 @@ def choose_most_permissive_license_in_file(licenses: Dict[str, str]) -> Dict[str
 import re
 
 def estract_licenses(spdx_license: str) -> list[str]:
+    """
+    Estrae tutte le licenze da una espressione SPDX complessa (con AND/OR e parentesi).
+    Restituisce una lista di licenze trovate al livello più alto dell'espressione.
+    """
     s = spdx_license or ''
     results: list[str] = []
     curr: list[str] = []
@@ -66,7 +69,9 @@ def estract_licenses(spdx_license: str) -> list[str]:
     return results
 
 def load_json_rank() -> dict:
-
+    """
+    Carica il file JSON che contiene l'ordine di permissività delle licenze.
+    """
     rules_path = os.path.join(os.path.dirname(__file__), 'license_order_permissive.json')
     if not os.path.exists(rules_path):
         raise FileNotFoundError(f"Unable to find the rules file: {rules_path}")

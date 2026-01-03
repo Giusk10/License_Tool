@@ -1,6 +1,6 @@
 """
-This module handles the interaction with the ScanCode Toolkit CLI for raw license detection
-and implements a post-processing layer using an LLM to filter false positives.
+Questo modulo gestisce l'interazione con la CLI di ScanCode Toolkit per il rilevamento grezzo delle licenze
+e implementa uno strato di post-processing usando un LLM per filtrare i falsi positivi.
 """
 import logging
 import os
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def filter_licenses(scancode_data: dict, main_spdx: str, path: str) -> dict:
     """
-    Filters ScanCode results using an LLM to remove false positives.
+    Filtra i risultati di ScanCode utilizzando un LLM per rimuovere i falsi positivi.
     """
     minimal = build_minimal_json(scancode_data)
     scan_clean = remove_main_license(main_spdx, path, minimal)
@@ -27,7 +27,7 @@ def filter_licenses(scancode_data: dict, main_spdx: str, path: str) -> dict:
 
 def build_minimal_json(scancode_data: dict) -> dict:
     """
-    Builds a minimal JSON structure from the ScanCode data.
+    Costruisce una struttura JSON minimale dai dati di ScanCode.
     """
     minimal = {"files": []}
 
@@ -63,7 +63,7 @@ def build_minimal_json(scancode_data: dict) -> dict:
 
 def remove_main_license(main_spdx, path, scancode_data) -> dict:
     """
-    Removes the main license from the ScanCode JSON.
+    Rimuove la licenza principale dal JSON di ScanCode.
     """
     for file_entry in scancode_data.get("files", []):
         matches = file_entry.get("matches", [])
@@ -84,7 +84,7 @@ def remove_main_license(main_spdx, path, scancode_data) -> dict:
 
 def _load_rules_patterns():
     """
-    Helper function to load and compile regex patterns from the rules file.
+    Funzione di supporto per caricare e compilare i pattern regex dal file delle regole.
     """
     rules_path = os.path.join(os.path.dirname(__file__), 'license_rules.json')
     if not os.path.exists(rules_path):
@@ -118,8 +118,8 @@ def _load_rules_patterns():
 
 def _is_valid_match(matched_text: str, patterns: dict) -> tuple[bool, object]:
     """
-    Validates a single text match against whitelist patterns.
-    Returns (is_valid, spdx_tag_hit_match_object)
+    Valida una singola corrispondenza di testo rispetto ai pattern della whitelist.
+    Restituisce (is_valid, spdx_tag_hit_match_object)
     """
     # 1. Explicit SPDX Tag Check
     spdx_tag_hit = patterns["re_spdx_tag"].search(matched_text)
@@ -141,7 +141,7 @@ def _is_valid_match(matched_text: str, patterns: dict) -> tuple[bool, object]:
 
 def _save_to_json(data: dict, filename: str):
     """
-    Helper to save JSON output.
+    Funzione di supporto per salvare l'output JSON.
     """
     os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)
     output_path = os.path.join(MINIMAL_JSON_BASE_DIR, filename)

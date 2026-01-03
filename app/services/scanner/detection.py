@@ -1,13 +1,13 @@
 """
 ScanCode Detection Module.
 
-This module manages the execution of the ScanCode toolkit and the parsing of its results
-to detect licenses within a repository.
+Questo modulo gestisce l'esecuzione del toolkit ScanCode e il parsing dei suoi risultati
+per rilevare le licenze all'interno di un repository.
 
-It includes functionality to:
-- Execute ScanCode as a subprocess with optimized configuration.
-- Identify the project's main license based on file hierarchy (LICENSE, COPYING).
-- Extract and aggregate detected licenses for individual files.
+Include funzionalità per:
+- Eseguire ScanCode come sottoprocesso con configurazione ottimizzata.
+- Identificare la licenza principale del progetto in base alla gerarchia dei file (LICENSE, COPYING).
+- Estrarre e aggregare le licenze rilevate per i singoli file.
 """
 
 import os
@@ -23,19 +23,19 @@ logger = logging.getLogger(__name__)
 
 def run_scancode(repo_path: str) -> Dict[str, Any]:
     """
-    Esegue ScanCode su un percorso specifico del repository.
+    Esegue ScanCode su uno specifico percorso di repository.
 
-    Applica filtri avanzati, traccia il progresso tramite logging ed esegue
-    post-elaborazione sull'output JSON per rimuovere dati ridondanti.
+    Applica filtri avanzati, traccia l'avanzamento tramite logging e
+    esegue il post-processing sul JSON di output per rimuovere dati ridondanti.
 
     Args:
-        repo_path (str): Il percorso del file system al repository clonato.
+        repo_path (str): Il percorso del file system del repository clonato.
 
     Returns:
-        Dict[str, Any]: L'output JSON di ScanCode analizzato e pulito.
+        Dict[str, Any]: L'output JSON di ScanCode analizzato e ripulito.
 
     Raises:
-        RuntimeError: Se ScanCode fallisce (codice di uscita > 1) o non genera output.
+        RuntimeError: Se ScanCode fallisce (exit code > 1) o non genera output.
     """
     # 1. Carica i pattern da ignorare (priorità a patterns_to_ignore.json, fallback a license_rules.json)
     base_dir = os.path.dirname(__file__)
@@ -156,10 +156,10 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
 
 def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
     """
-    Rileva la licenza principale utilizzando euristiche basate su profondità, tipo di file e punteggio ScanCode.
+    Rileva la licenza principale usando euristiche basate su profondità, tipo di file e punteggio ScanCode.
 
     Args:
-        data (Dict[str, Any]): L'output JSON analizzato di ScanCode.
+        data (Dict[str, Any]): L'output JSON di ScanCode analizzato.
 
     Returns:
         Tuple[str, str]: Una tupla contenente l'espressione SPDX della licenza principale e il percorso del file dove è stata rilevata.
@@ -254,7 +254,7 @@ def extract_file_licenses(scancode_data: Dict[str, Any]) -> Dict[str, str]:
     """
     Estrae le espressioni di licenza per ogni file dai dati di ScanCode.
 
-    Aggrega più corrispondenze all'interno di un singolo file utilizzando 'AND'.
+    Aggrega più corrispondenze all'interno di un singolo file usando 'AND'.
 
     Args:
         scancode_data (Dict[str, Any]): L'output JSON di ScanCode (filtrato).
