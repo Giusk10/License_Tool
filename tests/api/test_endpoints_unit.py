@@ -695,3 +695,87 @@ def test_suggest_license_without_detected_licenses():
     # Verify None was passed when field is omitted
     call_kwargs = mock_suggest.call_args[1]
     assert call_kwargs["detected_licenses"] is None
+
+
+from fastapi import HTTPException
+
+
+def test_clone_success(mock_cloning):
+    """
+    Verifies the repository cloning endpoint success path.
+    """
+    mock_cloning.return_value = "/tmp/cloned/repo"
+
+    response = client.post("/api/clone", json={"owner": "test", "repo": "repo"})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "cloned"
+    assert response.json()["local_path"] == "/tmp/cloned/repo"
+
+
+def test_clone_missing_params():
+    """
+    Verifies validation for missing parameters in clone endpoint.
+    """
+    response = client.post("/api/clone", json={"owner": "test"})  # Missing repo
+    assert response.status_code == 400
+    assert "Owner and Repo are required" in response.json()["detail"]
+
+
+def test_clone_value_error(mock_cloning):
+    """
+    Verifies handling of ValueError during cloning (e.g., repo not found).
+    """
+    mock_cloning.side_effect = ValueError("Git error")
+    response = client.post("/api/clone", json={"owner": "t", "repo": "r"})
+    assert response.status_code == 400
+    assert "Git error" in response.json()["detail"]
+
+
+def test_clone_internal_error(mock_cloning):
+    """
+    Verifies 500 handling for unexpected errors during cloning.
+    """
+    mock_cloning.side_effect = Exception("System failure")
+    response = client.post("/api/clone", json={"owner": "t", "repo": "r"})
+    assert response.status_code == 500
+    assert "Internal error" in response.json()["detail"]
+
+
+def test_download_internal_error(mock_download):
+    """
+    Verifies that generic exceptions in download_repo are caught and returned as 500.
+    """
+    mock_download.side_effect = Exception("Disk failure")
+    response = client.post("/api/download", json={"owner": "u", "repo": "r"})
+
+    assert response.status_code == 500
+    assert "Internal error" in response.json()["detail"]
+
+
+def test_upload_zip_http_exception_reraise(mock_upload_zip):
+    """
+    Verifies that HTTPExceptions raised by the service are re-raised transparently.
+    This covers the 'except HTTPException: raise' block in upload_zip.
+    """
+    # Simulate a specific HTTP error from the service layer
+    mock_upload_zip.side_effect = HTTPException(status_code=418, detail="I'm a teapot")
+
+    files = {"uploaded_file": ("test.zip", b"content", "application/zip")}
+    response = client.post("/api/zip", data={"owner": "u", "repo": "r"}, files=files)
+
+    assert response.status_code == 418
+    assert "I'm a teapot" in response.json()["detail"]
+
+
+def test_upload_zip_internal_error(mock_upload_zip):
+    """
+    Verifies 500 handling for unexpected errors during zip upload.
+    """
+    mock_upload_zip.side_effect = Exception("Extraction failed")
+
+    files = {"uploaded_file": ("test.zip", b"content", "application/zip")}
+    response = client.post("/api/zip", data={"owner": "u", "repo": "r"}, files=files)
+
+    assert response.status_code == 500
+    assert "Internal Error" in response.json()["detail"]
