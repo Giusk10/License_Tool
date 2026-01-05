@@ -92,7 +92,7 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
                     # --------------------
 
             except OSError:
-                pass # File non accessibile, ignora errore
+                pass  # File non accessibile, ignora errore
     # ------------------------------------------------------
 
     # 2. Costruisce il comando ScanCode
@@ -113,7 +113,7 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
     for pattern in ignore_patterns:
         cmd.extend(["--ignore", pattern])
 
-    # 4. Add output format and target path
+    # 4. Aggiunge formato di output e percorso target
     cmd.extend([
         "--json-pp", output_file,
         repo_path,
@@ -122,12 +122,12 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
     logger.info("Starting ScanCode analysis on: %s", repo_name)
     logger.debug("ScanCode Output File: %s", output_file)
 
-    # Execute subprocess
-    # Using 'with' context manager ensures file descriptors are closed properly
+    # Esegue il sottoprocesso
+    # L'uso del context manager 'with' assicura che i descrittori di file vengano chiusi correttamente
     with subprocess.Popen(cmd) as process:
         returncode = process.wait()
 
-    # Handle exit codes according to ScanCode documentation
+    # Gestisce i codici di uscita secondo la documentazione di ScanCode
     if returncode > 1:
         logger.error("ScanCode failed with critical error (exit code %d)", returncode)
         raise RuntimeError(f"ScanCode error (exit {returncode})")
@@ -139,16 +139,16 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
         logger.error("ScanCode output file not found at %s", output_file)
         raise RuntimeError("ScanCode did not generate the JSON file")
 
-    # 5. Post-process the JSON output
+    # 5. Post-elaborazione dell'output JSON
     try:
         with open(output_file, "r", encoding="utf-8") as f:
             scancode_data = json.load(f)
 
-        # Remove "license_detections" from top-level to reduce memory footprint/filesize
-        # as we mostly use file-level details.
+        # Rimuove "license_detections" dal livello superiore per ridurre l'impronta di memoria/dimensione file
+        # poiché utilizziamo principalmente i dettagli a livello di file.
         scancode_data.pop("license_detections", None)
 
-        # Save the optimized JSON back to disk
+        # Salva il JSON ottimizzato su disco
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(scancode_data, f, indent=4, ensure_ascii=False)
 
