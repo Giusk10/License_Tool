@@ -1,5 +1,5 @@
 # Usa linux/amd64 per compatibilità
-FROM --platform=linux/amd64 python:3.11-slim
+FROM --platform=linux/amd64 python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -56,5 +56,5 @@ COPY start-container.sh /app/start-container.sh
 RUN chmod +x /app/start-container.sh
 RUN mkdir -p /app/data
 
-EXPOSE 8000 11434
+EXPOSE 8000
 CMD ["/app/start-container.sh"]

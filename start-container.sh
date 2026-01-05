@@ -1,13 +1,31 @@
 #!/bin/bash
 set -e
 
+# ==============================================================================
+# 1. INIEZIONE CHIAVI (Per Deployment su Render/Cloud)
+# ==============================================================================
+# Se le variabili d'ambiente esistono (su Render), le scriviamo su disco.
+if [ ! -z "$OLLAMA_KEY_PRIV" ] && [ ! -z "$OLLAMA_KEY_PUB" ]; then
+    echo "🔐 Injecting Ollama keys from Environment Variables..."
+    mkdir -p /root/.ollama
+
+    # Scriviamo la chiave privata
+    echo "$OLLAMA_KEY_PRIV" > /root/.ollama/id_ed25519
+    # Scriviamo la chiave pubblica
+    echo "$OLLAMA_KEY_PUB" > /root/.ollama/id_ed25519.pub
+
+    # Importante: permessi stretti (altrimenti SSH si rifiuta di usarle)
+    chmod 600 /root/.ollama/id_ed25519
+    echo "✅ Keys injected successfully."
+fi
+
 # Funzione per estrarre il link di auth dal JSON
 get_auth_url() {
     echo "$1" | python3 -c "import sys, json; print(json.load(sys.stdin).get('signin_url', ''))"
 }
 
 # ==============================================================================
-# 1. AVVIO OLLAMA
+# 2. AVVIO OLLAMA
 # ==============================================================================
 echo "🔴 Starting Ollama server..."
 ollama serve &
@@ -20,57 +38,43 @@ done
 echo "✅ Ollama is active!"
 
 # ==============================================================================
-# 2. SELEZIONE E PULL DEL MODELLO
+# 3. SELEZIONE E PULL DEL MODELLO
 # ==============================================================================
-# Determina quale modello usare (priorità al Cloud)
 MODEL_TO_USE=${OLLAMA_GENERAL_MODEL:-$OLLAMA_CODING_MODEL}
 
 echo "📦 Ensuring model '$MODEL_TO_USE' is available..."
-# Facciamo il PULL preventivo. Se è un modello cloud, scaricherà solo il manifesto (veloce).
 ollama pull "$MODEL_TO_USE"
 
 # ==============================================================================
-# 3. CONTROLLO AUTORIZZAZIONE (BLOCCANTE)
+# 4. CONTROLLO AUTORIZZAZIONE (Fallback Interattivo)
 # ==============================================================================
-# Eseguiamo questo controllo solo se è un modello "-cloud"
+# Se le chiavi sono state iniettate sopra, questo passaggio sarà immediato.
+# Se siamo in locale e mancano le chiavi, chiederà il link.
 if [[ "$MODEL_TO_USE" == *"-cloud" ]]; then
     echo "☁️  Verifying authorization for Cloud Model..."
 
-    # Facciamo la richiesta di test. Usiamo "|| true" per evitare crash se riceviamo errori 401/500
     RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{\"model\": \"$MODEL_TO_USE\", \"prompt\": \"hi\", \"stream\": false}" || true)
 
-    # Controlliamo se la risposta contiene "unauthorized"
     if echo "$RESPONSE" | grep -q "unauthorized"; then
-
-        # Estraiamo il link
         AUTH_URL=$(get_auth_url "$RESPONSE")
-
         echo ""
-        echo "🚨 ======================================================= 🚨"
-        echo "   AUTORIZZAZIONE RICHIESTA PER OLLAMA CLOUD"
-        echo "   Il container è in pausa finché non autorizzi questo dispositivo."
-        echo "   ======================================================="
-        echo ""
-        echo "👉  CLICCA QUESTO LINK E PREMI 'AUTHORIZE':"
-        echo "    $AUTH_URL"
-        echo ""
-        echo "⏳ In attesa di autorizzazione..."
-
-        # CICLO DI ATTESA INFINITO (Blocca l'avvio di Python)
-        # Continua a provare ogni 5 secondi finché "unauthorized" sparisce
+        echo "🚨  AUTORIZZAZIONE RICHIESTA (Chiavi non valide o mancanti)"
+        echo "👉  $AUTH_URL"
+        echo "⏳ Waiting..."
         while echo "$RESPONSE" | grep -q "unauthorized"; do
             sleep 5
             RESPONSE=$(curl -s -X POST http://127.0.0.1:11434/api/generate -d "{\"model\": \"$MODEL_TO_USE\", \"prompt\": \"hi\", \"stream\": false}" || true)
         done
-
-        echo "✅ Autorizzazione Rilevata! Sblocco in corso..."
+        echo "✅ Autorizzato!"
     else
-        echo "✅ Il modello è già autorizzato e pronto all'uso."
+        echo "✅ Il modello è già autorizzato (Auth via Environment Variables ok)."
     fi
 fi
 
 # ==============================================================================
-# 4. AVVIO BACKEND PYTHON
+# 5. AVVIO BACKEND PYTHON
 # ==============================================================================
-echo "🚀 Starting FastAPI Backend..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# Usa la porta fornita da Render ($PORT) o 8000 di default
+SERVER_PORT=${PORT:-8000}
+echo "🚀 Starting FastAPI Backend on port $SERVER_PORT..."
+exec uvicorn app.main:app --host 0.0.0.0 --port "$SERVER_PORT"
