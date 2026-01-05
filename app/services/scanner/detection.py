@@ -14,6 +14,7 @@ import os
 import json
 import logging
 import subprocess
+import shlex
 from typing import Dict, List, Any, Tuple
 
 from app.utility.config import SCANCODE_BIN, OUTPUT_BASE_DIR
@@ -84,7 +85,12 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
                     # Calcola il percorso relativo per l'ignore
                     rel_path = os.path.relpath(file_path, repo_path)
                     logger.warning(f"Auto-ignoring large file: {rel_path}")
-                    ignore_patterns.append(rel_path)
+
+                    # Usiamo shlex.quote per gestire spazi e parentesi in modo sicuro
+                    safe_path = shlex.quote(rel_path)
+                    ignore_patterns.append(safe_path)
+                    # --------------------
+
             except OSError:
                 pass # File non accessibile, ignora errore
     # ------------------------------------------------------
