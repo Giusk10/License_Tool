@@ -65,31 +65,7 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
     repo_name = os.path.basename(os.path.normpath(repo_path))
     output_file = os.path.join(OUTPUT_BASE_DIR, f"{repo_name}_scancode_output.json")
 
-    # --- Rilevamento automatico file enormi ---
-    MAX_FILE_SIZE_MB = 1  ## 1MB è più che sufficiente per i sorgenti
-    limit_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
-
-    logger.info("Pre-scanning for large files (>%d MB)...", MAX_FILE_SIZE_MB)
-
-    for root, dirs, files in os.walk(repo_path):
-        # Avoid entering already ignored folders to speed up
-        # (Note: os.walk allows modifying 'dirs' in-place)
-        dirs[:] = [d for d in dirs if d not in ["node_modules", "vendor", ".git", "target"]]
-
-        for filename in files:
-            file_path = os.path.join(root, filename)
-            try:
-                # If the file is too large, add it to the ignore list
-                if os.path.getsize(file_path) > limit_bytes:
-                    # Calculate the relative path for ignore
-                    rel_path = os.path.relpath(file_path, repo_path)
-                    logger.warning(f"Auto-ignoring large file: {rel_path}")
-                    ignore_patterns.append(rel_path)
-            except OSError:
-                pass # Unaccessible file, ignore error
-    # ------------------------------------------------------
-
-    # # 2. Build the ScanCode command
+    # 2. Build the ScanCode command
     cmd = [
         SCANCODE_BIN,
         # License Options
@@ -153,23 +129,16 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
         logger.exception("Error during ScanCode output processing")
         raise RuntimeError(f"Failed to process ScanCode output: {e}") from e
 
-
 def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
     """
-    Detects the main license using heuristics based on depth, file type, and ScanCode score.
-
-    Args:
-        data (Dict[str, Any]): The parsed ScanCode JSON output.
-
-    Returns:
-        Tuple[str, str]: A tuple containing the main license SPDX expression and the path of the file where it was detected.
-        Returns ("UNKNOWN", None) if no valid license is found.
+    Rileva la licenza principale usando euristiche basate su profondità,
+    tipologia di file e score di ScanCode.
     """
 
-    # 1. Check if ScanCode detected packages (e.g., package.json, pom.xml)
-    # This is often the "Declared" license and is very reliable.
+    # 1. Controlla se ScanCode ha rilevato pacchetti (es. package.json, pom.xml)
+    # Questa è spesso la "Dichiarata" ed è molto affidabile.
     if "packages" in data and data["packages"]:
-        # Take the first package found at the root or near it
+        # Prendi il primo pacchetto trovato alla root o quasi
         for pkg in data["packages"]:
             if pkg.get("declared_license_expression"):
                 return pkg.get("declared_license_expression")
@@ -183,17 +152,17 @@ def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
         if not licenses:
             continue
 
-        # Ignore matches with low confidence
+        # Ignora match con confidenza bassa
         if entry.get("percentage_of_license_text", 0) < 80.0:
             continue
 
-        # Calculate file depth (0 = root)
+        # Calcoliamo la profondità del file (0 = root)
         depth = path.count("/")
         filename = os.path.basename(path).lower()
 
-        # --- SCORING HEURISTICS ---
+        # --- EURISTICHE DI PUNTEGGIO ---
 
-        # Filter 1: Ignore junk directories
+        # Filtro 1: Ignora directory spazzatura
         if any(x in path.lower() for x in ["node_modules", "vendor", "third_party", "test", "docs"]):
             continue
 
@@ -205,27 +174,27 @@ def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
 
             weight = 0
 
-            # BONUS 1: Position (Root is King)
+            # BONUS 1: Posizione (Root is King)
             if depth == 0:
                 weight += 100
             elif depth == 1:
                 weight += 50
             else:
-                weight += 0  # Deep files are worth little for the main license
+                weight += 0  # File profondi valgono poco per la main license
 
-            # BONUS 2: File name
+            # BONUS 2: Nome del file
             if filename in ["license", "license.txt", "license.md", "copying", "copying.txt"]:
                 weight += 100
             elif filename.startswith("license") or filename.startswith("copying"):
                 weight += 80
             elif filename in ["readme", "readme.md", "readme.txt"]:
-                weight += 60  # The license is often mentioned in the README
+                weight += 60  # La licenza è spesso menzionata nel README
             elif filename in ["package.json", "setup.py", "pom.xml", "cargo.toml"]:
-                weight += 90  # Manifest file
+                weight += 90  # File di manifesto
 
-            # BONUS 3: Match Coverage (How much of the file is license?)
-            # If a file is 100% license text, it is very relevant.
-            # (ScanCode sometimes provides match_coverage or start/end_line)
+            # BONUS 3: Match Coverage (Quanto del file è licenza?)
+            # Se un file è 100% testo di licenza, è molto rilevante.
+            # (ScanCode a volte fornisce match_coverage o start/end_line)
             if lic.get("matched_rule", {}).get("is_license_text"):
                 weight += 40
 
@@ -239,16 +208,15 @@ def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
     if not candidates:
         return "UNKNOWN"
 
-    # Sort candidates by descending weight
+    # Ordina i candidati per peso decrescente
     candidates.sort(key=lambda x: x["weight"], reverse=True)
 
-    # Debug: Print top 3 candidates to understand what is happening
+    # Debug: Stampa i top 3 candidati per capire cosa sta succedendo
     # for c in candidates[:3]:
     #     print(f"Candidate: {c['spdx']} | Weight: {c['weight']} | Path: {c['path']}")
 
-    # Return the winner
+    # Ritorna il vincitore
     return candidates[0]["spdx"], candidates[0]["path"]
-
 
 def extract_file_licenses(scancode_data: Dict[str, Any]) -> Dict[str, str]:
     """
