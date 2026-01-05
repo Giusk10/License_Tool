@@ -65,8 +65,8 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
     repo_name = os.path.basename(os.path.normpath(repo_path))
     output_file = os.path.join(OUTPUT_BASE_DIR, f"{repo_name}_scancode_output.json")
 
-    # --- Rilevamento automatico file enormi ---
-    MAX_FILE_SIZE_MB = 1  ## 1MB è più che sufficiente per i sorgenti
+    # --- Automatic large file detection ---
+    MAX_FILE_SIZE_MB = 1  ## 1MB is more than enough for source code
     limit_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
 
     logger.info("Pre-scanning for large files (>%d MB)...", MAX_FILE_SIZE_MB)
@@ -89,7 +89,7 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
                 pass # Unaccessible file, ignore error
     # ------------------------------------------------------
 
-    # # 2. Build the ScanCode command
+    # 2. Build the ScanCode command
     cmd = [
         SCANCODE_BIN,
         # License Options
@@ -241,10 +241,6 @@ def detect_main_license_scancode(data: Dict[str, Any]) -> Tuple[str, str]:
 
     # Sort candidates by descending weight
     candidates.sort(key=lambda x: x["weight"], reverse=True)
-
-    # Debug: Print top 3 candidates to understand what is happening
-    # for c in candidates[:3]:
-    #     print(f"Candidate: {c['spdx']} | Weight: {c['weight']} | Path: {c['path']}")
 
     # Return the winner
     return candidates[0]["spdx"], candidates[0]["path"]
