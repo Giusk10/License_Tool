@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Funzione ausiliaria per estrarre il link di auth (serve se le chiavi falliscono)
+get_auth_url() {
+    echo "$1" | python3 -c "import sys, json; print(json.load(sys.stdin).get('signin_url', ''))"
+}
+
 # ==============================================================================
 # 1. INIEZIONE CHIAVI (Per Deployment su Render/Cloud)
 # ==============================================================================
@@ -19,11 +24,6 @@ if [ ! -z "$OLLAMA_KEY_PRIV" ] && [ ! -z "$OLLAMA_KEY_PUB" ]; then
     echo "✅ Keys injected successfully."
 fi
 
-# Funzione per estrarre il link di auth dal JSON
-get_auth_url() {
-    echo "$1" | python3 -c "import sys, json; print(json.load(sys.stdin).get('signin_url', ''))"
-}
-
 # ==============================================================================
 # 2. AVVIO OLLAMA
 # ==============================================================================
@@ -38,9 +38,16 @@ done
 echo "✅ Ollama is active!"
 
 # ==============================================================================
-# 3. SELEZIONE E PULL DEL MODELLO
+# 3. SELEZIONE E PULL DEL MODELLO (CON FALLBACK DI SICUREZZA)
 # ==============================================================================
-MODEL_TO_USE=${OLLAMA_GENERAL_MODEL:-$OLLAMA_CODING_MODEL}
+# Se le variabili d'ambiente sono vuote, usiamo questi valori fissi.
+DEFAULT_MODEL="deepseek-v3.1:671b-cloud"
+
+# Logica:
+# 1. Prova a usare OLLAMA_GENERAL_MODEL
+# 2. Se vuoto, prova OLLAMA_CODING_MODEL
+# 3. Se vuoto, usa DEFAULT_MODEL
+MODEL_TO_USE="${OLLAMA_GENERAL_MODEL:-${OLLAMA_CODING_MODEL:-$DEFAULT_MODEL}}"
 
 echo "📦 Ensuring model '$MODEL_TO_USE' is available..."
 ollama pull "$MODEL_TO_USE"
@@ -49,7 +56,6 @@ ollama pull "$MODEL_TO_USE"
 # 4. CONTROLLO AUTORIZZAZIONE (Fallback Interattivo)
 # ==============================================================================
 # Se le chiavi sono state iniettate sopra, questo passaggio sarà immediato.
-# Se siamo in locale e mancano le chiavi, chiederà il link.
 if [[ "$MODEL_TO_USE" == *"-cloud" ]]; then
     echo "☁️  Verifying authorization for Cloud Model..."
 
