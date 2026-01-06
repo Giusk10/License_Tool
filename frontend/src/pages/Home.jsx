@@ -19,7 +19,7 @@ const Home = () => {
         setLoading(true);
 
         try {
-            const response = await axios.post('https://khondor03-license-checker.hf.space/api/clone', {
+            const response = await axios.post('http://localhost:8000/api/clone', {
                 owner,
                 repo
             });
@@ -56,7 +56,7 @@ const Home = () => {
         formData.append('uploaded_file', file);
 
         try {
-            const response = await axios.post('https://khondor03-license-checker.hf.space/api/zip', formData, {
+            const response = await axios.post('http://localhost:8000/api/zip', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
