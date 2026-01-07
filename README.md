@@ -1,7 +1,6 @@
 # ⚖️ License Tool
 
 **License Tool** è una piattaforma avanzata per il controllo della conformità delle licenze software. Il sistema permette agli sviluppatori di analizzare interi repository o caricare archivi localmente per identificare conflitti legali tra la licenza principale del progetto e le licenze dei singoli file. Con la possibilità di avere suggerimenti sulla licenza da adoperare all'interno del proprio progetto nell'eventualità che ne sia sprovvisto.
-
 Sviluppato da: **Riccio Giuseppe, Simeone Lucia, Medugno Vittoria, Capone Antonella, Liparulo Elisa**.
 
 ---
@@ -26,14 +25,13 @@ License_Tool/
 ├── docs/                   # Documentazione tecnica, guide e note legali
 ├── frontend/               # Interfaccia Utente (React + Vite)
 │   ├── src/                # Core del Frontend
-│   │   ├──  assets         # Immagini e Logo
-│   │   ├──  components     # Componenti grafici per pagine e Form di suggerimento
-│   │   └──  pages          # Pagine di collegamento
+│       ├──  assets         # Immagini e Logo
+│       ├──  components     # Componenti grafici per pagine e Form di suggerimento
+│       └──  pages          # Pagine di collegamento
 ├── tests/                  # Suite di test unitari e di integrazione
 ├── pyproject.toml          # Configurazione build system e metadati progetto
 ├── requirements.txt        # Elenco dipendenze Python per installazione rapida
-├── Dockerfile              # Istruzioni di build dell'immagine e setup dell'ambiente runtime
-├── start-container.sh      # Script di entrypoint per l'inizializzazione e l'avvio dei servizi
+├── start-all-services.ps1  # Script PowerShell per l'avvio rapido dei servizi
 └── LICENSE                 # Testo della Licenza del progetto
 ```
 
@@ -50,6 +48,45 @@ Il tool implementa un workflow completo di analisi, correzione e suggerimenti:
 
 ---
 
+## ⚙️ Prerequisiti e Configurazione
+
+Prima di installare il progetto, assicurati di avere i seguenti componenti installati e attivi sulla tua macchina:
+
+1.  **Python 3.13**
+2.  **Node.js & npm** (per il frontend)
+3.  **Ollama**: Deve essere installato e in esecuzione con i modelli necessari scaricati (es. `llama3`, `codellama`).
+4.  **ScanCode Toolkit**: Deve essere installato localmente. Il percorso dell'eseguibile dovrà essere specificato nel file di configurazione.
+
+### Configurazione Variabili d'Ambiente (.env)
+
+Il backend richiede un file `.env` nella root del progetto (`License_Tool/`) per funzionare correttamente.
+
+Crea un file chiamato `.env` e compilalo seguendo questo template (adatta i percorsi al tuo OS):
+
+```ini
+# --- Integrazione ScanCode ---
+# Percorso assoluto dell'eseguibile di ScanCode (es. su Linux/Mac o Windows)
+SCANCODE_BIN="/path/to/scancode-toolkit/scancode"
+
+# --- Integrazione AI (Ollama) ---
+OLLAMA_URL="http://localhost:11434"
+# Modello usato per la rigenerazione del codice (es. codellama, deepseek-coder)
+OLLAMA_CODING_MODEL="qwen2.5-coder:1.5b"
+# Modello usato per spiegazioni generiche (es. llama3, mistral)
+OLLAMA_GENERAL_MODEL="deepseek-r1:1.5b"
+# (Opzionali) Metadati per il versioning dei modelli
+OLLAMA_HOST_VERSION="0.1.0"
+OLLAMA_HOST_TAGS="latest"
+
+# --- Autenticazione GitHub ---
+# URL dove il frontend riceve il codice di callback da GitHub
+CALLBACK_URL="http://localhost:5173/callback"
+
+# --- Percorsi File System ---
+CLONE_BASE_DIR="./temp_clones"
+OUTPUT_BASE_DIR="./output"
+MINIMAL_JSON_BASE_DIR="./output/minimal_scans"
+```
 ## 🛠️ Stack Tecnologico
 
 Il progetto utilizza tecnologie moderne per garantire scalabilità, sicurezza e una user experience fluida.
@@ -57,7 +94,7 @@ Il progetto utilizza tecnologie moderne per garantire scalabilità, sicurezza e 
 ### Backend (Python)
 * **Framework:** [FastAPI](https://fastapi.tiangolo.com/) - Scelto per le alte prestazioni e la generazione automatica della documentazione OpenAPI.
 * **Analisi Licenze:** [ScanCode Toolkit](https://github.com/nexB/scancode-toolkit) - Engine leader del settore per il rilevamento di licenze e copyright.
-* **AI Integration:** [Ollama](https://ollama.com/) - Orchestrazione di LLM in cloud per l'analisi semantica, la rigenerazione del codice e il suggerimento della Licenza.
+* **AI Integration:** [Ollama](https://ollama.com/) - Orchestrazione di LLM locali (es. Llama 3, CodeLlama) per l'analisi semantica e la rigenerazione del codice.
 
 ### Frontend (React)
 * **Core:** React 19 + [Vite](https://vitejs.dev/) - Per un ambiente di sviluppo rapido e build ottimizzate.
@@ -82,15 +119,112 @@ Il progetto adotta un approccio ibrido per la gestione delle dipendenze, garante
 * **Core**: `fastapi`, `uvicorn`.
 * **Analisi Legale**: `license-expression` (SPDX).
 
-## ☁️ Deployment
+## 🔧 Installazione e Avvio
 
-Il **Backend** è ospitato su **Hugging Face Spaces** (via Docker SDK) per gestire l'elaborazione e i modelli LLM, mentre il **Frontend** è distribuito su Vercel per garantire performance ottimali e delivery globale.
+Segui questa procedura per configurare e avviare sia il backend che il frontend.
 
-## 🔧 Avvio
+### 1. Configurazione Backend
 
-L'interfaccia web sarà accessibile all'indirizzo **https://license-tool-nine.vercel.app/**.
+Il backend richiede la creazione di un file di configurazione per connettersi ai servizi esterni (Ollama, ScanCode).
+
+1.  **Installa le dipendenze:**
+    ```bash
+    # Entra nella root del progetto
+    cd License_Tool
+
+    # Installa i pacchetti Python richiesti
+    pip install -r requirements.txt
+    ```
+
+2.  **Configura l'ambiente:**
+    Assicurati di aver creato il file `.env` come descritto nella sezione **Configurazione Variabili d'Ambiente**.
+   3.  **Scarica i modelli AI:**
+       Scarica e installa Ollama dal sito ufficiale: [ollama.ai/download](https://ollama.ai/download).
+       Aprii un terminale e scarica i modelli definiti nel tuo `.env`:
+       ```bash
+       ollama pull deepseek-r1:1.5b
+       ollama pull qwen2.5-coder:1.5b
+       ```
+4.  **Avvia il Server:**
+    ```bash
+    uvicorn app.main:app --reload
+    ```
+    Il backend sarà attivo su `http://localhost:8000`.
+
+### 2. Configurazione Frontend
+
+In un nuovo terminale:
+
+```bash
+# Spostati nella cartella del frontend
+cd frontend
+
+# Installa le dipendenze Node.js
+npm install
+
+# Avvia il server di sviluppo
+npm run dev
+```
+
+L'interfaccia web sarà accessibile all'indirizzo **http://localhost:5173**.
 
 ---
+
+## ⚡ Quick Start (Windows)
+Prima di procedere con una delle opzioni seguenti, bisogna aver scaricato e installato i modelli Ollama richiesti.
+
+#### Opzione 1 - Script Automatico (CONSIGLIATO)
+Se hai configurato lo script di automazione (opzionale), puoi avviare tutto con un comando.
+```powershell
+.\start-all-services.ps1
+```
+Lo script automatizza l'intero processo:
+* ✅ Verifica che Ollama sia installato
+* ✅ Avvia il servizio Ollama in background
+* ✅ Verifica la presenza dei modelli AI necessari
+* ✅ Avvia il Backend FastAPI
+* ✅ Avvia il Frontend React
+
+#### Opzione 2 - Manuale (3 Terminali)
+
+**Terminal 1: Ollama**
+```bash
+ollama serve
+```
+*(⚠️ Non chiudere questa finestra)*
+
+**Terminal 2: Backend**
+```bash
+uvicorn app.main:app --reload
+```
+**Terminal 3: Frontend**
+```bash
+cd frontend
+npm run dev
+```
+**Apri il browser:** http://localhost:5173/
+
+### 📚 Guide dettagliate
+* [HOW-TO-USE-SUGGEST-LICENSE.md](docs/LICENSE_SUGGESTION_GUIDE.md) - Guida al suggerimento licenze
+
+## 🆘 Troubleshooting: Errore connessione AI
+
+### Problema Comune
+Se durante l'utilizzo o l'avvio visualizzi questo errore:
+```text
+503 Service Unavailable for url: http://localhost:11434/api/generate
+```
+Significa semplicemente che **Ollama non è in esecuzione** o non è raggiungibile.
+
+**Soluzione:**
+1. Apri un terminale dedicato. 
+2. Digita ollama serve. 
+3. Lascia la finestra aperta e riprova l'operazione nel tool.
+
+Assicurati anche di aver scaricato i modelli corretti.
+```bash
+ollama list
+```
 
 ## ⚖️ Licenza e Conformità Legale
 
