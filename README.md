@@ -55,7 +55,7 @@ Prima di installare il progetto, assicurati di avere i seguenti componenti insta
 
 1.  **Python 3.13**
 2.  **Node.js & npm** (per il frontend)
-3.  **Ollama**: Deve essere installato e in esecuzione con i modelli necessari scaricati (es. `llama3`, `codellama`).
+3.  **Ollama**: Deve essere installato e in esecuzione con i modelli necessari.
 4.  **ScanCode Toolkit**: Deve essere installato localmente. Il percorso dell'eseguibile dovrà essere specificato nel file di configurazione.
 
 ### Configurazione Variabili d'Ambiente (.env)
