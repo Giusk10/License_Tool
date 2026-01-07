@@ -9,6 +9,7 @@ and directory depth prioritization.
 
 import pytest
 from app.services.scanner import main_spdx_utilities as util
+from app.services.compatibility import parser_spdx as ps
 
 
 def test_extract_skips_invalid_spdx_values_before_falling_back():
@@ -201,3 +202,43 @@ def test_pick_best_keeps_order_for_same_depth():
         {"path": "B", "detected_license_expression_spdx": "LGPL-3.0"}
     ]
     assert util._pick_best_spdx(entries) == ("EPL-2.0", "A")
+
+
+def test_node_repr_methods(monkeypatch):
+    """
+    Verifies the __repr__ methods of the AST nodes (Leaf, And, Or).
+    This covers the string representation logic which is useful for debugging.
+    """
+    # Mock normalize_symbol to return value as-is for predictable repr
+    monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
+
+    # Test Leaf repr
+    leaf = ps.Leaf("MIT")
+    assert repr(leaf) == "Leaf(MIT)"
+
+    # Test And repr
+    and_node = ps.And(ps.Leaf("A"), ps.Leaf("B"))
+    assert repr(and_node) == "And(Leaf(A), Leaf(B))"
+
+    # Test Or repr
+    or_node = ps.Or(ps.Leaf("X"), ps.Leaf("Y"))
+    assert repr(or_node) == "Or(Leaf(X), Leaf(Y))"
+
+
+def test_parse_primary_implicit_none(monkeypatch):
+    """
+    Forces the 'parse_primary' function to hit its final 'return None' statement.
+
+    In normal operation, '_tokenize' never produces empty strings, so 'consume()'
+    always returns a truthy value or None (caught by 'peek').
+    We mock '_tokenize' to return an empty string to simulate a falsy token
+    that bypasses the 'if val:' check.
+    """
+    # Mock tokenize to return a list containing an empty string
+    monkeypatch.setattr(ps, "_tokenize", lambda s: [""])
+
+    # This triggers parse_primary -> consume() returns "" (falsy)
+    # -> if val: is False -> returns None
+    result = ps.parse_spdx("dummy_input")
+
+    assert result is None
