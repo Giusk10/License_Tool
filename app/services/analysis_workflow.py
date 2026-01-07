@@ -75,7 +75,7 @@ def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
             - 400: If the file is not a zip or is corrupted.
             - 500: If filesystem errors occur during cleanup or extraction.
     """
-    target_dir = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
+    target_dir = os.path.join(CLONE_BASE_DIR, f"{owner.strip()}_{repo.strip()}")
 
     # 1. Preventive cleanup of existing directory
     if os.path.exists(target_dir):
@@ -155,7 +155,7 @@ def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     Raises:
         ValueError: If the repository directory does not exist.
     """
-    repo_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
+    repo_path = os.path.join(CLONE_BASE_DIR, f"{owner.strip()}_{repo.strip()}")
 
     if not os.path.exists(repo_path):
         raise ValueError(f"Repository not found at {repo_path}. Please clone it first.")

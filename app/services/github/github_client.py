@@ -53,7 +53,7 @@ def clone_repo(owner: str, repo: str) -> CloneResult:
         local path (on success) or an error message (on failure).
     """
     os.makedirs(CLONE_BASE_DIR, exist_ok=True)
-    target_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
+    target_path = os.path.join(CLONE_BASE_DIR, f"{owner.strip()}_{repo.strip()}")
 
     try:
         # Safe cleanup of existing directory (Windows-friendly)
@@ -66,7 +66,7 @@ def clone_repo(owner: str, repo: str) -> CloneResult:
 
         # Construct authenticated URL
         # Note: x-access-token is the standard username for OAuth token usage in git
-        auth_url = f"https://github.com/{owner}/{repo}.git"
+        auth_url = f"https://github.com/{owner.strip()}/{repo.strip()}.git"
 
         Repo.clone_from(auth_url, target_path)
 

@@ -14,6 +14,7 @@ import os
 import json
 import logging
 import subprocess
+import shlex
 from typing import Dict, List, Any, Tuple
 
 from app.utility.config import SCANCODE_BIN, OUTPUT_BASE_DIR
@@ -72,8 +73,6 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
     logger.info("Pre-scanning for large files (>%d MB)...", MAX_FILE_SIZE_MB)
 
     for root, dirs, files in os.walk(repo_path):
-        # Avoid entering already ignored folders to speed up
-        # (Note: os.walk allows modifying 'dirs' in-place)
         dirs[:] = [d for d in dirs if d not in ["node_modules", "vendor", ".git", "target"]]
 
         for filename in files:
@@ -84,9 +83,14 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
                     # Calculate the relative path for ignore
                     rel_path = os.path.relpath(file_path, repo_path)
                     logger.warning(f"Auto-ignoring large file: {rel_path}")
-                    ignore_patterns.append(rel_path)
+
+                    # Usiamo shlex.quote per gestire spazi e parentesi in modo sicuro
+                    safe_path = shlex.quote(rel_path)
+                    ignore_patterns.append(safe_path)
+                    # --------------------
+
             except OSError:
-                pass # Unaccessible file, ignore error
+                pass
     # ------------------------------------------------------
 
     # 2. Build the ScanCode command
