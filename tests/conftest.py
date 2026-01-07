@@ -14,37 +14,6 @@ import pytest
 import os
 from unittest.mock import patch
 
-
-# ==============================================================================
-# UTILITY HELPERS
-# ==============================================================================
-
-def msg_matches_helper(s: str, en: str, it: str) -> bool:
-    """
-    Checks if a string contains either the English or Italian variant of a message.
-    Useful for asserting error messages that might be localized.
-
-    Args:
-        s (str): The string to check (can be None).
-        en (str): The English substring expected.
-        it (str): The Italian substring expected.
-
-    Returns:
-        bool: True if either `en` or `it` is found in `s`, False otherwise.
-    """
-    if s is None:
-        return False
-    return (en in s) or (it in s)
-
-
-@pytest.fixture
-def _msg_matches():
-    """
-    Fixture exposing the `msg_matches_helper` function.
-    """
-    return msg_matches_helper
-
-
 # ==============================================================================
 # GLOBAL MOCKS & PATCHES
 # ==============================================================================

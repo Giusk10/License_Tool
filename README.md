@@ -1,6 +1,6 @@
-# ⚖️ License Tool
+# ⚖️ License Checker
 
-**License Tool** è una piattaforma avanzata per il controllo della conformità delle licenze software. Il sistema permette agli sviluppatori di analizzare interi repository o caricare archivi localmente per identificare conflitti legali tra la licenza principale del progetto e le licenze dei singoli file.
+**License Checker** è una piattaforma avanzata per il controllo della conformità delle licenze software. Il sistema permette agli sviluppatori di analizzare interi repository o caricare archivi localmente per identificare conflitti legali tra la licenza principale del progetto e le licenze dei singoli file. Con la possibilità di avere suggerimenti sulla licenza da adoperare all'interno del proprio progetto nell'eventualità che ne sia sprovvisto.
 
 Sviluppato da: **Riccio Giuseppe, Simeone Lucia, Medugno Vittoria, Capone Antonella, Liparulo Elisa**.
 
@@ -25,6 +25,10 @@ License_Tool/
 │   └── utility/            # Configurazione app e variabili d'ambiente
 ├── docs/                   # Documentazione tecnica, guide e note legali
 ├── frontend/               # Interfaccia Utente (React + Vite)
+│   ├── src/                # Core del Frontend
+│       ├──  assets         # Immagini e Logo
+│       ├──  components     # Componenti grafici per pagine e Form di suggerimento
+│       └──  pages          # Pagine di collegamento
 ├── tests/                  # Suite di test unitari e di integrazione
 ├── pyproject.toml          # Configurazione build system e metadati progetto
 ├── requirements.txt        # Elenco dipendenze Python per installazione rapida
@@ -34,14 +38,14 @@ License_Tool/
 
 ## 🚀 Panoramica del Sistema
 
-Il tool implementa un workflow completo di analisi e correzione:
+Il tool implementa un workflow completo di analisi, correzione e suggerimenti:
 
-1.  **Acquisizione**: Il codice viene acquisito tramite **GitHub OAuth** o tramite upload manuale di un archivio **.zip**.
+1.  **Acquisizione**: Il codice viene acquisito tramite **GitHub** o tramite upload manuale da un archivio **.zip**.
 2.  **Scansione (ScanCode)**: Utilizza *ScanCode Toolkit* per estrarre le licenze dichiarate e i copyright in ogni file.
-3.  **Analisi di Compatibilità**: Un motore interno confronta le licenze rilevate con la licenza target del progetto, identificando eventuali conflitti legali.
+3.  **Analisi di Compatibilità**: Un motore interno che confronta le licenze rilevate con la licenza target del progetto identificando eventuali conflitti legali.
 4.  **Enrichment AI (Ollama)**: I risultati vengono arricchiti da un LLM che spiega il conflitto e suggerisce soluzioni pratiche.
-5.  **Rigenerazione del Codice**: Possibilità di riscrivere automaticamente i file che presentano conflitti (es. file con licenza Copyleft in progetti permissivi) mantenendo la logica originale ma rimuovendo il codice problematico.
-6.  **Suggerimento Licenza**: In caso di Licenza principale non specificata, tramite un form dove vengono specificati requisisti e costraint [LICENSE SUGGESTION GUIDE](docs/LICENSE_SUGGESTION_GUIDE.md), raccomanda la licenza utilizzare utilizzando un LLM 
+5.  **Rigenerazione del Codice**: Possibilità di riscrivere automaticamente i file che presentano conflitti (es. file con licenza Copyleft in progetti permissivi) mantenendo la logica originale, rimuovendo il codice problematico.
+6.  **Suggerimento Licenza**: Workflow assistito da LLM per l'individuazione della licenza ideale, basata sui requisiti e vincoli specificati dall'utente tramite form dedicato. Dettagli in [LICENSE SUGGESTION GUIDE](docs/LICENSE_SUGGESTION_GUIDE.md).
 
 ---
 
@@ -49,9 +53,9 @@ Il tool implementa un workflow completo di analisi e correzione:
 
 Prima di installare il progetto, assicurati di avere i seguenti componenti installati e attivi sulla tua macchina:
 
-1.  **Python 3.12+**
+1.  **Python 3.13**
 2.  **Node.js & npm** (per il frontend)
-3.  **Ollama**: Deve essere installato e in esecuzione con i modelli necessari scaricati (es. `llama3`, `codellama`).
+3.  **Ollama**: Deve essere installato e in esecuzione con i modelli necessari.
 4.  **ScanCode Toolkit**: Deve essere installato localmente. Il percorso dell'eseguibile dovrà essere specificato nel file di configurazione.
 
 ### Configurazione Variabili d'Ambiente (.env)
@@ -92,8 +96,6 @@ Il progetto utilizza tecnologie moderne per garantire scalabilità, sicurezza e 
 * **Framework:** [FastAPI](https://fastapi.tiangolo.com/) - Scelto per le alte prestazioni e la generazione automatica della documentazione OpenAPI.
 * **Analisi Licenze:** [ScanCode Toolkit](https://github.com/nexB/scancode-toolkit) - Engine leader del settore per il rilevamento di licenze e copyright.
 * **AI Integration:** [Ollama](https://ollama.com/) - Orchestrazione di LLM locali (es. Llama 3, CodeLlama) per l'analisi semantica e la rigenerazione del codice.
-* **Database:** MongoDB (tramite driver `pymongo`) - Per l'archiviazione flessibile dei risultati di scansione JSON.
-* **Sicurezza:** Libreria `cryptography` per la cifratura a riposo dei token OAuth.
 
 ### Frontend (React)
 * **Core:** React 19 + [Vite](https://vitejs.dev/) - Per un ambiente di sviluppo rapido e build ottimizzate.
@@ -124,7 +126,7 @@ Segui questa procedura per configurare e avviare sia il backend che il frontend.
 
 ### 1. Configurazione Backend
 
-Il backend richiede la creazione di un file di configurazione per connettersi ai servizi esterni (MongoDB, Ollama, ScanCode).
+Il backend richiede la creazione di un file di configurazione per connettersi ai servizi esterni (Ollama, ScanCode).
 
 1.  **Installa le dipendenze:**
     ```bash
