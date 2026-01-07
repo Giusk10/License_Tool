@@ -226,3 +226,32 @@ class TestPerformDownload:
             # Check that it is empty
             assert len(os.listdir(extracted_repo_path)) == 0
 
+    def test_perform_download_archive_failure(self, tmp_path):
+        """
+        Tests error handling when the archiving process fails.
+
+        Verifies that if shutil.make_archive raises an exception (e.g., disk full,
+        permissions), the service catches it, logs the error, and re-raises it
+        as an OSError with a descriptive message.
+        """
+        clone_base_dir = str(tmp_path / "clones")
+        os.makedirs(clone_base_dir, exist_ok=True)
+
+        owner = "test_owner"
+        repo = "test_repo"
+        repo_dir_name = f"{owner}_{repo}"
+        repo_path = os.path.join(clone_base_dir, repo_dir_name)
+
+        # Ensure the repo directory exists so we pass the initial check
+        os.makedirs(repo_path, exist_ok=True)
+
+        # Mock CLONE_BASE_DIR and force shutil.make_archive to fail
+        with patch("app.services.downloader.download_service.CLONE_BASE_DIR", clone_base_dir), \
+                patch("shutil.make_archive", side_effect=OSError("Disk full")):
+            with pytest.raises(OSError) as exc_info:
+                perform_download(owner, repo)
+
+            # Verify the exception message wraps the original error
+            assert "Failed to create ZIP archive" in str(exc_info.value)
+            assert "Disk full" in str(exc_info.value)
+

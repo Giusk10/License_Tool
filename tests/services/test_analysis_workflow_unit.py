@@ -117,12 +117,13 @@ def test_perform_upload_zip_corrupted_file():
     assert "corrupted" in exc.value.detail
 
 
-def test_perform_upload_zip_cleanup_existing_dir(tmp_path):
+def test_perform_upload_zip_preventive_cleanup(tmp_path):
     """
-    Verifies idempotent behavior during ZIP extraction.
+    Verifies the preventive cleanup logic before extraction.
 
-    Ensures that if a directory for the repository already exists, it is
-    removed before extracting the new ZIP content to avoid stale data.
+    Ensures that if a target directory already exists from a previous run,
+    it is completely removed before processing the new ZIP file. This prevents
+    mixing old artifacts with new source code.
     """
     owner, repo = "cleanup", "existing"
     base_dir = tmp_path / "clones"
@@ -144,9 +145,46 @@ def test_perform_upload_zip_cleanup_existing_dir(tmp_path):
     with patch("app.services.analysis_workflow.CLONE_BASE_DIR", str(base_dir)):
         perform_upload_zip(owner, repo, mock_file)
 
+        # Verify: old file should be gone (preventive cleanup worked)
         assert not (target_dir / "old.txt").exists()
+        # Verify: new file should exist
         assert (target_dir / "new.txt").exists()
 
+
+def test_perform_upload_zip_rollback_on_failure(tmp_path):
+    """
+    Verifies the rollback mechanism upon processing failure.
+
+    Ensures that if the directory is created during the process but a critical
+    error occurs (e.g., download interruption, copy failure), the partial
+    directory is removed to maintain a clean state.
+    """
+    base_dir = tmp_path / "clones"
+    base_dir.mkdir()
+
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "a") as zf:
+        zf.writestr("file.txt", "content")
+    zip_buffer.seek(0)
+
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = "valid.zip"
+    mock_file.file = zip_buffer
+
+    # Side effect: creates the directory (simulating start) then crashes
+    def side_effect_create_and_fail(src, dst, **kwargs):
+        os.makedirs(dst)
+        raise Exception("Copy failed halfway")
+
+    with patch("app.services.analysis_workflow.CLONE_BASE_DIR", str(base_dir)):
+        with patch("shutil.copytree", side_effect=side_effect_create_and_fail):
+            with patch("shutil.rmtree") as mock_rmtree:
+                with pytest.raises(HTTPException):
+                    perform_upload_zip("owner", "repo", mock_file)
+
+                # Verify: rmtree was called to clean up the mess
+                expected_target = str(base_dir / "owner_repo")
+                mock_rmtree.assert_called_with(expected_target)
 
 def test_perform_upload_zip_cleanup_os_error(tmp_path):
     """
@@ -584,3 +622,104 @@ def test_rescan_repository_multiple_issues(tmp_path):
         assert len(result) == 3
         assert result[1]["compatible"] is False
 
+
+def test_perform_initial_scan_string_license_return(tmp_path):
+    """
+    Verifies perform_initial_scan when license detection returns a simple string
+    (e.g., 'MIT') instead of a tuple. This covers the 'else' branch in detection handling.
+    """
+    owner, repo = "scan", "str_license"
+    base_dir = tmp_path / "clones"
+    repo_dir = base_dir / f"{owner}_{repo}"
+    repo_dir.mkdir(parents=True)
+
+    with patch("app.services.analysis_workflow.CLONE_BASE_DIR", str(base_dir)), \
+            patch("app.services.analysis_workflow.run_scancode", return_value={}), \
+            patch("app.services.analysis_workflow.detect_main_license_scancode", return_value="MIT"), \
+            patch("app.services.analysis_workflow.filter_licenses", return_value={}), \
+            patch("app.services.analysis_workflow.extract_file_licenses", return_value={}), \
+            patch("app.services.analysis_workflow.check_compatibility", return_value={"issues": []}), \
+            patch("app.services.analysis_workflow.enrich_with_llm_suggestions", return_value=[]):
+        response = perform_initial_scan(owner, repo)
+        assert response.main_license == "MIT"
+
+
+def test_perform_regeneration_repo_not_found(tmp_path):
+    """
+    Verifies validation check for missing repository in regeneration workflow.
+    Covers the 'if not os.path.exists' check at the start of perform_regeneration.
+    """
+    base_dir = tmp_path / "clones"
+    base_dir.mkdir()
+
+    prev = AnalyzeResponse(repository="owner/missing", main_license="MIT", issues=[])
+
+    with patch("app.services.analysis_workflow.CLONE_BASE_DIR", str(base_dir)):
+        with pytest.raises(ValueError, match="Repository not found"):
+            perform_regeneration("owner", "missing", prev)
+
+
+def test_regenerate_incompatible_files_with_repo_prefix_path(tmp_path):
+    """
+    Tests path resolution logic when file_path starts with the repository name.
+    Covers the 'if fpath.startswith(repo_name)' branch in _regenerate_incompatible_files.
+    """
+    repo_name = "owner_repo"
+    repo_path = tmp_path / repo_name
+    repo_path.mkdir()
+
+    # Create file at root of repo
+    (repo_path / "root.py").write_text("# content")
+
+    # Issue uses "owner_repo/root.py" format
+    issues = [
+        LicenseIssue(
+            file_path=f"{repo_name}/root.py",
+            detected_license="GPL",
+            compatible=False
+        )
+    ]
+
+    with patch("app.services.analysis_workflow.regenerate_code", return_value="# new code\nprint('fixed')"):
+        result = _regenerate_incompatible_files(str(repo_path), "MIT", issues)
+
+    # Should resolve correctly and regenerate
+    assert f"{repo_name}/root.py" in result
+    assert "fixed" in (repo_path / "root.py").read_text()
+
+
+def test_regenerate_incompatible_files_os_error_handling(tmp_path):
+    """
+    Tests specifically the OSError catch block (e.g., file permission issues)
+    during the regeneration loop.
+    """
+    repo_path = tmp_path / "owner_repo"
+    repo_path.mkdir()
+    (repo_path / "locked.py").write_text("# locked")
+
+    issues = [LicenseIssue(file_path="locked.py", detected_license="GPL", compatible=False)]
+
+    # Mock open to raise OSError when reading/writing this file
+    with patch("builtins.open", side_effect=OSError("Disk Error")):
+        result = _regenerate_incompatible_files(str(repo_path), "MIT", issues)
+
+    # Should handle error gracefully and return empty result
+    assert len(result) == 0
+
+
+def test_regenerate_incompatible_files_general_exception(tmp_path):
+    """
+    Tests the generic Exception catch block in the regeneration loop.
+    """
+    repo_path = tmp_path / "owner_repo"
+    repo_path.mkdir()
+    (repo_path / "fail.py").write_text("# content")
+
+    issues = [LicenseIssue(file_path="fail.py", detected_license="GPL", compatible=False)]
+
+    # Mock regenerate_code to raise a generic Exception
+    with patch("app.services.analysis_workflow.regenerate_code", side_effect=Exception("AI Error")):
+        result = _regenerate_incompatible_files(str(repo_path), "MIT", issues)
+
+    # Should catch exception and return empty result
+    assert len(result) == 0

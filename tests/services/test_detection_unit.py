@@ -326,6 +326,71 @@ class TestRunScancode:
 
                 assert "Failed to process ScanCode output" in str(exc_info.value)
 
+    def test_run_scancode_auto_ignore_large_files_and_oserror(self, tmp_path):
+        """
+        Tests the auto-ignore logic for large files and error handling during file scan.
+
+        Covers:
+        - The 'if os.path.getsize > limit_bytes' block.
+        - The 'except OSError: pass' block.
+        """
+        repo_path = str(tmp_path / "test_repo")
+        os.makedirs(repo_path, exist_ok=True)
+
+        # Create dummy files
+        (tmp_path / "test_repo" / "normal.py").touch()
+        (tmp_path / "test_repo" / "large.bin").touch()
+        (tmp_path / "test_repo" / "locked.bin").touch()
+
+        output_dir = str(tmp_path / "output")
+
+        with patch("app.services.scanner.detection.OUTPUT_BASE_DIR", output_dir), \
+                patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
+                patch("subprocess.Popen") as mock_popen, \
+                patch("os.path.exists", return_value=True), \
+                patch("json.dump"):  # Mock dump to avoid file writing issues
+
+            # Setup successful process
+            mock_process = MagicMock()
+            mock_process.wait.return_value = 0
+            mock_process.__enter__ = MagicMock(return_value=mock_process)
+            mock_process.__exit__ = MagicMock(return_value=False)
+            mock_popen.return_value = mock_process
+
+            # Mock os.walk to return our files
+            # tuple format: (root, dirs, files)
+            walk_data = [
+                (repo_path, [], ["normal.py", "large.bin", "locked.bin"])
+            ]
+
+            # 1MB limit in bytes
+            limit = 1 * 1024 * 1024
+
+            # Define side effects for getsize:
+            # - normal.py -> small size
+            # - large.bin -> large size (> limit)
+            # - locked.bin -> raise OSError
+            def getsize_side_effect(path):
+                if "large.bin" in path:
+                    return limit + 100  # Trigger ignore
+                if "locked.bin" in path:
+                    raise OSError("Permission denied")  # Trigger exception handler
+                return 100  # Normal file
+
+            with patch("os.walk", return_value=walk_data), \
+                    patch("os.path.getsize", side_effect=getsize_side_effect):
+
+                # We need to mock open/json.load for the post-processing part to succeed
+                with patch("builtins.open", mock_open(read_data='{"files": []}')):
+                    run_scancode(repo_path)
+
+            # Verify that the large file was added to the ignore list in the command arguments
+            call_args = mock_popen.call_args[0][0]
+            # "large.bin" should be passed after "--ignore"
+            assert "large.bin" in call_args
+            # "normal.py" should NOT be ignored
+            assert "normal.py" not in call_args
+
 
 # ==================================================================================
 #                    TEST CLASS: DETECT MAIN LICENSE SCANCODE
@@ -596,6 +661,31 @@ class TestDetectMainLicenseScancode:
         assert result == "MIT"
         assert path == "LICENSE"
 
+    def test_detect_main_license_missing_spdx_field(self):
+        """
+        Tests handling of detections missing the 'license_expression_spdx' field.
+
+        Covers the 'if not spdx: continue' check inside the loop.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "LICENSE",
+                    "license_detections": [
+                        {
+                            # Missing 'license_expression_spdx'
+                            "score": 100,
+                            "matched_rule": {"is_license_text": True}
+                        }
+                    ],
+                    "percentage_of_license_text": 90.0
+                }
+            ]
+        }
+
+        # Should return UNKNOWN because the only candidate lacks an SPDX ID
+        result = detect_main_license_scancode(data)
+        assert result == "UNKNOWN"
 
 # ==================================================================================
 #                    TEST CLASS: EXTRACT FILE LICENSES
@@ -787,3 +877,24 @@ class TestExtractFileLicenses:
         assert result["vendor/lib.js"] == "BSD-3-Clause"
         assert "README.md" not in result
 
+    def test_extract_file_licenses_matches_but_no_valid_spdx(self):
+        """
+        Tests filtering when matches exist but contain no valid license keys.
+
+        Covers the 'if not unique_spdx: continue' block.
+        """
+        data = {
+            "files": [
+                {
+                    "path": "file.c",
+                    "matches": [
+                        {"score": 90},  # Missing license_spdx
+                        {"license_spdx": ""}  # Empty string
+                    ]
+                }
+            ]
+        }
+
+        result = extract_file_licenses(data)
+        # Should be empty because no valid SPDX IDs were extracted
+        assert result == {}

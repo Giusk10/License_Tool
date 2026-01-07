@@ -1117,7 +1117,7 @@ def test_download_repo_success_integration(create_test_repo, cleanup_test_repos)
         readme_content = zip_file.read('downloadowner_downloadrepo/README.md').decode('utf-8')
         assert '# Download Test' in readme_content
 
-def test_download_repo_repository_not_found(_msg_matches):
+def test_download_repo_repository_not_found():
     """
      Error Handling Test: Attempt to download a non-existent repository.
 
@@ -1131,7 +1131,7 @@ def test_download_repo_repository_not_found(_msg_matches):
 
     assert response.status_code == 400
     # Assuming _msg_matches checks if either string is in the detail
-    assert "Repository not found" in response.json()["detail"] or "Repository non trovata" in response.json()["detail"]
+    assert "Repository not found" in response.json()["detail"]
 
 def test_download_repo_missing_parameters():
     """
