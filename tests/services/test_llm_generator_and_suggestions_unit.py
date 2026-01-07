@@ -7,10 +7,11 @@ l'analisi e la validazione del codice generato, e la logica per arricchire
 i risultati di analisi con suggerimenti basati su AI.
 """
 
+import json
 from unittest.mock import patch, mock_open
 from app.services.llm.code_generator import regenerate_code, validate_generated_code
 from app.services.llm.suggestion import ask_llm_for_suggestions, review_document, enrich_with_llm_suggestions
-
+from app.services.llm import license_recommender
 
 # ==============================================================================
 # TEST PER GENERAZIONE CODICE
@@ -109,6 +110,19 @@ def test_review_document_no_tags():
     with patch('builtins.open', mock_open(read_data="content")), \
          patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
         mock_call.return_value = "Some advice without tags"
+        result = review_document(issue, "MIT", "MIT, Apache")
+        assert result is None
+
+
+def test_review_document_llm_returns_none():
+    """
+    Verify that `review_document` returns None if the LLM response is None or empty.
+    This covers the `if not response:` check.
+    """
+    issue = {"file_path": "file.md", "detected_license": "GPL"}
+    with patch('builtins.open', mock_open(read_data="content")), \
+         patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
+        mock_call.return_value = None
         result = review_document(issue, "MIT", "MIT, Apache")
         assert result is None
 
@@ -223,6 +237,23 @@ def test_enrich_with_llm_suggestions_unknown_outcome():
     assert result[0]["licenses"] == ""
 
 
+def test_enrich_with_llm_suggestions_compatible_none_fallback():
+    """
+    Verify that when compatibility is None but reason is neither conditional nor unknown,
+    the fallback 'could not be determined' message is returned.
+    """
+    issues = [{
+        "file_path": "file.py",
+        "detected_license": "GPL",
+        "compatible": None,
+        "reason": "Some random failure"
+    }]
+    result = enrich_with_llm_suggestions("MIT", issues)
+    assert len(result) == 1
+    assert "The repository main license could not be determined" in result[0]["suggestion"]
+    assert result[0]["licenses"] == ""
+
+
 # ==============================================================================
 # TEST PER VALIDAZIONE CODICE
 # ==============================================================================
@@ -233,6 +264,7 @@ def test_validate_generated_code_valid_python():
     """
     code = "print('hello world')"
     assert validate_generated_code(code) is True
+
 
 def test_validate_generated_code_too_short():
     """
@@ -256,3 +288,236 @@ def test_validate_generated_code_none():
     """
     code = None
     assert validate_generated_code(code) is False
+
+
+def test_validate_generated_code_invalid_type():
+    """
+    Verify that non-string inputs fail validation (covers isinstance check).
+    """
+    assert validate_generated_code(123) is False
+    assert validate_generated_code({}) is False
+
+
+# ==============================================================================
+# TESTS FOR LICENSE RECOMMENDER (NEW ADDITIONS)
+# ==============================================================================
+
+def test_suggest_license_success_clean_json():
+    """
+    Verifies that a valid JSON response from the LLM is correctly parsed
+    and returned.
+    """
+    requirements = {"commercial_use": True}
+    mock_response = json.dumps({
+        "suggested_license": "Apache-2.0",
+        "explanation": "Fits commercial needs.",
+        "alternatives": ["MIT"]
+    })
+
+    with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value=mock_response):
+        result = license_recommender.suggest_license_based_on_requirements(requirements)
+
+        assert result["suggested_license"] == "Apache-2.0"
+        assert result["alternatives"] == ["MIT"]
+
+def test_suggest_license_strips_markdown():
+    """
+    Verifies that Markdown code blocks (```json ... ```) are stripped from
+    the LLM response before parsing.
+    """
+    requirements = {"commercial_use": True}
+    mock_response = "```json\n" + json.dumps({
+        "suggested_license": "BSD-3-Clause",
+        "explanation": "Exp",
+        "alternatives": []
+    }) + "\n```"
+
+    with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value=mock_response):
+        result = license_recommender.suggest_license_based_on_requirements(requirements)
+
+        assert result["suggested_license"] == "BSD-3-Clause"
+
+def test_suggest_license_empty_response_fallback():
+    """
+    Verifies that if the LLM returns None or empty string, the function
+    raises/catches ValueError and returns the fallback (MIT).
+    """
+    requirements = {}
+
+    # Simulate empty response
+    with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value=""):
+        result = license_recommender.suggest_license_based_on_requirements(requirements)
+
+        # Should return fallback
+        assert result["suggested_license"] == "MIT"
+        assert "recommended as it's permissive" in result["explanation"]
+
+def test_suggest_license_invalid_json_fallback():
+    """
+    Verifies that if the LLM returns invalid JSON (garbage text),
+    the function catches JSONDecodeError and returns the fallback.
+    """
+    requirements = {}
+
+    with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value="Not a JSON"):
+        result = license_recommender.suggest_license_based_on_requirements(requirements)
+
+        assert result["suggested_license"] == "MIT"
+
+def test_suggest_license_generic_exception_fallback():
+    """
+    Verifies that unexpected exceptions (e.g. network error) are caught
+    and result in a safe fallback.
+    """
+    requirements = {}
+
+    with patch("app.services.llm.license_recommender.call_ollama_deepseek", side_effect=Exception("API Down")):
+        result = license_recommender.suggest_license_based_on_requirements(requirements)
+
+        assert result["suggested_license"] == "MIT"
+        assert "error occurred during analysis" in result["explanation"]
+
+def test_suggest_license_prompt_construction_full_flags():
+    """
+    Verifies that all requirement flags are correctly converted into the prompt text.
+    Inspects the argument passed to the mock.
+    """
+    requirements = {
+        "commercial_use": True,
+        "modification": True,
+        "distribution": True,
+        "patent_grant": True,
+        "trademark_use": True,
+        "liability": True,
+        "copyleft": "strong",
+        "additional_requirements": "Must be OSI approved"
+    }
+    detected_licenses = ["GPL-2.0"]
+
+    with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value="{}") as mock_call:
+        license_recommender.suggest_license_based_on_requirements(requirements, detected_licenses)
+
+        call_arg = mock_call.call_args[0][0]
+
+        # Check presence of all flags in the prompt
+        assert "Commercial use: REQUIRED" in call_arg
+        assert "Modification: ALLOWED" in call_arg
+        assert "Distribution: ALLOWED" in call_arg
+        assert "Patent grant: REQUIRED" in call_arg
+        assert "Trademark use: REQUIRED" in call_arg
+        assert "Liability protection: REQUIRED" in call_arg
+        assert "Copyleft: STRONG copyleft required" in call_arg
+        assert "Must be OSI approved" in call_arg
+        assert "EXISTING LICENSES IN PROJECT" in call_arg
+        assert "GPL-2.0" in call_arg
+
+def test_suggest_license_prompt_construction_false_flags():
+    """
+    Verifies that 'False' flags generate the correct 'NOT required/allowed' text
+    and handles 'weak'/'none' copyleft options.
+    """
+    requirements = {
+        "commercial_use": False,
+        "modification": False,
+        "distribution": False,
+        "copyleft": "weak" # Test 'weak' logic
+    }
+
+    with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value="{}") as mock_call:
+        license_recommender.suggest_license_based_on_requirements(requirements)
+
+        call_arg = mock_call.call_args[0][0]
+
+        assert "Commercial use: NOT required" in call_arg
+        assert "Modification: NOT allowed" in call_arg
+        assert "Distribution: NOT allowed" in call_arg
+        assert "Copyleft: WEAK copyleft preferred" in call_arg
+
+def test_suggest_license_prompt_construction_no_copyleft():
+    """
+    Verifies specific logic for 'copyleft': 'none'.
+    """
+    requirements = {"copyleft": "none"}
+
+    with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value="{}") as mock_call:
+        license_recommender.suggest_license_based_on_requirements(requirements)
+        call_arg = mock_call.call_args[0][0]
+        assert "Copyleft: NO copyleft" in call_arg
+
+def test_needs_suggestion_true_unknown_main():
+    """
+    Verifies that suggestion is needed if main license is Unknown/None.
+    """
+    assert license_recommender.needs_license_suggestion(None, []) is True
+    assert license_recommender.needs_license_suggestion("Unknown", []) is True
+    assert license_recommender.needs_license_suggestion("no license", []) is True
+
+def test_needs_suggestion_false_known_main():
+    """
+    Verifies that suggestion is NOT needed if main license is known (e.g. MIT).
+    Also covers the loop execution where issues have known licenses.
+    """
+    issues = [{"detected_license": "MIT"}]
+    # Main license known ("MIT") -> logic falls through to loop -> returns False
+    assert license_recommender.needs_license_suggestion("MIT", issues) is False
+
+def test_needs_suggestion_false_unknown_files():
+    """
+    Verifies the specific branch where files have 'unknown' licenses.
+    Note: Current implementation returns False in this case too.
+    """
+    issues = [{"detected_license": "unknown"}]
+    # Main known ("MIT") -> issue is unknown -> loop hits 'return False' early
+    assert license_recommender.needs_license_suggestion("MIT", issues) is False
+
+
+def test_suggest_license_strips_generic_markdown():
+    """
+    Verifies that generic Markdown code blocks (``` ... ``` without 'json')
+    are correctly stripped. This covers the specific branch:
+    'if response.startswith("```"):' which is otherwise skipped by json blocks.
+    """
+    requirements = {"commercial_use": True}
+    # Response with generic code block tags
+    mock_response = "```\n" + json.dumps({
+        "suggested_license": "GPL-3.0",
+        "explanation": "Strong copyleft",
+        "alternatives": []
+    }) + "\n```"
+
+    with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value=mock_response):
+        result = license_recommender.suggest_license_based_on_requirements(requirements)
+
+        assert result["suggested_license"] == "GPL-3.0"
+
+
+def test_enrich_with_llm_suggestions_llm_failure_fallback():
+    """
+    Verifies that if the LLM fails to return a suggestion (returns None) for a
+    code file, the suggestion text handles it gracefully.
+    """
+    issues = [{"file_path": "file.py", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
+
+    # Mock ask_llm_for_suggestions to return None (simulating failure/empty response)
+    with patch('app.services.llm.suggestion.ask_llm_for_suggestions', return_value=None):
+        result = enrich_with_llm_suggestions("MIT", issues)
+
+        assert len(result) == 1
+        # When licenses_list_str is None, f"{licenses_list_str}" becomes "None"
+        assert "None" in result[0]["suggestion"]
+        assert result[0]["licenses"] is None
+
+
+def test_enrich_with_llm_suggestions_doc_review_failure_fallback():
+    """
+    Verifies that if the LLM fails to review a document (returns None) for a
+    text/markdown file, the fallback message 'Check document manually.' is used.
+    """
+    issues = [{"file_path": "README.md", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
+
+    # Mock review_document to return None
+    with patch('app.services.llm.suggestion.review_document', return_value=None):
+        result = enrich_with_llm_suggestions("MIT", issues)
+
+        assert len(result) == 1
+        assert "Check document manually." in result[0]["suggestion"]

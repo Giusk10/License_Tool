@@ -3,7 +3,9 @@ test: services/compatibility/matrix.py
 """
 
 import pytest
-from unittest.mock import MagicMock
+import os
+import sys
+from unittest.mock import MagicMock, patch
 from app.services.compatibility import matrix
 
 
@@ -373,3 +375,78 @@ def test_load_matrix_normalize_symbol_exception(monkeypatch):
     result = matrix.load_professional_matrix()
     assert result == {}
 
+# Test for _read_from_filesystem exception handling (e.g., read permission error)
+def test_read_from_filesystem_exception(monkeypatch):
+    """Verify that exceptions during filesystem read are caught and logged"""
+    # Force os.path.exists to True
+    monkeypatch.setattr("os.path.exists", lambda x: True)
+
+    # Mock open to raise an Exception (e.g. PermissionError)
+    mock_open_func = MagicMock(side_effect=PermissionError("Access denied"))
+    monkeypatch.setattr("builtins.open", mock_open_func)
+
+    result = matrix._read_from_filesystem()
+    assert result is None
+
+# Test for _read_from_resources when resources module is not available (ImportError)
+def test_read_from_resources_module_none(monkeypatch):
+    """Verify that _read_from_resources returns None if resources module is None"""
+    monkeypatch.setattr(matrix, "resources", None)
+    result = matrix._read_from_resources()
+    assert result is None
+
+# Test for _read_from_resources when __package__ is not set
+def test_read_from_resources_no_package(monkeypatch):
+    """Verify that _read_from_resources returns None if __package__ is not set"""
+    # Ensure resources is not None
+    monkeypatch.setattr(matrix, "resources", MagicMock())
+    monkeypatch.setattr(matrix, "__package__", None)
+    result = matrix._read_from_resources()
+    assert result is None
+
+# Test for _read_from_resources generic exception (not FileNotFoundError)
+def test_read_from_resources_generic_exception(monkeypatch):
+    """Verify that generic exceptions during resource reading are caught"""
+    monkeypatch.setattr(matrix, "resources", MagicMock())
+    monkeypatch.setattr(matrix, "__package__", "app.services.compatibility")
+
+    # Mock files() to raise a generic Exception
+    mock_files = MagicMock(side_effect=Exception("Unexpected error"))
+    monkeypatch.setattr(matrix.resources, "files", mock_files)
+
+    result = matrix._read_from_resources()
+    assert result is None
+
+def test_import_resources_importerror():
+    """
+    Verify that if importlib.resources cannot be imported, resources is set to None.
+    This test reloads the module in a controlled environment to hit the 'except ImportError' block.
+    """
+    # Store reference to the real module to restore it later
+    real_module = sys.modules.get('app.services.compatibility.matrix')
+    if real_module:
+        del sys.modules['app.services.compatibility.matrix']
+
+    orig_import = __import__
+
+    def import_mock(name, globals=None, locals=None, fromlist=(), level=0):
+        # Trigger ImportError for 'from importlib import resources'
+        # which looks like name='importlib', fromlist=('resources',)
+        if name == 'importlib' and 'resources' in fromlist:
+             raise ImportError("Simulated ImportError for resources")
+        # Also catch direct import if attempted
+        if name == 'importlib.resources':
+             raise ImportError("Simulated ImportError for resources")
+
+        return orig_import(name, globals, locals, fromlist, level)
+
+    try:
+        with patch('builtins.__import__', side_effect=import_mock):
+            import app.services.compatibility.matrix as m
+            assert m.resources is None
+    finally:
+        # Restore sys.modules
+        if real_module:
+            sys.modules['app.services.compatibility.matrix'] = real_module
+        elif 'app.services.compatibility.matrix' in sys.modules:
+            del sys.modules['app.services.compatibility.matrix']

@@ -200,7 +200,44 @@ def test_remove_main_license_multiple_matches_value_error():
     result = remove_main_license("MIT", "target.py", data)
     assert len(result["files"]) == 0
 
-# --- TEST UNITARI: filter_contained_licenses ---
+def test_remove_main_license_value_error():
+    """
+    Test that ValueError during removal is caught and ignored.
+    This simulates a race condition or state where the item to be removed
+    is no longer in the list by the time remove() is called.
+    """
+    class ErrorList(list):
+        def remove(self, value):
+            raise ValueError("Test Error")
+
+    # Construct the data with the custom list
+    file_entry = {"path": "target.py", "matches": [{"license_spdx": "MIT"}]}
+    files_list = ErrorList([file_entry])
+    data = {"files": files_list}
+
+    # This should find "target.py" with "MIT" and try to remove it, triggering ValueError
+    result = remove_main_license("MIT", "target.py", data)
+
+    # Result should still contain the file because removal failed and was caught
+    assert len(result["files"]) == 1
+    assert result["files"][0]["path"] == "target.py"
+
+def test_remove_main_license_path_match_spdx_mismatch():
+    """
+    Test that if the path matches the main license file but the SPDX does not,
+    the file is NOT removed.
+    """
+    data = {
+        "files": [
+            {"path": "LICENSE", "matches": [{"license_spdx": "Apache-2.0"}]}
+        ]
+    }
+    # Trying to remove "LICENSE" assuming it is "MIT". It is "Apache-2.0".
+    result = remove_main_license("MIT", "LICENSE", data)
+    assert len(result["files"]) == 1
+    assert result["files"][0]["path"] == "LICENSE"
+
+# --- UNIT TESTS: filter_contained_licenses ---
 
 def test_filter_contained_licenses_logic():
     """
@@ -237,6 +274,91 @@ def test_regex_filter_missing_rules_file():
     with patch("os.path.exists", return_value=False):
         with pytest.raises(FileNotFoundError):
             regex_filter({"files": []}, False)
+
+def test_load_rules_patterns_invalid_regex(mock_rules_json):
+    """
+    Test that invalid regex patterns in rules file are safely ignored (caught by try/except).
+    """
+    bad_rules = mock_rules_json.copy()
+    bad_rules["valid_license_text_patterns"] = ["(["] # Invalid regex
+    bad_rules["valid_license_link_patterns"] = ["*"]  # Invalid regex
+
+    with patch("builtins.open", mock_open(read_data=json.dumps(bad_rules))), \
+            patch("os.path.exists", return_value=True):
+        # Should not raise exception
+        result = regex_filter({"files": []}, False)
+        assert result == {"files": []}
+
+def test_regex_filter_skip_key_files(mock_rules_json):
+    """
+    Test that files marked as 'is_key_file' are skipped ONLY when detected_main_spdx is True.
+    """
+    data = {
+        "files": [
+            {
+                "path": "LICENSE",
+                "is_legal": False, # Must be False to hit the check
+                "is_key_file": True,
+                "score": 100,
+                # Use matched_text that passes regex validation ("Permission is hereby granted")
+                # defined in mock_rules_json, otherwise the file is filtered out as invalid match
+                "matches": [{"license_spdx": "MIT", "matched_text": "Permission is hereby granted"}]
+            }
+        ]
+    }
+
+    with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
+            patch("os.path.exists", return_value=True):
+
+        # Scenario 1: detected_main_spdx = True -> File skipped (key file)
+        res1 = regex_filter(data, detected_main_spdx=True)
+        assert len(res1["files"]) == 0
+
+        # Scenario 2: detected_main_spdx = False -> File kept (key file check ignored)
+        res2 = regex_filter(data, detected_main_spdx=False)
+        assert len(res2["files"]) == 1
+
+def test_regex_filter_detected_main_true_not_key_file(mock_rules_json):
+    """
+    Test that if detected_main_spdx is True but is_key_file is False,
+    the file is NOT skipped.
+    """
+    data = {
+        "files": [{
+            "path": "normal.py",
+            "is_legal": False,
+            "is_key_file": False, # Not a key file
+            "matches": [{"license_spdx": "MIT", "matched_text": "Permission is hereby granted"}]
+        }]
+    }
+    with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
+            patch("os.path.exists", return_value=True):
+        result = regex_filter(data, detected_main_spdx=True)
+        assert len(result["files"]) == 1
+
+def test_regex_filter_is_legal_file(mock_rules_json):
+    """
+    Test that files marked as 'is_legal' are preserved in the output
+    without undergoing regex filtering.
+    """
+    data = {
+        "files": [{
+            "path": "legal_file.txt",
+            "is_legal": True,
+            "is_key_file": False,
+            "score": 100,
+            # Even with matches that might technically fail validation (or empty matches),
+            # legal files are passed through "as is" by the filter logic.
+            "matches": [{"license_spdx": "SomeLicense", "matched_text": "Some text"}]
+        }]
+    }
+    with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
+            patch("os.path.exists", return_value=True):
+        result = regex_filter(data, False)
+        assert len(result["files"]) == 1
+        assert result["files"][0]["path"] == "legal_file.txt"
+        # Matches should be preserved as-is
+        assert result["files"][0]["matches"][0]["license_spdx"] == "SomeLicense"
 
 def test_regex_filter_valid_tag_group_1(mock_rules_json):
     """
@@ -325,7 +447,46 @@ def test_regex_filter_scancode_id_checks(mock_rules_json):
         assert matches[1]["license_spdx"] == "LicenseRef-scancode-unknown"
         assert matches[2]["license_spdx"] == "Apache-2.0"
 
-# --- TEST UNITARI: check_license_spdx_duplicates ---
+def test_regex_filter_no_valid_matches(mock_rules_json):
+    """
+    Test that files with no valid matches (text not in whitelist) are excluded from output.
+    """
+    data = {
+        "files": [{
+            "path": "garbage.txt", "is_legal": False, "is_key_file": False, "score": 10,
+            "matches": [{"license_spdx": "MIT", "matched_text": "This text is not in the whitelist rules."}]
+        }]
+    }
+    with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
+            patch("os.path.exists", return_value=True):
+        result = regex_filter(data, False)
+        # File should be dropped because valid_matches is empty
+        assert len(result["files"]) == 0
+
+def test_regex_filter_empty_extraction(mock_rules_json):
+    """
+    Test scenario where SPDX tag regex matches but captures an empty string.
+    The match should be discarded.
+    """
+    # Rule that matches "Tag: " but captures "" in group 1
+    custom_rules = mock_rules_json.copy()
+    custom_rules["spdx_tag_pattern"] = "Tag: (.*)"
+
+    data = {
+        "files": [{
+            "path": "empty.txt", "is_legal": False, "is_key_file": False, "score": 10,
+            "matches": [{"license_spdx": "MIT", "matched_text": "Tag: "}]
+        }]
+    }
+    with patch("builtins.open", mock_open(read_data=json.dumps(custom_rules))), \
+            patch("os.path.exists", return_value=True):
+        result = regex_filter(data, False)
+        # Match matches regex, but extracted group is empty string.
+        # final_spdx becomes "", so 'if final_spdx:' is False.
+        # valid_matches empty -> file dropped.
+        assert len(result["files"]) == 0
+
+# --- UNIT TESTS: check_license_spdx_duplicates ---
 
 def test_check_license_spdx_duplicates_dirty_data():
     """
@@ -366,7 +527,25 @@ def test_check_license_spdx_duplicates_deduplication():
     result = check_license_spdx_duplicates(data)
     assert len(result["files"][0]["matches"]) == 1
 
-# --- TEST DI INTEGRAZIONE ---
+def test_check_license_spdx_duplicates_all_invalid():
+    """
+    Test scenario where a file has matches but all have invalid/empty SPDX.
+    The file should be excluded from the unique results.
+    """
+    data = {
+        "files": [{
+            "path": "invalid.txt", "score": 10,
+            "matches": [
+                {"license_spdx": "", "matched_text": "foo"},
+                {"license_spdx": None, "matched_text": "bar"}
+            ]
+        }]
+    }
+    result = check_license_spdx_duplicates(data)
+    # spdx_uniques should be empty, so file is not appended
+    assert len(result["files"]) == 0
+
+# --- INTEGRATION TESTS ---
 
 def test_filter_licenses_integration(mock_scancode_data, mock_rules_json):
     """
