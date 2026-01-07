@@ -19,7 +19,7 @@ const Home = () => {
         setLoading(true);
 
         try {
-            const response = await axios.post('http://localhost:8000/api/clone', {
+            const response = await axios.post('https://licensechecker-license-checker-tool.hf.space/api/clone', {
                 owner,
                 repo
             });
@@ -56,7 +56,7 @@ const Home = () => {
         formData.append('uploaded_file', file);
 
         try {
-            const response = await axios.post('http://localhost:8000/api/zip', formData, {
+            const response = await axios.post('https://licensechecker-license-checker-tool.hf.space/api/zip', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }

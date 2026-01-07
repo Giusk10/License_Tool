@@ -39,7 +39,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
         setLoading(true);
 
         try {
-            const response = await axios.post('http://localhost:8000/api/suggest-license', formData);
+            const response = await axios.post('https://licensechecker-license-checker-tool.hf.space/api/suggest-license', formData);
             setSuggestion(response.data);
             if (onSuggestionReceived) {
                 onSuggestionReceived(response.data);

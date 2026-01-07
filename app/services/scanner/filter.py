@@ -12,6 +12,14 @@ from app.utility.config import MINIMAL_JSON_BASE_DIR
 def filter_licenses(scancode_data: dict, main_spdx: str, path: str) -> dict:
     """
     Filters ScanCode results using an LLM to remove false positives.
+
+    Args:
+        scancode_data (dict): The raw output from ScanCode.
+        main_spdx (str): The main license SPDX identifier of the project.
+        path (str): The file path of the main license file.
+
+    Returns:
+        dict: The filtered and cleaned license data.
     """
     minimal = build_minimal_json(scancode_data)
     scan_clean = remove_main_license(main_spdx, path, minimal)
@@ -27,6 +35,12 @@ def filter_licenses(scancode_data: dict, main_spdx: str, path: str) -> dict:
 def build_minimal_json(scancode_data: dict) -> dict:
     """
     Builds a minimal JSON structure from the ScanCode data.
+
+    Args:
+        scancode_data (dict): The raw ScanCode data.
+
+    Returns:
+        dict: A simplified dictionary containing only relevant file and match info.
     """
     minimal = {"files": []}
 
@@ -63,6 +77,14 @@ def build_minimal_json(scancode_data: dict) -> dict:
 def remove_main_license(main_spdx, path, scancode_data) -> dict:
     """
     Removes the main license from the ScanCode JSON.
+
+    Args:
+        main_spdx (str): The main license SPDX identifier.
+        path (str): The path of the main license file.
+        scancode_data (dict): The minimal ScanCode data.
+
+    Returns:
+        dict: The data with the main license removed from the specific file entry.
     """
     for file_entry in scancode_data.get("files", []):
         matches = file_entry.get("matches", [])
@@ -84,6 +106,12 @@ def remove_main_license(main_spdx, path, scancode_data) -> dict:
 def _load_rules_patterns():
     """
     Helper function to load and compile regex patterns from the rules file.
+
+    Returns:
+        dict: A dictionary containing compiled regex patterns for tags, licenses, and links.
+
+    Raises:
+        FileNotFoundError: If the rules file does not exist.
     """
     rules_path = os.path.join(os.path.dirname(__file__), 'license_rules.json')
     if not os.path.exists(rules_path):
@@ -118,7 +146,14 @@ def _load_rules_patterns():
 def _is_valid_match(matched_text: str, patterns: dict) -> tuple[bool, object]:
     """
     Validates a single text match against whitelist patterns.
-    Returns (is_valid, spdx_tag_hit_match_object)
+
+    Args:
+        matched_text (str): The text matched by ScanCode.
+        patterns (dict): The dictionary of compiled regex patterns.
+
+    Returns:
+        tuple[bool, object]: A tuple containing a boolean indicating validity
+        and the regex match object if an SPDX tag was hit (or None).
     """
     # 1. Explicit SPDX Tag Check
     spdx_tag_hit = patterns["re_spdx_tag"].search(matched_text)
@@ -141,6 +176,10 @@ def _is_valid_match(matched_text: str, patterns: dict) -> tuple[bool, object]:
 def _save_to_json(data: dict, filename: str):
     """
     Helper to save JSON output.
+
+    Args:
+        data (dict): The dictionary to save.
+        filename (str): The target filename.
     """
     os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)
     output_path = os.path.join(MINIMAL_JSON_BASE_DIR, filename)
@@ -152,6 +191,13 @@ def _save_to_json(data: dict, filename: str):
 def regex_filter(data: dict, detected_main_spdx: bool) -> dict:
     """
     Filters ScanCode results using rules loaded from an external JSON file.
+
+    Args:
+        data (dict): The ScanCode data to filter.
+        detected_main_spdx (bool): Flag indicating if a main license was detected.
+
+    Returns:
+        dict: The filtered data containing only valid matches.
     """
     patterns = _load_rules_patterns()
     filtered_files = {"files": []}
@@ -216,7 +262,13 @@ def regex_filter(data: dict, detected_main_spdx: bool) -> dict:
 
 def check_license_spdx_duplicates(licenses: dict) -> dict:
     """
-    Controlla se ci sono duplicati di licenze SPDX nel JSON di ScanCode.
+    Checks for and removes SPDX license duplicates in the ScanCode JSON output.
+
+    Args:
+        licenses (dict): The dictionary containing file license data.
+
+    Returns:
+        dict: The data with duplicates removed.
     """
     uniques = {"files": []}
 
@@ -253,8 +305,14 @@ def check_license_spdx_duplicates(licenses: dict) -> dict:
 
 def filter_contained_licenses(spdx_items: list[dict]) -> list[dict]:
     """
-    Rimuove un elemento dalla lista se il suo 'license_spdx' è contenuto
-    interamente nel 'license_spdx' di un altro elemento.
+    Removes an item from the list if its 'license_spdx' is entirely contained
+    within the 'license_spdx' of another item.
+
+    Args:
+        spdx_items (list[dict]): A list of license match dictionaries.
+
+    Returns:
+        list[dict]: The filtered list with redundant substring licenses removed.
     """
     n = len(spdx_items)
     to_remove = set()
