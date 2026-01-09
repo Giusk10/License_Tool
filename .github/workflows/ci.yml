@@ -120,4 +120,4 @@ jobs:
           HEADLESS: "true"
           # Overrides the default localhost:5173 with the CI port
           FRONTEND_URL: "http://localhost:3000"
-        run: behave
+        run: behave tests/acceptance/features
