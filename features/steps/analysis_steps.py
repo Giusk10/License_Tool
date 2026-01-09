@@ -4,12 +4,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-BASE_URL = "http://localhost:5173"
-
-
 @given('I am on the License Checker home page')
 def step_visit_home_page(context):
-    context.browser.get(BASE_URL)
+    context.browser.get(context.base_url)
 
 
 @when('I enter "{text}" in the Owner field')
