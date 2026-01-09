@@ -7,48 +7,40 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # --- STAGE 1: Fast Feedback (Parallel Execution) ---
   test-backend:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: 'pip'
-
-      - name: Install project and dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
-
-      - name: Run Pytest
-        run: pytest
+      - name: Run Unit Tests
+        # Runs only fast unit tests, excluding slow acceptance tests
+        run: pytest -k "not acceptance"
 
   static-analysis:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: 'pip'
-
       - name: Install dependencies
-        # Install all dev dependencies defined in pyproject.toml
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
-
-      - name: Run Pylint (Errors Only)
-        # --errors-only: Block only on serious errors
+      - name: Run Pylint
         run: pylint app
 
   build-frontend:
@@ -56,19 +48,76 @@ jobs:
     defaults:
       run:
         working-directory: ./frontend
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-
-      - name: Install Frontend dependencies
+      - name: Install Dependencies
         run: npm ci
-
       - name: Build Frontend
         run: npm run build
+
+      # Saves the compiled frontend (dist folder) to be used by the acceptance tests
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  # --- STAGE 2: Acceptance Tests (Slow Feedback) ---
+  acceptance-tests:
+    runs-on: ubuntu-latest
+    # This job runs ONLY if all previous jobs succeeded (Fast Failing)
+    needs: [test-backend, static-analysis, build-frontend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. Setup Backend Environment
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: 'pip'
+      - name: Install Backend & Test Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      # 2. Setup Node (Only required to serve the static files, not to build)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. Retrieve the compiled frontend from Stage 1
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      # 4. Start Services in Background
+      - name: Start Services
+        run: |
+          # Start Backend (Port 8000)
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          
+          # Start Frontend (Port 3000) using 'serve' on the dist folder
+          npx serve -s frontend/dist -l 3000 &
+          
+          # Wait for services to initialize
+          sleep 10
+
+      # 5. Run Behave
+      - name: Run Acceptance Tests (Behave)
+        env:
+          # Tells Python/Selenium to run without a GUI
+          HEADLESS: "true"
+          # Overrides the default localhost:5173 with the CI port
+          FRONTEND_URL: "http://localhost:3000"
+        run: behave
