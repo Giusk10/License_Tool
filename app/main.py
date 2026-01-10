@@ -25,6 +25,8 @@ app = FastAPI(
 origins = [
     "http://localhost:5173",  # Vite dev server (locale)
     "http://127.0.0.1:5173",
+    "http://localhost:3000",      # <--- AGGIUNGI QUESTA (Per la CI)
+    "http://127.0.0.1:3000",      # <--- Consigliato aggiungere anche questa per sicurezza
     "https://license-tool-nine.vercel.app"
 ]
 
