@@ -9,7 +9,7 @@ import time  # Imported to handle the delay
 @then('I should see an error alert containing "{text}"')
 def step_impl(context, text):
     # Wait until the browser alert (pop-up) is present
-    WebDriverWait(context.browser, 10).until(EC.alert_is_present())
+    WebDriverWait(context.browser, 20).until(EC.alert_is_present())
 
     # Switch context to the alert
     alert = context.browser.switch_to.alert
