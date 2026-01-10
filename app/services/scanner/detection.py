@@ -84,7 +84,6 @@ def run_scancode(repo_path: str) -> Dict[str, Any]:
                     rel_path = os.path.relpath(file_path, repo_path)
                     logger.warning(f"Auto-ignoring large file: {rel_path}")
 
-                    # --- MODIFICA QUI ---
                     # Usiamo shlex.quote per gestire spazi e parentesi in modo sicuro
                     safe_path = shlex.quote(rel_path)
                     ignore_patterns.append(safe_path)
