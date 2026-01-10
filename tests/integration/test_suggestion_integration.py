@@ -15,7 +15,7 @@ The suite covers:
 5. Analysis Integration: Checking that the analysis endpoint correctly flags when a suggestion is needed.
 """
 
-import pytest
+
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app

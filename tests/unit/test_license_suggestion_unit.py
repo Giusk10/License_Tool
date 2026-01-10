@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import patch
 from app.services.llm.license_recommender import (
     suggest_license_based_on_requirements,
