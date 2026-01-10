@@ -39,7 +39,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
         setLoading(true);
 
         try {
-            const response = await axios.post('http://localhost:8000/api/suggest-license', formData);
+            const response = await axios.post('https://licensechecker-license-checker-tool.hf.space/api/suggest-license', formData);
             setSuggestion(response.data);
             if (onSuggestionReceived) {
                 onSuggestionReceived(response.data);
@@ -193,7 +193,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                     </p>
                 </div>
 
-                {/* Visualizza le licenze rilevate se presenti */}
+                {/* Display detected licenses if any */}
                 {detectedLicenses && detectedLicenses.length > 0 && (
                     <div className="glass-panel" style={{
                         background: 'rgba(100, 108, 255, 0.1)',
@@ -290,13 +290,10 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                         </div>
                     </div>
 
-                    {/* SEZIONE 2: Preferenza Copyleft */}
                     <div style={{ marginBottom: '2rem' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.3rem' }}>Copyleft Preference</h3>
 
-                        {/* Container per i tre pulsanti di scelta copyleft */}
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {/* Mappa le tre opzioni di copyleft in pulsanti */}
                             {['none', 'weak', 'strong'].map((option) => (
                                 <button
                                     key={option}
@@ -306,14 +303,12 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                                     style={{
                                         flex: 1,
                                         minWidth: '150px',
-                                        // Evidenzia il pulsante selezionato con colore diverso
                                         background: formData.copyleft === option
                                             ? 'rgba(100, 108, 255, 0.3)'
                                             : 'rgba(255, 255, 255, 0.05)',
                                         borderColor: formData.copyleft === option ? '#646cff' : 'rgba(255, 255, 255, 0.1)'
                                     }}
                                 >
-                                    {/* Etichette descrittive per ogni opzione */}
                                     {option === 'none' && 'No Copyleft (Permissive)'}
                                     {option === 'weak' && 'Weak Copyleft (LGPL-style)'}
                                     {option === 'strong' && 'Strong Copyleft (GPL-style)'}
@@ -322,10 +317,8 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                         </div>
                     </div>
 
-                    {/* SEZIONE 3: Requisiti Aggiuntivi (opzionale) */}
                     <div style={{ marginBottom: '2rem' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Additional Requirements (Optional)</h3>
-                        {/* Campo textarea per requisiti in testo libero */}
                         <textarea
                             value={formData.additional_requirements}
                             onChange={(e) => setFormData(prev => ({ ...prev, additional_requirements: e.target.value }))}
@@ -340,9 +333,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                         />
                     </div>
 
-                    {/* PULSANTI FINALI: Cancel e Get Suggestion */}
                     <div style={{ display: 'flex', gap: '1rem' }}>
-                        {/* Pulsante Cancel - chiude il form senza inviare */}
                         <button
                             type="button"
                             onClick={onClose}
@@ -351,15 +342,12 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
                         >
                             Cancel
                         </button>
-
-                        {/* Pulsante Get Suggestion - invia il form */}
                         <button
                             type="submit"
                             className="glass-button"
                             style={{ flex: 1 }}
                             disabled={loading}
                         >
-                            {/* Mostra spinner durante il caricamento, altrimenti testo normale */}
                             {loading ? (
                                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                                     <div className="spin" style={{ width: 20, height: 20 }} />
@@ -379,4 +367,3 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
 };
 
 export default LicenseSuggestionForm;
-
