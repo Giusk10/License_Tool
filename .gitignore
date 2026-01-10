@@ -32,3 +32,5 @@ venv/
 
 .coverage
 *.egg-info/
+
+tests/acceptance/features/downloads/

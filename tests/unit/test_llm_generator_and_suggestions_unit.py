@@ -98,7 +98,7 @@ def test_review_document_success():
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
-         patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
+            patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
         mock_call.return_value = "<advice>Change license</advice>"
         result = review_document(issue, "MIT", "MIT, Apache")
         assert result == "Change license"
@@ -111,7 +111,7 @@ def test_review_document_no_tags():
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
-         patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
+            patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
         mock_call.return_value = "Some advice without tags"
         result = review_document(issue, "MIT", "MIT, Apache")
         assert result is None
@@ -124,7 +124,7 @@ def test_review_document_llm_returns_none():
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
-         patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
+            patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
         mock_call.return_value = None
         result = review_document(issue, "MIT", "MIT, Apache")
         assert result is None
@@ -146,7 +146,7 @@ def test_review_document_llm_error():
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
-         patch('app.services.llm.suggestion.call_ollama_deepseek', side_effect=Exception("error")):
+            patch('app.services.llm.suggestion.call_ollama_deepseek', side_effect=Exception("error")):
         result = review_document(issue, "MIT", "MIT, Apache")
         assert result is None
 
