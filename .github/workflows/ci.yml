@@ -27,9 +27,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
-      - name: Run Unit Tests
+      - name: Run Unit and Integration Tests
         # Excludes security tests (run in their own job) and acceptance tests (run in Stage 2)
-        run: pytest --ignore=tests/security -k "not acceptance"
+        run: pytest --ignore=tests/security --ignore=tests/acceptance
 
   security-tests:
     name: Security Tests
