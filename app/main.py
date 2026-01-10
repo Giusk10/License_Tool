@@ -1,9 +1,9 @@
 """
-Main Application Entry Point.
+Punto di Ingresso Principale dell'Applicazione.
 
-This module initializes the FastAPI application for the License Compatibility Checker.
-It configures Cross-Origin Resource Sharing (CORS) policies to allow communication
-with the frontend and registers the main API routers.
+Questo modulo inizializza l'applicazione FastAPI per il License Compatibility Checker.
+Configura le policy di Cross-Origin Resource Sharing (CORS) per consentire la comunicazione
+con il frontend e registra i router API principali.
 """
 
 from typing import Dict
@@ -11,19 +11,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.controllers.analysis import router as analysis_router
 
-# Initialize the application instance
+# Inizializza l'istanza dell'applicazione
 app = FastAPI(
     title="License Compatibility Checker + Ollama",
     version="1.0.0",
 )
 
 # ------------------------------------------------------------------
-# CORS CONFIGURATION
+# CONFIGURAZIONE CORS
 # ------------------------------------------------------------------
 
-# List of allowed origins (Frontend development server)
+# Lista delle origini consentite (server di sviluppo del frontend)
 origins = [
-    "http://localhost:5173",
+    "http://localhost:5173",  # Vite dev server (locale)
     "http://127.0.0.1:5173",
     "https://license-tool-nine.vercel.app"
 ]
@@ -37,23 +37,23 @@ app.add_middleware(
 )
 
 # ------------------------------------------------------------------
-# ROUTER REGISTRATION
+# REGISTRAZIONE ROUTER
 # ------------------------------------------------------------------
 
-# Register the main analysis controller with the /api prefix
+# Registra il controller di analisi principale con il prefisso /api
 app.include_router(analysis_router, prefix="/api", tags=["Analysis"])
 
 
 # ------------------------------------------------------------------
-# ROOT ENDPOINT
+# ENDPOINT ROOT
 # ------------------------------------------------------------------
 
 @app.get("/")
 def root() -> Dict[str, str]:
     """
-    Root endpoint to verify backend availability.
+    Endpoint root per verificare la disponibilità del backend.
 
     Returns:
-        Dict[str, str]: A simple status message indicating the service is running.
+        Dict[str, str]: Un semplice messaggio di stato che indica che il servizio è in esecuzione.
     """
     return {"message": "License Checker Backend is running"}

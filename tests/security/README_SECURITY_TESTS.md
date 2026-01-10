@@ -108,7 +108,7 @@ Verifica configurazione CORS sicura.
 Previene leak di dati sensibili.
 
 **Controlla**:
-- Token in error messages  
+- Token in error messages
 - Path sensibili
 - Variabili d'ambiente
 

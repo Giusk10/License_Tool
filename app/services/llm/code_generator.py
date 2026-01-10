@@ -1,10 +1,10 @@
 """
 LLM Code Generator Module.
 
-This module interacts with the configured LLM (via Ollama) to rewrite source code
-that has been flagged as violating license compatibility. It constructs specific
-prompts to ensure the generated code is functionally equivalent but compliant
-with the target project's license.
+Questo modulo interagisce con l'LLM configurato (tramite Ollama) per riscrivere il codice sorgente
+che è stato segnalato come violazione della compatibilità della licenza. Costruisce prompt specifici
+per garantire che il codice generato sia funzionalmente equivalente ma conforme
+alla licenza del progetto di destinazione.
 """
 
 import logging
@@ -21,24 +21,24 @@ def regenerate_code(
     licenses: str
 ) -> Optional[str]:
     """
-    Requests the LLM to regenerate a code block under a compatible license.
+    Richiede all'LLM di rigenerare un blocco di codice sotto una licenza compatibile.
 
-    The prompt instructs the model to:
-    1. Analyze the original code and its incompatible license.
-    2. Rewrite the logic to be functionally equivalent but compliant with the
-       `main_license` (preferring permissive licenses like MIT/Apache-2.0).
-    3. Ensure no original restricted code (strong copyleft) is verbatim copied
-       to avoid licensing issues.
+    Il prompt istruisce il modello a:
+    1. Analizzare il codice originale e la sua licenza incompatibile.
+    2. Riscrivere la logica per essere funzionalmente equivalente ma conforme alla
+       `main_license` (preferendo licenze permissive come MIT/Apache-2.0).
+    3. Assicurarsi che nessun codice originale limitato (copyleft forte) sia copiato
+       parola per parola per evitare problemi di licenza.
 
     Args:
-        code_content (str): The original source code that violates license compatibility.
-        main_license (str): The primary license of the project (e.g., "MIT").
-        detected_license (str): The license detected in the original code (e.g., "GPL-3.0").
-        licenses (str): A string listing compatible licenses to target.
+        code_content (str): Il codice sorgente originale che viola la compatibilità della licenza.
+        main_license (str): La licenza principale del progetto (es. "MIT").
+        detected_license (str): La licenza rilevata nel codice originale (es. "GPL-3.0").
+        licenses (str): Una stringa che elenca le licenze compatibili da utilizzare come target.
 
     Returns:
-        Optional[str]: The cleaned, extracted source code string ready to be saved,
-        or None if generation fails.
+        Optional[str]: La stringa del codice sorgente pulita ed estratta pronta per essere salvata,
+        o None se la generazione fallisce.
     """
     # Construct the prompt split across multiple lines for readability and PEP8 compliance
     prompt = (
@@ -64,22 +64,22 @@ def regenerate_code(
         if not response:
             return None
 
-        # Post-process: Clean up Markdown formatting if present
+        # Post-elaborazione: Pulisce la formattazione Markdown se presente
         clean_response = response.strip()
 
         if clean_response.startswith("```"):
-            # Split by newline to remove the first line (e.g., ```python)
+            # Divide per nuova riga per rimuovere la prima riga (es. ```python)
             parts = clean_response.split("\n", 1)
             if len(parts) > 1:
                 clean_response = parts[1]
 
-            # Remove the closing backticks if present at the end
+            # Rimuove i backtick di chiusura se presenti alla fine
             if clean_response.endswith("```"):
                 clean_response = clean_response.rsplit("\n", 1)[0]
 
         clean_response = clean_response.strip()
 
-        # Validate the generated code
+        # Valida il codice generato
         if not validate_generated_code(clean_response):
             logger.warning("Generated code failed validation")
             return None
@@ -87,27 +87,27 @@ def regenerate_code(
         return clean_response
 
     except Exception:  # pylint: disable=broad-exception-caught
-        # Broad catch is intentional here: it acts as a fail-safe to prevent
-        # unpredictable LLM or network errors from crashing the entire analysis workflow.
+        # La cattura ampia è intenzionale qui: agisce come fail-safe per prevenire
+        # che errori imprevedibili dell'LLM o di rete blocchino l'intero flusso di lavoro di analisi.
         logger.exception("Error during code regeneration via LLM")
         return None
 
 
 def validate_generated_code(code: str) -> bool:
     """
-    Validates the generated code to ensure it's not empty and not too short.
+    Valida il codice generato per assicurarsi che non sia vuoto e non troppo corto.
 
     Args:
-        code (str): The generated code string.
+        code (str): La stringa del codice generato.
 
     Returns:
-        bool: True if the code passes validation, False otherwise.
+        bool: True se il codice supera la validazione, False altrimenti.
     """
     if not code or not isinstance(code, str):
         return False
 
     stripped = code.strip()
-    if len(stripped) <= 10:  # Avoid very short or empty responses
+    if len(stripped) <= 10:  # Evita risposte molto brevi o vuote
         return False
 
     return True

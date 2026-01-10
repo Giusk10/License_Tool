@@ -1,18 +1,18 @@
 """
 Compatibility Utilities Module.
 
-This module provides utility functions for parsing and normalizing license symbols
-to ensure consistency across the application. It acts as a helper layer before
-complex SPDX evaluation.
+Questo modulo fornisce funzioni di utilità per il parsing e la normalizzazione dei simboli di licenza
+per garantire coerenza in tutta l'applicazione. Agisce come livello di supporto prima
+della valutazione SPDX complessa.
 """
 
 from typing import List, Dict
 from license_expression import Licensing
 
-# Initialize the licensing parser
+# Inizializza il parser delle licenze
 licensing = Licensing()
 
-# Map of common aliases/synonyms to the canonical forms used in the matrix
+# Mappa di alias/sinonimi comuni alle forme canoniche utilizzate nella matrice
 _SYNONYMS: Dict[str, str] = {
     "GPL-3.0+": "GPL-3.0-or-later",
     "GPL-2.0+": "GPL-2.0-or-later",
@@ -31,27 +31,27 @@ _SYNONYMS: Dict[str, str] = {
 
 def normalize_symbol(sym: str) -> str:
     """
-    Normalizes a single license string into a canonical format.
+    Normalizza una singola stringa di licenza in un formato canonico.
 
-    This function performs several transformations to ensure consistent keys
-    for matrix lookups, including:
-    - Trimming whitespace.
-    - Standardizing 'with' clauses to uppercase 'WITH'.
-    - Converting '+' suffixes to '-or-later'.
-    - resolving aliases via a predefined synonym list.
+    Questa funzione esegue diverse trasformazioni per garantire chiavi coerenti
+    per le ricerche nella matrice, tra cui:
+    - Rimozione degli spazi bianchi.
+    - Standardizzazione delle clausole 'with' in maiuscolo 'WITH'.
+    - Conversione dei suffissi '+' in '-or-later'.
+    - Risoluzione degli alias tramite un elenco di sinonimi predefinito.
 
     Args:
-        sym (str): The raw license symbol or expression string.
+        sym (str): Il simbolo della licenza grezzo o la stringa dell'espressione.
 
     Returns:
-        str: The normalized license symbol. Returns the input unchanged if None.
+        str: Il simbolo della licenza normalizzato. Restituisce l'input invariato se None.
     """
     if not sym:
         return sym
 
     s = sym.strip()
 
-    # Normalize variations of 'with' to 'WITH'
+    # Normalizza le variazioni di 'with' in 'WITH'
     if " with " in s:
         s = s.replace(" with ", " WITH ")
     if " With " in s:
@@ -59,7 +59,7 @@ def normalize_symbol(sym: str) -> str:
     if " with" in s and " WITH" not in s:
         s = s.replace(" with", " WITH")
 
-    # Normalize version indicators
+    # Normalizza gli indicatori di versione
     if "+" in s and "-or-later" not in s:
         s = s.replace("+", "-or-later")
 
@@ -68,27 +68,27 @@ def normalize_symbol(sym: str) -> str:
 
 def extract_symbols(expr: str) -> List[str]:
     """
-    Extracts individual license symbols from an SPDX expression.
+    Estrae i singoli simboli di licenza da un'espressione SPDX.
 
-    This function uses the `license_expression` library to identify unique
-    symbols within a complex string (ignoring logical operators like AND/OR).
+    Questa funzione utilizza la libreria `license_expression` per identificare simboli
+    univoci all'interno di una stringa complessa (ignorando operatori logici come AND/OR).
 
     Args:
-        expr (str): The SPDX license expression to parse.
+        expr (str): L'espressione di licenza SPDX da analizzare.
 
     Returns:
-        List[str]: A list of identified license symbols. Returns an empty list
-        if parsing fails or the expression is empty.
+        List[str]: Un elenco di simboli di licenza identificati. Restituisce un elenco vuoto
+        se il parsing fallisce o l'espressione è vuota.
     """
     if not expr:
         return []
 
     try:
         tree = licensing.parse(expr, strict=False)
-        # The 'symbols' attribute contains the list of license identifiers found
+        # L'attributo 'symbols' contiene l'elenco degli identificatori di licenza trovati
         return [str(sym) for sym in getattr(tree, "symbols", [])]
 
     except Exception:  # pylint: disable=broad-exception-caught
-        # Intentionally catch all exceptions to prevent parsing errors from
-        # crashing the entire workflow. This is a helper utility, not a validator.
+        # Cattura intenzionalmente tutte le eccezioni per prevenire che errori di parsing
+        # blocchino l'intero flusso di lavoro. Questa è un'utility di supporto, non un validatore.
         return []

@@ -1,9 +1,9 @@
 """
 Analysis Controller Module.
 
-This module manages the API endpoints for repository analysis.
-It includes functionality for GitHub OAuth authentication, repository cloning,
-ZIP file uploads, license analysis execution, and report regeneration.
+Questo modulo gestisce gli endpoint API per l'analisi dei repository.
+Include funzionalità per l'autenticazione GitHub OAuth, clonazione di repository,
+upload di file ZIP, esecuzione dell'analisi delle licenze e rigenerazione dei report.
 """
 
 from typing import Dict
@@ -27,24 +27,24 @@ from app.services.llm.license_recommender import suggest_license_based_on_requir
 router = APIRouter()
 
 # ------------------------------------------------------------------
-# 1. CLONING FLOW
+# 1. FLUSSO DI CLONAZIONE
 # ------------------------------------------------------------------
 
 @router.post("/clone")
 def clone_repository(payload: Dict[str, str] = Body(...)) -> Dict[str, str]:
     """
-    Clones a GitHub repository.
+    Clona un repository GitHub.
 
     Args:
-        payload (Dict[str, str]): JSON body containing "owner" and "repo".
+        payload (Dict[str, str]): Corpo JSON contenente "owner" e "repo".
 
     Returns:
-        Dict[str, str]: A dictionary containing the cloning status and local path details.
+        Dict[str, str]: Un dizionario contenente lo stato della clonazione e i dettagli del percorso locale.
 
     Raises:
         HTTPException:
-            - 400: If cloning fails due to invalid parameters.
-            - 500: For generic internal server errors during cloning.
+            - 400: Se la clonazione fallisce a causa di parametri non validi.
+            - 500: Per errori interni generici del server durante la clonazione.
     """
     owner = payload.get("owner")
     repo = payload.get("repo")
@@ -72,7 +72,7 @@ def clone_repository(payload: Dict[str, str] = Body(...)) -> Dict[str, str]:
 
 
 # ------------------------------------------------------------------
-# 2. FILE UPLOAD
+# 2. CARICAMENTO FILE
 # ------------------------------------------------------------------
 
 @router.post("/zip")
@@ -82,20 +82,20 @@ def upload_zip(
         uploaded_file: UploadFile = File(...)
 ) -> Dict[str, str]:
     """
-    Uploads a ZIP file containing source code as an alternative to Git cloning.
+    Carica un file ZIP contenente codice sorgente come alternativa alla clonazione Git.
 
     Args:
-        owner (str): The name/owner to assign to the uploaded project.
-        repo (str): The repository name to assign.
-        uploaded_file (UploadFile): The ZIP file containing the source code.
+        owner (str): Il nome/proprietario da assegnare al progetto caricato.
+        repo (str): Il nome del repository da assegnare.
+        uploaded_file (UploadFile): Il file ZIP contenente il codice sorgente.
 
     Returns:
-        Dict[str, str]: A dictionary containing the upload status and local path.
+        Dict[str, str]: Un dizionario contenente lo stato del caricamento e il percorso locale.
 
     Raises:
         HTTPException:
-            - 400: If the file is invalid or processing fails.
-            - 500: If an internal server error occurs.
+            - 400: Se il file non è valido o l'elaborazione fallisce.
+            - 500: Se si verifica un errore interno del server.
     """
     try:
         repo_path = perform_upload_zip(
@@ -112,7 +112,7 @@ def upload_zip(
         }
 
     except HTTPException:
-        # Re-raise existing HTTP exceptions
+        # Rilancia le eccezioni HTTP esistenti
         raise
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve)) from ve
@@ -121,27 +121,27 @@ def upload_zip(
 
 
 # ------------------------------------------------------------------
-# 3. ANALYSIS & REGENERATION
+# 3. ANALISI & RIGENERAZIONE
 # ------------------------------------------------------------------
 
 @router.post("/analyze", response_model=AnalyzeResponse)
 def run_analysis(payload: Dict[str, str] = Body(...)) -> AnalyzeResponse:
     """
-    Executes the initial license analysis on a prepared repository.
+    Esegue l'analisi iniziale delle licenze su un repository preparato.
 
-    The repository must have been previously cloned (via /auth/start) or
-    uploaded (via /zip).
+    Il repository deve essere stato precedentemente clonato (tramite /auth/start) o
+    caricato (tramite /zip).
 
     Args:
-        payload (Dict[str, str]): JSON body containing "owner" and "repo".
+        payload (Dict[str, str]): Corpo JSON contenente "owner" e "repo".
 
     Returns:
-        AnalyzeResponse: The detailed analysis result.
+        AnalyzeResponse: Il risultato dettagliato dell'analisi.
 
     Raises:
         HTTPException:
-            - 400: If parameters are missing or invalid.
-            - 500: If the analysis fails.
+            - 400: Se i parametri mancano o non sono validi.
+            - 500: Se l'analisi fallisce.
     """
     owner = payload.get("owner")
     repo = payload.get("repo")
@@ -161,24 +161,24 @@ def run_analysis(payload: Dict[str, str] = Body(...)) -> AnalyzeResponse:
 @router.post("/regenerate", response_model=AnalyzeResponse)
 def regenerate_analysis(previous_analysis: AnalyzeResponse = Body(...)) -> AnalyzeResponse:
     """
-    Regenerates the analysis based on previous results.
+    Rigenera l'analisi basandosi sui risultati precedenti.
 
-    This is typically used to apply LLM-based corrections or refine the
-    compatibility check without re-scanning the entire file system.
+    Questo viene tipicamente utilizzato per applicare correzioni basate su LLM o affinare il
+    controllo di compatibilità senza riscansionare l'intero file system.
 
     Args:
-        previous_analysis (AnalyzeResponse): The result of the previous scan.
+        previous_analysis (AnalyzeResponse): Il risultato della scansione precedente.
 
     Returns:
-        AnalyzeResponse: The updated analysis result.
+        AnalyzeResponse: Il risultato dell'analisi aggiornato.
 
     Raises:
         HTTPException:
-            - 400: If the repository format in the previous analysis is invalid.
-            - 500: If regeneration fails.
+            - 400: Se il formato del repository nell'analisi precedente non è valido.
+            - 500: Se la rigenerazione fallisce.
     """
     try:
-        # Extract owner and repo from the "owner/repo" string in the response object
+        # Estrae owner e repo dalla stringa "owner/repo" nell'oggetto di risposta
         if "/" not in previous_analysis.repository:
             raise ValueError("Invalid repository format. Expected 'owner/repo'")
 
@@ -203,18 +203,18 @@ def regenerate_analysis(previous_analysis: AnalyzeResponse = Body(...)) -> Analy
 @router.post("/download")
 def download_repo(payload: Dict[str, str] = Body(...)) -> FileResponse:
     """
-    Generates and returns a downloadable ZIP archive of the repository.
+    Genera e restituisce un archivio ZIP scaricabile del repository.
 
     Args:
-        payload (Dict[str, str]): JSON body containing "owner" and "repo".
+        payload (Dict[str, str]): Corpo JSON contenente "owner" e "repo".
 
     Returns:
-        FileResponse: The ZIP file containing the repository.
+        FileResponse: Il file ZIP contenente il repository.
 
     Raises:
         HTTPException:
-            - 400: If parameters are missing.
-            - 500: If the ZIP generation fails.
+            - 400: Se mancano i parametri.
+            - 500: Se la generazione dello ZIP fallisce.
     """
     owner = payload.get("owner")
     repo = payload.get("repo")
@@ -237,7 +237,7 @@ def download_repo(payload: Dict[str, str] = Body(...)) -> FileResponse:
 
 
 # ------------------------------------------------------------------
-# 5. LICENSE SUGGESTION
+# 5. SUGGERIMENTO LICENZA
 # ------------------------------------------------------------------
 
 @router.post("/suggest-license", response_model=LicenseSuggestionResponse)
@@ -245,30 +245,30 @@ def suggest_license(
     requirements: LicenseRequirementsRequest = Body(...)
 ) -> LicenseSuggestionResponse:
     """
-    Suggests an appropriate license based on user requirements.
+    Suggerisce una licenza appropriata basandosi sui requisiti dell'utente.
 
-    This endpoint is used when no main license is detected or when there are
-    unknown licenses. The user provides their requirements and constraints,
-    and the AI suggests the most suitable license.
+    Questo endpoint viene utilizzato quando non viene rilevata alcuna licenza principale o quando ci sono
+    licenze sconosciute. L'utente fornisce i propri requisiti e vincoli,
+    e l'AI suggerisce la licenza più adatta.
 
     Args:
-        requirements (LicenseRequirementsRequest): User's license requirements and constraints.
+        requirements (LicenseRequirementsRequest): Requisiti e vincoli delle licenze dell'utente.
 
     Returns:
-        LicenseSuggestionResponse: The suggested license with explanation and alternatives.
+        LicenseSuggestionResponse: La licenza suggerita con spiegazione e alternative.
 
     Raises:
         HTTPException:
-            - 500: If the AI suggestion fails.
+            - 500: Se il suggerimento dell'AI fallisce.
     """
     try:
-        # Convert Pydantic model to dict for processing
+        # Converte il modello Pydantic in dict per l'elaborazione
         requirements_dict = requirements.model_dump()
 
-        # Extract detected licenses from requirements
+        # Estrae le licenze rilevate dai requisiti
         detected_licenses = requirements_dict.pop("detected_licenses", None)
 
-        # Get AI suggestion with detected licenses
+        # Ottiene il suggerimento dell'AI con le licenze rilevate
         suggestion = suggest_license_based_on_requirements(
             requirements_dict,
             detected_licenses=detected_licenses

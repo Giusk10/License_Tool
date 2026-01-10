@@ -1,8 +1,8 @@
 """
 License Recommender Module.
 
-This module provides AI-driven license recommendations based on user requirements
-and constraints. It's used when no main license is detected.
+Questo modulo fornisce raccomandazioni di licenza basate sull'intelligenza artificiale in base ai requisiti
+e ai vincoli dell'utente. Viene utilizzato quando non viene rilevata alcuna licenza principale.
 """
 
 import json
@@ -20,29 +20,29 @@ def suggest_license_based_on_requirements(
 ) -> Dict[str, any]:
 
     """
-    Suggests an appropriate license based on user-provided requirements.
+    Suggerisce una licenza appropriata in base ai requisiti forniti dall'utente.
 
-    This function takes user requirements (commercial use, modification, distribution,
-    patent grant, etc.) and asks the LLM to recommend the most suitable license.
+    Questa funzione prende i requisiti dell'utente (uso commerciale, modifica, distribuzione,
+    concessione di brevetti, ecc.) e chiede all'LLM di raccomandare la licenza più adatta.
 
     Args:
-        requirements (Dict[str, any]): Dictionary containing user requirements:
-            - commercial_use (bool): Whether commercial use is required
-            - modification (bool): Whether modification is allowed
-            - distribution (bool): Whether distribution is allowed
-            - patent_grant (bool): Whether patent grant is needed
-            - trademark_use (bool): Whether trademark use is needed
-            - liability (bool): Whether liability protection is needed
-            - copyleft (str): Copyleft preference ("strong", "weak", "none")
-            - additional_requirements (str): Any additional free-text requirements
+        requirements (Dict[str, any]): Dizionario contenente i requisiti dell'utente:
+            - commercial_use (bool): Se l'uso commerciale è richiesto
+            - modification (bool): Se la modifica è consentita
+            - distribution (bool): Se la distribuzione è consentita
+            - patent_grant (bool): Se la concessione di brevetti è necessaria
+            - trademark_use (bool): Se l'uso del marchio è necessario
+            - liability (bool): Se la protezione dalla responsabilità è necessaria
+            - copyleft (str): Preferenza copyleft ("strong", "weak", "none")
+            - additional_requirements (str): Eventuali requisiti aggiuntivi in testo libero
 
     Returns:
-        Dict[str, any]: A dictionary containing:
-            - suggested_license (str): The recommended license
-            - explanation (str): Explanation of the recommendation
-            - alternatives (List[str]): Alternative license options
+        Dict[str, any]: Un dizionario contenente:
+            - suggested_license (str): La licenza raccomandata
+            - explanation (str): Spiegazione della raccomandazione
+            - alternatives (List[str]): Opzioni di licenza alternative
     """
-    # Build the requirements description
+    # Costruisce la descrizione dei requisiti
     req_parts = []
 
     if requirements.get("commercial_use"):
@@ -129,7 +129,7 @@ Respond ONLY with the JSON object, nothing else."""
             response = response[:-3]
         response = response.strip()
 
-        # Parse JSON response
+        # Analizza la risposta JSON
         result = json.loads(response)
 
         return {
@@ -142,7 +142,7 @@ Respond ONLY with the JSON object, nothing else."""
         logger.error("Failed to parse LLM response as JSON: %s", e)
         logger.debug("Raw response: %s", response)
 
-        # Fallback to MIT as a safe default
+        # Fallback a MIT come default sicuro
         return {
             "suggested_license": "MIT",
             "explanation": "Based on your requirements, MIT License is recommended as it's permissive "
@@ -165,24 +165,24 @@ Respond ONLY with the JSON object, nothing else."""
 
 def needs_license_suggestion(main_license: str, issues: List[Dict]) -> bool:
     """
-    Determines if a license suggestion is needed based on analysis results.
+    Determina se è necessario un suggerimento di licenza in base ai risultati dell'analisi.
 
-    A suggestion is needed when:
-    1. No main license was detected (Unknown or None)
-    2. There are files with unknown licenses
+    Un suggerimento è necessario quando:
+    1. Nessuna licenza principale è stata rilevata (Sconosciuta o Nessuna)
+    2. Ci sono file con licenze sconosciute
 
     Args:
-        main_license (str): The detected main license
-        issues (List[Dict]): List of license issues
+        main_license (str): La licenza principale rilevata
+        issues (List[Dict]): Elenco dei problemi di licenza
 
     Returns:
-        bool: True if license suggestion should be offered to the user
+        bool: True se il suggerimento di licenza dovrebbe essere offerto all'utente
     """
-    # Case 1: No main license detected
+    # Caso 1: Nessuna licenza principale rilevata
     if not main_license or main_license.lower() in ["unknown", "none", "no license"]:
         return True
 
-    # Case 2: Check for unknown licenses in files
+    # Caso 2: Controlla licenze sconosciute nei file
     for issue in issues:
         detected = issue.get("detected_license", "").lower()
         if "unknown" in detected or detected in ["none", ""]:

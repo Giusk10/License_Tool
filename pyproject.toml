@@ -1,7 +1,15 @@
+# =====================
+# Sezione: Sistema di Build
+# Specifica i requisiti e il backend per la build del progetto
+# =====================
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+# =====================
+# Sezione: Progetto
+# Metadati principali del progetto Python
+# =====================
 [project]
 name = "license-tool"
 version = "0.1.0"
@@ -11,7 +19,7 @@ requires-python = ">=3.11"
 authors = [
     { name = "Riccio Giuseppe, Simeone Lucia, Medugno Vittoria, Capone Antonella, Liparulo Elisa"},
 ]
-# License Warning Fix: using the 'license' field instead of the classifier
+# Correzione avviso licenza: utilizzo del campo 'license' invece del classifier
 license = { file = "LICENSE" }
 classifiers = [
     "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
@@ -31,10 +39,18 @@ dependencies = [
     "license-expression"
 ]
 
+# =====================
+# Sezione: URL del Progetto
+# Link utili come homepage e bug tracker
+# =====================
 [project.urls]
 "Homepage" = "https://github.com/giusk10/license_tool"
 "Bug Tracker" = "https://github.com/giusk10/license_tool/issues"
 
+# =====================
+# Sezione: Dipendenze Opzionali
+# Dipendenze utili per lo sviluppo e il testing
+# =====================
 [project.optional-dependencies]
 dev = [
     "pytest~=9.0.1",
@@ -48,13 +64,18 @@ dev = [
     "webdriver-manager~=4.0.2"
 ]
 
-# Tells setuptools to include only 'app' and ignore 'frontend' and 'tests'
+# =====================
+# Configurazione setuptools: include solo la cartella 'app', esclude 'frontend' e 'tests'
+# =====================
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["app*"]
 exclude = ["frontend*", "tests*"]
 
-# --- Testing Configuration ---
+# =====================
+# Configurazione Pytest
+# Opzioni e percorsi per i test automatici
+# =====================
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-v --cov=app"
@@ -62,15 +83,19 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 pythonpath = "."
 
-# --- Static Analysis Configuration ---
+# =====================
+# Configurazione Pylint
+# Analisi statica del codice e controllo dei messaggi
+# =====================
 [tool.pylint.main]
-# Change source-roots to point to the project root
+# Imposta la root del progetto come sorgente
 source-roots = ["."]
-# Add this hook to force current directory inclusion
+# Hook per includere la directory corrente
 init-hook = "import sys; sys.path.append('.')"
-# Ignoring tests for now as they are not properly factored yet
+# Ignora la cartella dei test
 ignore = ["tests"]
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = ["all"]
 enable = ["E", "F"]
+# Abilita solo errori e fatal error

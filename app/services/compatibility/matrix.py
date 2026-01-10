@@ -1,19 +1,19 @@
 """
 Matrix Loading Module.
 
-This module is responsible for loading and normalizing the license compatibility
-matrix from the `matrixseqexpl.json` file. It transforms the JSON data into a
-standardized nested dictionary format:
+Questo modulo è responsabile del caricamento e della normalizzazione della matrice di compatibilità
+delle licenze dal file `matrixseqexpl.json`. Trasforma i dati JSON in un
+formato di dizionario nidificato standardizzato:
     {main_license: {dependency_license: status}}
 
-where `status` is one of "yes", "no", or "conditional".
+dove `status` è uno tra "yes", "no", o "conditional".
 
-Key Features:
-- Robust loading: Attempts to read from the filesystem first, falling back to
-  package resources.
-- Format agnostic: Supports multiple JSON schemas (legacy dictionary format,
-  list of entries, or wrapped 'licenses' list) to ensure backward compatibility.
-- Singleton pattern: The matrix is loaded once at import time.
+Caratteristiche Principali:
+- Caricamento robusto: Tenta di leggere prima dal filesystem, ripiegando sulle
+  risorse del pacchetto.
+- Agnostico rispetto al formato: Supporta schemi JSON multipli (formato dizionario legacy,
+  elenco di voci, o elenco 'licenses' avvolto) per garantire la retrocompatibilità.
+- Pattern Singleton: La matrice viene caricata una volta al momento dell'importazione.
 """
 
 import os
@@ -21,7 +21,7 @@ import json
 import logging
 from typing import Dict, List, Any, Optional
 
-# Attempt to import importlib.resources to support different Python versions/environments
+# Tenta di importare importlib.resources per supportare diverse versioni/ambienti Python
 try:
     from importlib import resources
 except ImportError:
@@ -29,21 +29,21 @@ except ImportError:
 
 from .compat_utils import normalize_symbol
 
-# Relative path to the matrix file within the package (used for filesystem read)
+# Percorso relativo al file della matrice all'interno del pacchetto (usato per la lettura dal filesystem)
 _MATRIXSEQEXPL_PATH = os.path.join(os.path.dirname(__file__), "matrixseqexpl.json")
 
 logger = logging.getLogger(__name__)
 
-# Type alias for the normalized matrix structure
+# Alias di tipo per la struttura della matrice normalizzata
 CompatibilityMap = Dict[str, Dict[str, str]]
 
 
 def _read_from_filesystem() -> Optional[Dict[str, Any]]:
     """
-    Attempts to read the matrix JSON file directly from the filesystem.
+    Tenta di leggere il file JSON della matrice direttamente dal filesystem.
 
     Returns:
-        Optional[Dict[str, Any]]: The parsed JSON data if successful, None otherwise.
+        Optional[Dict[str, Any]]: I dati JSON analizzati se l'operazione ha successo, None altrimenti.
     """
     try:
         if os.path.exists(_MATRIXSEQEXPL_PATH):
@@ -59,32 +59,32 @@ def _read_from_filesystem() -> Optional[Dict[str, Any]]:
 
 def _read_from_resources() -> Optional[Dict[str, Any]]:
     """
-    Attempts to read the matrix JSON file using package resources.
+    Tenta di leggere il file JSON della matrice utilizzando le risorse del pacchetto.
 
-    This is useful when the application is packaged (e.g., zipped) where standard
-    filesystem paths might not work.
+    Questo è utile quando l'applicazione è pacchettizzata (es. zippata) dove i percorsi
+    standard del filesystem potrebbero non funzionare.
 
     Returns:
-        Optional[Dict[str, Any]]: The parsed JSON data if successful, None otherwise.
+        Optional[Dict[str, Any]]: I dati JSON analizzati se l'operazione ha successo, None altrimenti.
     """
     if resources is None or not __package__:
         return None
 
     try:
         # pylint: disable=no-member
-        # Use getattr to robustly handle cases where 'files' API does not exist
-        # (Python < 3.9) or is None (mocks/tests).
+        # Usa getattr per gestire in modo robusto i casi in cui l'API 'files' non esiste
+        # (Python < 3.9) o è None (mock/test).
         files_func = getattr(resources, "files", None)
 
         if files_func is not None:
-            # Modern API (Python 3.9+)
+            # API Moderna (Python 3.9+)
             text = (
                 files_func(__package__)
                 .joinpath("matrixseqexpl.json")
                 .read_text(encoding="utf-8")
             )
         else:
-            # Older API: use open_text
+            # API precedente: usa open_text
             # pylint: disable=deprecated-method
             text = resources.open_text(__package__, "matrixseqexpl.json").read()
 
@@ -102,32 +102,32 @@ def _read_from_resources() -> Optional[Dict[str, Any]]:
 
 def _read_matrix_json() -> Optional[Dict[str, Any]]:
     """
-    Orchestrates the reading strategy.
+    Orchestra la strategia di lettura.
 
-    1. Tries to read from the filesystem.
-    2. Falls back to package resources if the file is not found.
+    1. Tenta di leggere dal filesystem.
+    2. Ripiega sulle risorse del pacchetto se il file non viene trovato.
 
     Returns:
-        Optional[Dict[str, Any]]: The raw JSON data.
+        Optional[Dict[str, Any]]: I dati JSON grezzi.
     """
-    # 1. Try Filesystem
+    # 1. Prova Filesystem
     data = _read_from_filesystem()
     if data:
         return data
 
-    # 2. Fallback: Package Resource
+    # 2. Fallback: Risorsa Pacchetto
     return _read_from_resources()
 
 
 def _coerce_status(status_raw: Any) -> str:
     """
-    Normalizes a raw status string into a canonical value.
+    Normalizza una stringa di stato grezza in un valore canonico.
 
     Args:
-        status_raw (Any): The status value from the JSON (usually a string).
+        status_raw (Any): Il valore di stato dal JSON (solitamente una stringa).
 
     Returns:
-        str: One of 'yes', 'no', 'conditional', or 'unknown'.
+        str: Uno tra 'yes', 'no', 'conditional', o 'unknown'.
     """
     if not isinstance(status_raw, str):
         return "unknown"
@@ -146,15 +146,15 @@ def _coerce_status(status_raw: Any) -> str:
 
 def _process_matrix_dict(matrix_data: Dict[str, Any]) -> CompatibilityMap:
     """
-    Parses the legacy dictionary structure.
+    Analizza la struttura del dizionario legacy.
 
-    Format: {'matrix': { 'MIT': {'GPL': 'yes'} }}
+    Formato: {'matrix': { 'MIT': {'GPL': 'yes'} }}
 
     Args:
-        matrix_data (Dict[str, Any]): The 'matrix' dictionary from JSON.
+        matrix_data (Dict[str, Any]): Il dizionario 'matrix' dal JSON.
 
     Returns:
-        CompatibilityMap: The normalized compatibility map.
+        CompatibilityMap: La mappa di compatibilità normalizzata.
     """
     normalized: CompatibilityMap = {}
 
@@ -175,15 +175,15 @@ def _process_matrix_dict(matrix_data: Dict[str, Any]) -> CompatibilityMap:
 
 def _process_entries_list(entries_list: List[Dict[str, Any]]) -> CompatibilityMap:
     """
-    Parses the list-based structure (used in new formats and 'licenses' key).
+    Analizza la struttura basata su elenco (usata nei nuovi formati e nella chiave 'licenses').
 
-    Expected Format: [{'name': 'MIT', 'compatibilities': [...]}, ...]
+    Formato Previsto: [{'name': 'MIT', 'compatibilities': [...]}, ...]
 
     Args:
-        entries_list (List[Dict[str, Any]]): List of license entry objects.
+        entries_list (List[Dict[str, Any]]): Elenco di oggetti voce licenza.
 
     Returns:
-        CompatibilityMap: The normalized compatibility map.
+        CompatibilityMap: La mappa di compatibilità normalizzata.
     """
     normalized: CompatibilityMap = {}
 
@@ -216,13 +216,13 @@ def _process_entries_list(entries_list: List[Dict[str, Any]]) -> CompatibilityMa
 
 def load_professional_matrix() -> CompatibilityMap:
     """
-    Loads and normalizes the professional compatibility matrix.
+    Carica e normalizza la matrice di compatibilità professionale.
 
-    It handles loading from file/resource and parsing various JSON schemas.
+    Gestisce il caricamento da file/risorsa e l'analisi di vari schemi JSON.
 
     Returns:
-        CompatibilityMap: A dictionary mapping {main_license -> {dep_license -> status}}.
-        Returns an empty dict if the file cannot be loaded or parsed.
+        CompatibilityMap: Un dizionario che mappa {main_license -> {dep_license -> status}}.
+        Restituisce un dizionario vuoto se il file non può essere caricato o analizzato.
     """
     try:
         data = _read_matrix_json()
@@ -233,16 +233,16 @@ def load_professional_matrix() -> CompatibilityMap:
             )
             return {}
 
-        # Case 1: Legacy structure {"matrix": {...}}
+        # Caso 1: Struttura legacy {"matrix": {...}}
         if (isinstance(data, dict) and "matrix" in data and
                 isinstance(data["matrix"], dict)):
             return _process_matrix_dict(data["matrix"])
 
-        # Case 2: New structure (List of entries at root)
+        # Caso 2: Nuova struttura (Elenco di voci alla radice)
         if isinstance(data, list):
             return _process_entries_list(data)
 
-        # Case 3: Structure with 'licenses' key containing a list
+        # Caso 3: Struttura con chiave 'licenses' contenente un elenco
         if (isinstance(data, dict) and "licenses" in data and
                 isinstance(data["licenses"], list)):
             return _process_entries_list(data["licenses"])
@@ -253,15 +253,15 @@ def load_professional_matrix() -> CompatibilityMap:
     return {}
 
 
-# Load the matrix once at module level (Singleton pattern)
+# Carica la matrice una volta a livello di modulo (Pattern Singleton)
 _PRO_MATRIX = load_professional_matrix()
 
 
 def get_matrix() -> CompatibilityMap:
     """
-    Retrieves the pre-loaded compatibility matrix.
+    Recupera la matrice di compatibilità pre-caricata.
 
     Returns:
-        CompatibilityMap: The normalized compatibility matrix.
+        CompatibilityMap: La matrice di compatibilità normalizzata.
     """
     return _PRO_MATRIX

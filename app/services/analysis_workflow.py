@@ -1,12 +1,12 @@
 """
 Analysis Workflow Module.
 
-This module manages the core analysis workflows for the application.
-It acts as the orchestrator for:
-- Repository cloning (via GitHub).
-- ZIP file uploads and extraction.
-- Initial license scanning and compatibility checking.
-- The AI-based code regeneration loop to fix license conflicts.
+Questo modulo gestisce i flussi di lavoro di analisi principali per l'applicazione.
+Agisce come orchestratore per:
+- Clonazione del repository (tramite GitHub).
+- Caricamento ed estrazione di file ZIP.
+- Scansione iniziale delle licenze e controllo della compatibilità.
+- Il ciclo di rigenerazione del codice basato sull'intelligenza artificiale per risolvere i conflitti di licenza.
 """
 import os
 import shutil
@@ -32,21 +32,20 @@ from app.services.llm.code_generator import regenerate_code
 
 def perform_cloning(owner: str, repo: str) -> str:
     """
-    Executes the repository cloning process.
+    Esegue il processo di clonazione del repository.
 
-    This function relies on the GitHub client service to clone the remote
-    repository to the local file system.
+    Questa funzione si affida al servizio client GitHub per clonare il repository
+    remoto nel file system locale.
 
     Args:
-        owner (str): The repository owner (username or organization).
-        repo (str): The repository name.
-        oauth_token (str): The OAuth token for authentication.
+        owner (str): Il proprietario del repository (nome utente o organizzazione).
+        repo (str): Il nome del repository.
 
     Returns:
-        str: The local file system path of the cloned repository.
+        str: Il percorso del file system locale del repository clonato.
 
     Raises:
-        ValueError: If the cloning operation fails.
+        ValueError: Se l'operazione di clonazione fallisce.
     """
     clone_result = clone_repo(owner, repo)
     if not clone_result.success:
@@ -57,27 +56,27 @@ def perform_cloning(owner: str, repo: str) -> str:
 
 def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
     """
-    Handles the upload, extraction, and normalization of a source code ZIP file.
+    Gestisce il caricamento, l'estrazione e la normalizzazione di un file ZIP di codice sorgente.
 
-    It ensures the target directory is clean, extracts the zip, and normalizes
-    the directory structure (e.g., handling single root folders inside archives).
+    Garantisce che la directory di destinazione sia pulita, estrae lo zip e normalizza
+    la struttura delle directory (es. gestendo singole cartelle root all'interno degli archivi).
 
     Args:
-        owner (str): The owner name to assign to the project.
-        repo (str): The repository name to assign.
-        uploaded_file (UploadFile): The ZIP file uploaded by the user.
+        owner (str): Il nome del proprietario da assegnare al progetto.
+        repo (str): Il nome del repository da assegnare.
+        uploaded_file (UploadFile): Il file ZIP caricato dall'utente.
 
     Returns:
-        str: The absolute local path where the code has been extracted.
+        str: Il percorso locale assoluto dove è stato estratto il codice.
 
     Raises:
         HTTPException:
-            - 400: If the file is not a zip or is corrupted.
-            - 500: If filesystem errors occur during cleanup or extraction.
+            - 400: Se il file non è uno zip o è corrotto.
+            - 500: Se si verificano errori del filesystem durante la pulizia o l'estrazione.
     """
     target_dir = os.path.join(CLONE_BASE_DIR, f"{owner.strip()}_{repo.strip()}")
 
-    # 1. Preventive cleanup of existing directory
+    # 1. Pulizia preventiva della directory esistente
     if os.path.exists(target_dir):
         try:
             shutil.rmtree(target_dir)
@@ -87,12 +86,12 @@ def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
                 detail=f"Error cleaning up existing directory: {e}"
             ) from e
 
-    # Validate file extension
+    # Valida l'estensione del file
     if not uploaded_file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="The uploaded file must be a .zip archive")
 
     try:
-        # 2. Use a temporary directory for extraction
+        # 2. Usa una directory temporanea per l'estrazione
         with tempfile.TemporaryDirectory() as temp_dir:
 
             with zipfile.ZipFile(uploaded_file.file, 'r') as zip_ref:
@@ -106,14 +105,14 @@ def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
 
             source_to_move = temp_dir
 
-            # CASE A: Zip contains a single root folder (e.g., 'my-repo-main')
-            # We want to move the *content* of that folder, not the folder itself.
+            # CASO A: Lo zip contiene una singola cartella radice (es. 'my-repo-main')
+            # Vogliamo spostare il *contenuto* di quella cartella, non la cartella stessa.
             if len(visible_items) == 1:
                 potential_root = os.path.join(temp_dir, visible_items[0])
                 if os.path.isdir(potential_root):
                     source_to_move = potential_root
 
-            # CASE B: Move contents to the final target_dir
+            # CASO B: Sposta il contenuto nella directory di destinazione finale
             shutil.copytree(source_to_move, target_dir)
 
     except zipfile.BadZipFile as exc:
@@ -136,59 +135,59 @@ def perform_upload_zip(owner: str, repo: str, uploaded_file: UploadFile) -> str:
 
 def perform_initial_scan(owner: str, repo: str) -> AnalyzeResponse:
     """
-    Executes the initial analysis on an already cloned/uploaded repository.
+    Esegue l'analisi iniziale su un repository già clonato/caricato.
 
-    Steps:
-    1. Runs ScanCode to detect raw license data.
-    2. Identifies the project's main license.
-    3. Filters ScanCode results using LLM and regex rules.
-    4. Checks compatibility between file licenses and the main license.
-    5. Enriches issues with AI-generated suggestions.
+    Passaggi:
+    1. Esegue ScanCode per rilevare i dati grezzi della licenza.
+    2. Identifica la licenza principale del progetto.
+    3. Filtra i risultati di ScanCode utilizzando LLM e regole regex.
+    4. Controlla la compatibilità tra le licenze dei file e la licenza principale.
+    5. Arricchisce i problemi con suggerimenti generati dall'intelligenza artificiale.
 
     Args:
-        owner (str): The repository owner.
-        repo (str): The repository name.
+        owner (str): Il proprietario del repository.
+        repo (str): Il nome del repository.
 
     Returns:
-        AnalyzeResponse: The complete analysis result including issues and suggestions.
+        AnalyzeResponse: Il risultato completo dell'analisi inclusi problemi e suggerimenti.
 
     Raises:
-        ValueError: If the repository directory does not exist.
+        ValueError: Se la directory del repository non esiste.
     """
     repo_path = os.path.join(CLONE_BASE_DIR, f"{owner.strip()}_{repo.strip()}")
 
     if not os.path.exists(repo_path):
         raise ValueError(f"Repository not found at {repo_path}. Please clone it first.")
 
-    # 2) Execute ScanCode
+    # 2) Esegue ScanCode
     scan_raw = run_scancode(repo_path)
 
-    # 3) Detect Main License
+    # 3) Rileva la Licenza Principale
     license_result = detect_main_license_scancode(scan_raw)
 
-    # Handle both return types: tuple (license, path) or string "UNKNOWN"
+    # Gestisce entrambi i tipi di ritorno: tupla (licenza, percorso) o stringa "UNKNOWN"
     if isinstance(license_result, tuple):
         main_license, path_license = license_result
     else:
         main_license = license_result
         path_license = None
 
-    # 4) Filtering
+    # 4) Filtraggio
     llm_clean = filter_licenses(scan_raw, main_license, path_license)
     file_licenses = extract_file_licenses(llm_clean)
 
     remove_or_clauses = choose_most_permissive_license_in_file(file_licenses)
 
-    # 5) Compatibility Check
+    # 5) Controllo Compatibilità
     compatibility = check_compatibility(main_license, remove_or_clauses)
 
-    # 6) AI Suggestions
+    # 6) Suggerimenti AI
     enriched_issues = enrich_with_llm_suggestions(main_license, compatibility["issues"], {})
 
-    # 7) Check if license suggestion is needed
+    # 7) Controlla se è necessario un suggerimento di licenza
     needs_suggestion = needs_license_suggestion(main_license, enriched_issues)
 
-    # 8) Map to Pydantic Models
+    # 8) Mappa ai Modelli Pydantic
     license_issue_models = [
         LicenseIssue(
             file_path=i["file_path"],
@@ -216,24 +215,24 @@ def perform_regeneration(
     previous_analysis: AnalyzeResponse
 ) -> AnalyzeResponse:
     """
-    Executes the code regeneration workflow on an already analyzed repository.
+    Esegue il flusso di lavoro di rigenerazione del codice su un repository già analizzato.
 
-    Steps:
-    1. Identifies incompatible files from the previous analysis.
-    2. Calls the LLM to regenerate code compliant with the main license.
-    3. Re-scans the repository to verify improvements.
-    4. Returns updated analysis results.
+    Passaggi:
+    1. Identifica i file incompatibili dall'analisi precedente.
+    2. Chiama l'LLM per rigenerare codice conforme alla licenza principale.
+    3. Riesegue la scansione del repository per verificare i miglioramenti.
+    4. Restituisce i risultati dell'analisi aggiornati.
 
     Args:
-        owner (str): The repository owner.
-        repo (str): The repository name.
-        previous_analysis (AnalyzeResponse): Results from the initial scan.
+        owner (str): Il proprietario del repository.
+        repo (str): Il nome del repository.
+        previous_analysis (AnalyzeResponse): Risultati dalla scansione iniziale.
 
     Returns:
-        AnalyzeResponse: The updated analysis result containing regenerated code paths.
+        AnalyzeResponse: Il risultato dell'analisi aggiornato contenente i percorsi del codice rigenerato.
 
     Raises:
-        ValueError: If the repository directory does not exist.
+        ValueError: Se la directory del repository non esiste.
     """
     repo_path = os.path.join(CLONE_BASE_DIR, f"{owner}_{repo}")
 
@@ -242,14 +241,14 @@ def perform_regeneration(
 
     main_license = previous_analysis.main_license
 
-    # 1. Identify and regenerate incompatible files
+    # 1. Identifica e rigenera i file incompatibili
     regenerated_files_map = _regenerate_incompatible_files(
         repo_path,
         main_license,
         previous_analysis.issues
     )
 
-    # 2. Rescan or Fallback
+    # 2. Riesegue la scansione o Fallback
     if regenerated_files_map:
         print("Re-running post-regeneration scan...")
         current_issues_dicts = _rescan_repository(
@@ -258,17 +257,17 @@ def perform_regeneration(
             regenerated_files_map
         )
     else:
-        # Fallback: convert existing Pydantic models to dicts if no changes occurred
+        # Fallback: converti i modelli Pydantic esistenti in dict se non sono avvenuti cambiamenti
         current_issues_dicts = [i.model_dump() for i in previous_analysis.issues]
 
-    # 3. Final Enrichment
+    # 3. Arricchimento Finale
     enriched_issues = enrich_with_llm_suggestions(
         main_license,
         current_issues_dicts,
         regenerated_files_map
     )
 
-    # 4. Check if license suggestion is still needed after regeneration
+    # 4. Verifica se è ancora necessario un suggerimento di licenza dopo la rigenerazione
     needs_suggestion = needs_license_suggestion(main_license, enriched_issues)
 
     license_issue_models = [
@@ -298,19 +297,19 @@ def _regenerate_incompatible_files(
     issues: list[LicenseIssue]
 ) -> dict:
     """
-    Internal helper to identify incompatible files and attempt regeneration via LLM.
+    Helper interno per identificare i file incompatibili e tentare la rigenerazione tramite LLM.
 
     Args:
-        repo_path (str): Path to the repository.
-        main_license (str): The target license.
-        issues (list[LicenseIssue]): List of issues from previous scan.
+        repo_path (str): Percorso del repository.
+        main_license (str): La licenza di destinazione.
+        issues (list[LicenseIssue]): Elenco dei problemi dalla scansione precedente.
 
     Returns:
-        dict: A map {file_path: new_content} of successfully regenerated files.
+        dict: Una mappa {file_path: new_content} dei file rigenerati con successo.
     """
     regenerated_map = {}
 
-    # Filter files to ignore (docs, notices, etc.)
+    # Filtra i file da ignorare (documenti, avvisi, ecc.)
     ignore_suffixes = ('.md', '.txt', '.rst', 'THIRD-PARTY-NOTICE', 'NOTICE')
 
     files_to_process = [
@@ -326,7 +325,7 @@ def _regenerate_incompatible_files(
     for issue in files_to_process:
         fpath = issue.file_path
 
-        # Resolve absolute path
+        # Risolve il percorso assoluto
         repo_name = os.path.basename(os.path.normpath(repo_path))
         if fpath.startswith(f"{repo_name}/"):
             abs_path = os.path.join(os.path.dirname(repo_path), fpath)
@@ -340,7 +339,7 @@ def _regenerate_incompatible_files(
             with open(abs_path, "r", encoding="utf-8", errors="ignore") as f:
                 original_content = f.read()
 
-            # Ensure licenses is a string, not None
+            # Assicura che licenses sia una stringa, non None
             licenses_str = issue.licenses if issue.licenses else "MIT, Apache-2.0, BSD-3-Clause"
 
             new_code = regenerate_code(
@@ -361,7 +360,7 @@ def _regenerate_incompatible_files(
 
         except OSError as e:
             print(f"IO Error regenerating {fpath}: {e}")
-        # Broad exception caught intentionally to prevent stopping the loop
+        # Ampia eccezione catturata intenzionalmente per evitare di interrompere il ciclo
         # pylint: disable=broad-exception-caught
         except Exception as e:
             print(f"Unexpected error regenerating {fpath}: {e}")
@@ -375,25 +374,25 @@ def _rescan_repository(
     regenerated_map: dict
 ) -> list[dict]:
     """
-    Internal helper to re-run ScanCode and compatibility checks.
+    Helper interno per rieseguire ScanCode e i controlli di compatibilità.
 
     Args:
-        repo_path (str): Path to the repository.
-        main_license (str): The main license to check against.
-        regenerated_map (dict): Map of regenerated files (passed for context/future use).
+        repo_path (str): Percorso al repository.
+        main_license (str): La licenza principale da verificare.
+        regenerated_map (dict): Mappa dei file rigenerati (passata per contesto/future estensioni logiche).
 
     Returns:
-        list[dict]: A list of updated issue dictionaries.
+        list[dict]: Un elenco di dizionari di problemi aggiornati.
     """
-    # Prevent unused argument warning (kept for debugging or future logic extensions)
+    # Previene l'avviso di argomento non utilizzato (mantenuto per debug o future estensioni logiche)
     _ = regenerated_map
 
     scan_raw = run_scancode(repo_path)
 
-    # Detect license path again to ensure accuracy
+    # Rileva nuovamente il percorso della licenza per garantire l'accuratezza
     license_result = detect_main_license_scancode(scan_raw)
 
-    # Handle both return types: tuple (license, path) or string "UNKNOWN"
+    # Gestisce entrambi i tipi di ritorno: tupla (license, path) o stringa "UNKNOWN"
     if isinstance(license_result, tuple):
         _, path_license = license_result
     else:

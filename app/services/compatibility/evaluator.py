@@ -1,17 +1,17 @@
 """
 License Evaluator Module.
 
-This module implements a recursive evaluation engine for SPDX license trees.
-It determines compatibility using a Tri-State logic (Yes | No | Conditional/Unknown).
+Questo modulo implementa un motore di valutazione ricorsivo per alberi di licenze SPDX.
+Determina la compatibilità utilizzando una logica a tre stati (Sì | No | Condizionale/Sconosciuto).
 
-Key Logic:
-    - **Leaf Nodes**: Evaluated directly against the compatibility matrix.
-      Exceptions (WITH clauses) are parsed and noted in the trace.
-    - **AND Operators**: Evaluated conservatively. Both branches must be compatible.
-      Additionally, cross-checks between left and right branches are performed
-      to detect mutual incompatibilities between dependencies.
-    - **OR Operators**: Evaluated liberally. If at least one branch is compatible,
-      the result is considered compatible.
+Logica Chiave:
+    - **Nodi Foglia**: Valutati direttamente rispetto alla matrice di compatibilità.
+      Le eccezioni (clausole WITH) vengono analizzate e annotate nella traccia.
+    - **Operatori AND**: Valutati in modo conservativo. Entrambi i rami devono essere compatibili.
+      Inoltre, vengono eseguiti controlli incrociati tra i rami sinistro e destro
+      per rilevare incompatibilità reciproche tra le dipendenze.
+    - **Operatori OR**: Valutati in modo liberale. Se almeno un ramo è compatibile,
+      il risultato è considerato compatibile.
 """
 
 from typing import List, Optional, Tuple, Union
@@ -19,23 +19,23 @@ from .parser_spdx import Node, Leaf, And, Or
 from .compat_utils import normalize_symbol
 from .matrix import get_matrix
 
-# Type alias for clarity in docstrings (values: "yes", "no", "conditional", "unknown")
+# Alias di tipo per chiarezza nelle docstring (valori: "yes", "no", "conditional", "unknown")
 TriState = str
 
 
 def _lookup_status(main_license: str, dep_license: str) -> TriState:
     """
-    Looks up the compatibility status of a dependency license against the main license.
+    Cerca lo stato di compatibilità di una licenza di dipendenza rispetto alla licenza principale.
 
-    It attempts to find a match in the matrix using the raw string, the normalized
-    symbol, and the stripped string to ensure robustness.
+    Tenta di trovare una corrispondenza nella matrice utilizzando la stringa grezza, il simbolo
+    normalizzato e la stringa pulita per garantire robustezza.
 
     Args:
-        main_license (str): The project's main license.
-        dep_license (str): The license of the dependency file.
+        main_license (str): La licenza principale del progetto.
+        dep_license (str): La licenza del file di dipendenza.
 
     Returns:
-        TriState: 'yes', 'no', 'conditional', or 'unknown' if not found.
+        TriState: 'yes', 'no', 'conditional', o 'unknown' se non trovata.
     """
     matrix = get_matrix()
     if not matrix:
@@ -45,7 +45,7 @@ def _lookup_status(main_license: str, dep_license: str) -> TriState:
     if not row:
         return "unknown"
 
-    # Try multiple variations to find a match in the matrix
+    # Prova diverse varianti per trovare una corrispondenza nella matrice
     candidates = [dep_license, normalize_symbol(dep_license), dep_license.strip()]
     for c in candidates:
         status = row.get(c)
@@ -57,14 +57,14 @@ def _lookup_status(main_license: str, dep_license: str) -> TriState:
 
 def _combine_and(a: TriState, b: TriState) -> TriState:
     """
-    Combines two results for an AND operator using conservative rules.
+    Combina due risultati per un operatore AND utilizzando regole conservative.
 
     Args:
-        a (TriState): Status of the left branch.
-        b (TriState): Status of the right branch.
+        a (TriState): Stato del ramo sinistro.
+        b (TriState): Stato del ramo destro.
 
     Returns:
-        TriState: 'yes' only if both are 'yes', 'no' if either is 'no', else 'conditional'.
+        TriState: 'yes' solo se entrambi sono 'yes', 'no' se uno dei due è 'no', altrimenti 'conditional'.
     """
     if a == "no" or b == "no":
         return "no"
@@ -75,14 +75,14 @@ def _combine_and(a: TriState, b: TriState) -> TriState:
 
 def _combine_or(a: TriState, b: TriState) -> TriState:
     """
-    Combines two results for an OR operator using liberal rules.
+    Combina due risultati per un operatore OR utilizzando regole liberali.
 
     Args:
-        a (TriState): Status of the left branch.
-        b (TriState): Status of the right branch.
+        a (TriState): Stato del ramo sinistro.
+        b (TriState): Stato del ramo destro.
 
     Returns:
-        TriState: 'yes' if either is 'yes', 'no' only if both are 'no', else 'conditional'.
+        TriState: 'yes' se uno dei due è 'yes', 'no' solo se entrambi sono 'no', altrimenti 'conditional'.
     """
     if a == "yes" or b == "yes":
         return "yes"
@@ -93,22 +93,22 @@ def _combine_or(a: TriState, b: TriState) -> TriState:
 
 def _collect_leaves(node: Node) -> List[str]:
     """
-    Recursively extracts all leaf license values from a subtree.
+    Estrae ricorsivamente tutti i valori di licenza foglia da un sottoalbero.
 
-    This helper is used primarily for cross-check analysis in AND nodes.
-    It strips 'WITH' clauses to return only the base license symbols.
+    Questo helper è utilizzato principalmente per l'analisi dei controlli incrociati nei nodi AND.
+    Rimuove le clausole 'WITH' per restituire solo i simboli di licenza base.
 
     Args:
-        node (Node): The root of the subtree to collect from.
+        node (Node): La radice del sottoalbero da cui raccogliere.
 
     Returns:
-        List[str]: A list of normalized license symbols found in the subtree.
+        List[str]: Un elenco di simboli di licenza normalizzati trovati nel sottoalbero.
     """
     vals: List[str] = []
 
     if isinstance(node, Leaf):
         v = node.value
-        # Handle "License WITH Exception" format
+        # Gestisce il formato "Licenza WITH Eccezione"
         if " WITH " in v:
             b, _ = v.split(" WITH ", 1)
             vals.append(normalize_symbol(b))
@@ -124,21 +124,21 @@ def _collect_leaves(node: Node) -> List[str]:
 
 def _eval_leaf(main_license: str, node: Leaf) -> Tuple[TriState, List[str]]:
     """
-    Evaluates a single Leaf node against the main license.
+    Valuta un singolo nodo Foglia rispetto alla licenza principale.
 
-    Handles 'WITH' exceptions by checking the base license and adding
-    explanatory notes to the trace.
+    Gestisce le eccezioni 'WITH' controllando la licenza base e aggiungendo
+    note esplicative alla traccia.
 
     Args:
-        main_license (str): The project's main license.
-        node (Leaf): The leaf node containing the license string.
+        main_license (str): La licenza principale del progetto.
+        node (Leaf): Il nodo foglia contenente la stringa della licenza.
 
     Returns:
-        Tuple[TriState, List[str]]: The status and the evaluation trace.
+        Tuple[TriState, List[str]]: Lo stato e la traccia di valutazione.
     """
     val = node.value
 
-    # Handle WITH clause
+    # Gestisce la clausola WITH
     if " WITH " in val:
         base, exc = val.split(" WITH ", 1)
         base = normalize_symbol(base)
@@ -151,7 +151,7 @@ def _eval_leaf(main_license: str, node: Leaf) -> Tuple[TriState, List[str]]:
             f"with respect to {main_license}"
         )
 
-        # append specific warnings regarding the exception
+        # aggiunge avvisi specifici riguardanti l'eccezione
         if exc:
             if status != "yes":
                 reason += (
@@ -165,7 +165,7 @@ def _eval_leaf(main_license: str, node: Leaf) -> Tuple[TriState, List[str]]:
                 )
         return status, [reason]
 
-    # Standard Case (No WITH clause)
+    # Caso Standard (Nessuna clausola WITH)
     status = _lookup_status(main_license, val)
     reason = f"{val} → {status} with respect to {main_license}"
     return status, [reason]
@@ -173,27 +173,27 @@ def _eval_leaf(main_license: str, node: Leaf) -> Tuple[TriState, List[str]]:
 
 def _eval_and(main_license: str, node: And) -> Tuple[TriState, List[str]]:
     """
-    Evaluates an AND node including internal cross-checks.
+    Valuta un nodo AND includendo controlli incrociati interni.
 
-    For an AND expression (e.g., "A AND B"), this checks:
-    1. Compatibility of A vs Main License.
-    2. Compatibility of B vs Main License.
-    3. Cross-compatibility of A vs B (and vice versa).
+    Per un'espressione AND (es. "A AND B"), verifica:
+    1. Compatibilità di A vs Licenza Principale.
+    2. Compatibilità di B vs Licenza Principale.
+    3. Compatibilità incrociata di A vs B (e viceversa).
 
     Args:
-        main_license (str): The project's main license.
-        node (And): The AND node to evaluate.
+        main_license (str): La licenza principale del progetto.
+        node (And): Il nodo AND da valutare.
 
     Returns:
-        Tuple[TriState, List[str]]: The combined status and the full trace including cross-checks.
+        Tuple[TriState, List[str]]: Lo stato combinato e la traccia completa inclusi i controlli incrociati.
     """
-    # 1. Evaluate branches individually against main license
+    # 1. Valuta i rami individualmente rispetto alla licenza principale
     ls, ltrace = eval_node(main_license, node.left)
     rs, rtrace = eval_node(main_license, node.right)
 
     combined = _combine_and(ls, rs)
 
-    # 2. Perform cross-checks between left and right branches
+    # 2. Esegue controlli incrociati tra i rami sinistro e destro
     left_leaves = _collect_leaves(node.left)
     right_leaves = _collect_leaves(node.right)
     cross_checks: List[str] = []
@@ -211,14 +211,14 @@ def _eval_and(main_license: str, node: And) -> Tuple[TriState, List[str]]:
 
 def _eval_or(main_license: str, node: Or) -> Tuple[TriState, List[str]]:
     """
-    Evaluates an OR node.
+    Valuta un nodo OR.
 
     Args:
-        main_license (str): The project's main license.
-        node (Or): The OR node to evaluate.
+        main_license (str): La licenza principale del progetto.
+        node (Or): Il nodo OR da valutare.
 
     Returns:
-        Tuple[TriState, List[str]]: The combined status and trace.
+        Tuple[TriState, List[str]]: Lo stato combinato e la traccia.
     """
     ls, ltrace = eval_node(main_license, node.left)
     rs, rtrace = eval_node(main_license, node.right)
@@ -231,20 +231,20 @@ def _eval_or(main_license: str, node: Or) -> Tuple[TriState, List[str]]:
 
 def eval_node(main_license: str, node: Optional[Node]) -> Tuple[TriState, List[str]]:
     """
-    Recursively evaluates an SPDX node against the `main_license`.
+    Valuta ricorsivamente un nodo SPDX rispetto alla `main_license`.
 
-    This is the main entry point for the evaluation logic. It dispatches
-    the evaluation to the specific handler based on the node type.
+    Questo è il punto di ingresso principale per la logica di valutazione. Invia
+    la valutazione al gestore specifico in base al tipo di nodo.
 
     Args:
-        main_license (str): The project's main license symbol.
-        node (Optional[Node]): The root node of the license tree to evaluate.
+        main_license (str): Il simbolo della licenza principale del progetto.
+        node (Optional[Node]): Il nodo radice dell'albero delle licenze da valutare.
 
     Returns:
         Tuple[str, List[str]]:
-            - The compatibility status ("yes", "no", "conditional", "unknown").
-            - A list of strings explaining the derivation of the result,
-              useful for reporting and debugging.
+            - Lo stato di compatibilità ("yes", "no", "conditional", "unknown").
+            - Un elenco di stringhe che spiegano la derivazione del risultato,
+              utile per reportistica e debug.
     """
     if node is None:
         return "unknown", ["Missing expression or not recognized"]

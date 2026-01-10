@@ -17,12 +17,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==============================================================================
-# AUTHENTICATION
+# AUTENTICAZIONE
 # ==============================================================================
 CALLBACK_URL = os.getenv("CALLBACK_URL")
 
 # ==============================================================================
-# API URL AND MODELS (OLLAMA)
+# URL API E MODELLI (OLLAMA)
 # ==============================================================================
 OLLAMA_URL = os.getenv("OLLAMA_URL")
 OLLAMA_CODING_MODEL = os.getenv("OLLAMA_CODING_MODEL")
@@ -31,23 +31,23 @@ OLLAMA_HOST_VERSION = os.getenv("OLLAMA_HOST_VERSION")
 OLLAMA_HOST_TAGS = os.getenv("OLLAMA_HOST_TAGS")
 
 # ==============================================================================
-# EXTERNAL TOOLS
+# STRUMENTI ESTERNI
 # ==============================================================================
 SCANCODE_BIN = os.getenv("SCANCODE_BIN")
 
 # ==============================================================================
-# DIRECTORY MANAGEMENT
+# GESTIONE DIRECTORY
 # ==============================================================================
 
-# Directory for cloned repositories (defaults to system temp if not set)
+# Directory per i repository clonati (default alla temp di sistema se non impostata)
 CLONE_BASE_DIR = os.getenv('CLONE_BASE_DIR') or os.path.join(tempfile.gettempdir(), 'clones')
 os.makedirs(CLONE_BASE_DIR, exist_ok=True)
 
-# Base directory for output artifacts
+# Directory base per gli artefatti di output
 OUTPUT_BASE_DIR = os.getenv("OUTPUT_BASE_DIR", "./output")
 os.makedirs(OUTPUT_BASE_DIR, exist_ok=True)
 
-# Robust definition of MINIMAL_JSON_BASE_DIR
-# If not defined in .env, it is created inside OUTPUT_BASE_DIR to ensure consistency
+# Definizione robusta di MINIMAL_JSON_BASE_DIR
+# Se non definita in .env, viene creata dentro OUTPUT_BASE_DIR per garantire consistenza
 MINIMAL_JSON_BASE_DIR = os.getenv("MINIMAL_JSON_BASE_DIR") or os.path.join(OUTPUT_BASE_DIR, "minimal_scans")
 os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)

@@ -19,11 +19,11 @@ class TripleToggleSwitch extends React.Component {
         };
     }
 
-    // Allow controlling from parent if needed, though this component as written by user holds its own state.
-    // We'll add componentDidUpdate to sync if props change drastically, but let's stick to the user's class structure primarily.
+    // Consente il controllo dal genitore se necessario, anche se questo componente come scritto dall'utente mantiene il proprio stato.
+    // Aggiungeremo componentDidUpdate per sincronizzare se le props cambiano drasticamente, ma atteniamoci principalmente alla struttura della classe dell'utente.
     componentDidMount() {
-        // If props provide an initial value, we could set it conformingly.
-        // For now, we'll rely on the parent initializing logic or default to 'center' (value 2).
+        // Se le props forniscono un valore iniziale, potremmo impostarlo conformemente.
+        // Per ora, ci affideremo alla logica di inizializzazione del genitore o al default 'center' (valore 2).
         if (this.props.value) {
             const pos = this.mapValueToPosition(this.props.value);
             this.setState({ switchPosition: pos });
@@ -34,10 +34,10 @@ class TripleToggleSwitch extends React.Component {
         if (prevProps.value !== this.props.value) {
             const pos = this.mapValueToPosition(this.props.value);
             if (pos !== this.state.switchPosition) {
-                // We need to calculate animation if we strictly want animation on external updates too,
-                // but usually state drives animation. For fast feedback let's just snap or re-run getSwitchAnimation logic?
-                // Since the user's script `getSwitchAnimation` sets state AND calls onChange, we should be careful to avoid loops.
-                // We'll just update position sans animation if controlled externally to avoid double-events, or trust the internal click.
+                // Dobbiamo calcolare l'animazione se vogliamo rigorosamente l'animazione anche sugli aggiornamenti esterni,
+                // ma di solito lo stato guida l'animazione. Per un feedback rapido facciamo solo snap o rieseguiamo la logica getSwitchAnimation?
+                // Poiché lo script dell'utente `getSwitchAnimation` imposta lo stato E chiama onChange, dovremmo stare attenti a evitare loop.
+                // Aggiorneremo solo la posizione senza animazione se controllato esternamente per evitare doppi eventi, o ci fideremo del click interno.
                 this.setState({ switchPosition: pos });
             }
         }
@@ -71,15 +71,33 @@ class TripleToggleSwitch extends React.Component {
         this.setState({ switchPosition: value, animation });
     };
 
+    /**
+     * Metodo render - Renderizza il componente
+     *
+     * Struttura del componente:
+     * - Un div contenitore principale (main-container)
+     * - Un div animato che rappresenta lo slider visivo (switch)
+     * - Tre input radio nascosti (per accessibilità e funzionalità)
+     * - Tre label cliccabili che fungono da pulsanti visibili
+     *
+     * L'uso di radio buttons nativi garantisce:
+     * - Accessibilità da tastiera
+     * - Supporto per screen reader
+     * - Comportamento nativo del browser
+     */
     render() {
+        // Estrae le etichette dalle props
         const { labels } = this.props;
 
         return (
             <div className="main-container">
+                {/* Slider visivo che si muove con le animazioni CSS */}
                 <div
                     className={`switch ${this.state.animation} ${this.state.switchPosition}-position`}
                 ></div>
 
+                {/* INPUT E LABEL SINISTRA */}
+                {/* Radio button nascosto per la posizione sinistra */}
                 <input
                     onChange={(e) => this.getSwitchAnimation(e.target.value)}
                     name="map-switch"
@@ -88,6 +106,7 @@ class TripleToggleSwitch extends React.Component {
                     value="left"
                     checked={this.state.switchPosition === "left"}
                 />
+                {/* Label cliccabile che attiva il radio button */}
                 <label
                     className={`left-label ${this.state.switchPosition === "left" && "black-font"
                         }`}
@@ -96,6 +115,8 @@ class TripleToggleSwitch extends React.Component {
                     <h4>{labels.left.title}</h4>
                 </label>
 
+                {/* INPUT E LABEL CENTRO */}
+                {/* Radio button nascosto per la posizione centrale */}
                 <input
                     onChange={(e) => this.getSwitchAnimation(e.target.value)}
                     name="map-switch"
@@ -104,6 +125,7 @@ class TripleToggleSwitch extends React.Component {
                     value="center"
                     checked={this.state.switchPosition === "center"}
                 />
+                {/* Label cliccabile che attiva il radio button */}
                 <label
                     className={`center-label ${this.state.switchPosition === "center" && "black-font"
                         }`}
@@ -112,6 +134,8 @@ class TripleToggleSwitch extends React.Component {
                     <h4>{labels.center.title}</h4>
                 </label>
 
+                {/* INPUT E LABEL DESTRA */}
+                {/* Radio button nascosto per la posizione destra */}
                 <input
                     onChange={(e) => this.getSwitchAnimation(e.target.value)}
                     name="map-switch"
@@ -120,6 +144,7 @@ class TripleToggleSwitch extends React.Component {
                     value="right"
                     checked={this.state.switchPosition === "right"}
                 />
+                {/* Label cliccabile che attiva il radio button */}
                 <label
                     className={`right-label ${this.state.switchPosition === "right" && "black-font"
                         }`}
@@ -132,6 +157,8 @@ class TripleToggleSwitch extends React.Component {
     }
 }
 
+// Assegna le props di default al componente
 TripleToggleSwitch.defaultProps = defaultProps;
 
+// Esporta il componente per l'uso in altre parti dell'applicazione
 export default TripleToggleSwitch;

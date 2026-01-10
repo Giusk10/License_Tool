@@ -19,20 +19,20 @@ import {
     Download, HelpCircle
 } from 'lucide-react';
 
-// Helper function to extract unique detected licenses from analysis data
+// Funzione helper per estrarre le licenze uniche rilevate dai dati di analisi
 const extractDetectedLicenses = (analysisData) => {
     if (!analysisData || !analysisData.issues) return [];
 
     const licenses = new Set();
 
-    // Add main license if present and not unknown
+    // Aggiunge la licenza principale se presente e non sconosciuta
     if (analysisData.main_license &&
         analysisData.main_license !== 'UNKNOWN' &&
         analysisData.main_license !== 'UNLICENSE') {
         licenses.add(analysisData.main_license);
     }
 
-    // Add all detected licenses from issues
+    // Aggiunge tutte le licenze rilevate dai problemi
     analysisData.issues.forEach(issue => {
         if (issue.detected_license &&
             issue.detected_license !== 'Unknown' &&
@@ -49,7 +49,7 @@ const Callback = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // States
+    // Stati
     const [status, setStatus] = useState('loading'); // loading, cloned, analyzing, success, error
     const [cloneData, setCloneData] = useState(null); // { owner, repo, local_path }
     const [analysisData, setAnalysisData] = useState(null);
@@ -61,7 +61,7 @@ const Callback = () => {
     const [showLicenseSuggestionForm, setShowLicenseSuggestionForm] = useState(false);
     const [licenseSuggestion, setLicenseSuggestion] = useState(null);
 
-    // Simulated progress for analysis
+    // Progresso simulato per l'analisi
     const [progressStep, setProgressStep] = useState(0);
     const steps = [
         { label: 'Scanning Files', icon: Search },
@@ -70,10 +70,10 @@ const Callback = () => {
         { label: 'Finalizing Report', icon: FileText },
     ];
 
-    // 1. Initial Clone on Mount
+    // 1. Clonazione Iniziale al Mount
     React.useRef(false);
     useEffect(() => {
-        // Check if data was passed via navigation (e.g. from Upload Zip or Clone)
+        // Controlla se i dati sono stati passati tramite navigazione (es. da Upload Zip o Clone)
         if (location.state?.cloneData) {
             setCloneData(location.state.cloneData);
             setStatus('cloned');
@@ -81,22 +81,22 @@ const Callback = () => {
                 setSource(location.state.source);
             }
         } else {
-            // If no data is present, redirect back to Home
+            // Se non sono presenti dati, reindirizza alla Home
             setStatus('error');
             setError('No repository data found. Please start from the Home page.');
-            // Optional: Auto-redirect after a delay
+            // Opzionale: Auto-redirect dopo un ritardo
             // setTimeout(() => navigate('/'), 3000);
         }
     }, [location.state]);
 
-    // 2. Handle Analyze Click
+    // 2. Gestione Click Analizza
     const handleAnalyze = async () => {
         if (!cloneData) return;
 
         setStatus('analyzing');
         setProgressStep(0);
 
-        // Progress simulation
+        // Simulazione progresso
         const interval = setInterval(() => {
             setProgressStep((prev) => {
                 if (prev < steps.length - 1) return prev + 1;
@@ -114,12 +114,12 @@ const Callback = () => {
             setStatus('success');
             clearInterval(interval);
 
-            // Check if license suggestion is needed
+            // Controlla se è necessario un suggerimento di licenza
             // REMOVED AUTO OPEN: if (response.data.needs_license_suggestion) {
             //     setShowLicenseSuggestionForm(true);
             // }
 
-            // Check for regeneration needs immediately after analysis
+            // Controlla le necessità di rigenerazione immediatamente dopo l'analisi
             // REMOVED AUTO REGENERATION: checkAndRegenerate(response.data, cloneData.owner, cloneData.repo);
 
         } catch (err) {
@@ -130,8 +130,7 @@ const Callback = () => {
         }
     };
 
-    // 3. Check and Regenerate Logic
-    // 3. Check and Regenerate Logic
+    // 3. Logica di Controllo e Rigenerazione
     const handleRegenerate = async () => {
         if (!analysisData) return;
 
@@ -146,7 +145,7 @@ const Callback = () => {
         }
     };
 
-    // 4. Handle Download
+    // 4. Gestione Download
     const handleDownload = async () => {
         if (!cloneData) return;
         try {
@@ -164,17 +163,21 @@ const Callback = () => {
             link.remove();
         } catch (err) {
             console.error("Download failed:", err);
-            // Optionally set an error state or alert
+            // Opzionalmente imposta uno stato di errore o un avviso
         }
     };
 
+    // --- RENDER CONDIZIONALI BASATI SULLO STATO ---
 
-    // --- RENDER HELPERS ---
-
+    /**
+     * Stato LOADING - Visualizzato durante il caricamento iniziale
+     * Mostra un'icona di caricamento animata e un messaggio
+     */
     if (status === 'loading') {
         return (
             <div className="container">
                 <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
+                    {/* Spinner animato */}
                     <div
                         className="spin"
                         style={{
@@ -190,17 +193,26 @@ const Callback = () => {
         );
     }
 
+    /**
+     * Stato CLONED - Repository clonato/caricato con successo
+     * Mostra i dettagli del repository e permette di:
+     * - Avviare l'analisi
+     * - Scaricare il repository
+     */
     if (status === 'cloned') {
         return (
             <div className="container">
                 <div className="glass-panel" style={{ padding: '3rem', width: '100%', maxWidth: '600px', textAlign: 'center' }}>
+                    {/* Icona di successo */}
                     <div style={{ marginBottom: '1rem', marginTop: '0.5.rem' }}>
                         <GitBranch size={70} color="#219625ff" />
                     </div>
+                    {/* Titolo dinamico basato sulla sorgente (upload o clone) */}
                     <h2 style={{ marginBottom: '1rem' }}>
                         {source === 'upload' ? 'Repository Uploaded Successfully!' : 'Repository Cloned Successfully!'}
                     </h2>
 
+                    {/* Pannello con i dettagli del repository */}
                     <div className="glass-panel" style={{
                         background: 'rgba(49, 24, 82, 0.2)',
                         borderColor: '#444bcc3f',
@@ -213,12 +225,15 @@ const Callback = () => {
                         <p><strong>Local Path :</strong> <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>{cloneData.local_path}</span></p>
                     </div>
 
+                    {/* Pulsanti di azione */}
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                        {/* Pulsante per avviare l'analisi */}
                         <button onClick={handleAnalyze} className="glass-button" style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 Analyze Repository <ArrowRight size={20} />
                             </span>
                         </button>
+                        {/* Pulsante per scaricare il repository */}
                         <button onClick={handleDownload} className="glass-button" style={{ fontSize: '1.1rem', padding: '1rem 2rem', background: 'rgba(255, 255, 255, 0.1)' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 Download <Download size={20} />
@@ -230,32 +245,44 @@ const Callback = () => {
         );
     }
 
+    /**
+     * Stato ANALYZING - Analisi in corso
+     * Mostra una barra di progresso con gli step dell'analisi:
+     * 1. Scansione file
+     * 2. Controllo compatibilità
+     * 3. Generazione suggerimenti AI
+     * 4. Finalizzazione report
+     */
     if (status === 'analyzing') {
         return (
             <div className="container">
                 <div className="glass-panel" style={{ padding: '3rem', width: '100%', maxWidth: '600px' }}>
                     <h2 style={{ marginBottom: '2rem' }}>Analyzing Repository</h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'flex-start' }}>
+                        {/* Mappa ogni step mostrando icona e stato (completato/attivo/in attesa) */}
                         {steps.map((step, index) => {
                             const Icon = step.icon;
-                            const isActive = index === progressStep;
-                            const isCompleted = index < progressStep;
+                            const isActive = index === progressStep;  // Step corrente
+                            const isCompleted = index < progressStep;  // Step già completati
                             return (
                                 <div key={index} style={{
                                     display: 'flex', alignItems: 'center', gap: '1rem',
-                                    opacity: isActive || isCompleted ? 1 : 0.4,
+                                    opacity: isActive || isCompleted ? 1 : 0.4,  // Opacità ridotta per step futuri
                                     transition: 'opacity 0.3s'
                                 }}>
+                                    {/* Icona circolare dello step con colore basato sullo stato */}
                                     <div style={{
                                         width: '32px', height: '32px', borderRadius: '50%',
                                         background: isCompleted ? '#219625ff' : (isActive ? 'rgba(100, 108, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)'),
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         border: isActive ? '1px solid #646cff' : 'none'
                                     }}>
+                                        {/* Check per completati, spinner per attivo, dot per futuri */}
                                         {isCompleted ? <CheckCircle size={20} color="#fff" /> :
                                             isActive ? <div className="spin" style={{ width: 20, height: 20 }} /> :
                                                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }} />}
                                     </div>
+                                    {/* Label e icona dello step */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <Icon size={20} />
                                         <span style={{ fontSize: '1.1rem', fontWeight: isActive ? 'bold' : 'normal' }}>{step.label}</span>
@@ -269,13 +296,20 @@ const Callback = () => {
         );
     }
 
+    /**
+     * Stato ERROR - Errore durante una delle operazioni
+     * Mostra il messaggio di errore e permette di tornare alla home
+     */
     if (status === 'error') {
         return (
             <div className="container">
                 <div className="glass-panel" style={{ padding: '3rem', borderColor: '#ff4444' }}>
+                    {/* Icona di errore */}
                     <XCircle size={48} color="#ff4444" style={{ marginBottom: '1rem' }} />
                     <h2>Operation Failed</h2>
+                    {/* Messaggio di errore specifico */}
                     <p style={{ color: '#ffaaaa' }}>{error}</p>
+                    {/* Pulsante per tornare alla home */}
                     <button onClick={() => navigate('/')} className="glass-button" style={{ marginTop: '1rem' }}>
                         Try Again
                     </button>
@@ -284,7 +318,7 @@ const Callback = () => {
         );
     }
 
-    // SUCCESS STATE (Display Results)
+    // STATO DI SUCCESSO (Visualizza Risultati)
     const displayData = regeneratedData || analysisData;
     const isComparisonMode = !!regeneratedData;
 
@@ -407,9 +441,9 @@ const Callback = () => {
                             {/* Filter Logic */}
                             {(() => {
                                 const issuesToRender = displayData.issues.filter(issue => {
-                                    if (filterState === 1) return issue.compatible; // State 1: Show only Compatible
-                                    if (filterState === 3) return !issue.compatible;  // State 3: Show only Incompatible
-                                    return true; // State 2: Show all
+                                    if (filterState === 1) return issue.compatible; // Stato 1: Mostra solo Compatibili
+                                    if (filterState === 3) return !issue.compatible;  // Stato 3: Mostra solo Incompatibili
+                                    return true; // Stato 2: Mostra tutti
                                 });
 
                                 if (issuesToRender.length > 0) {

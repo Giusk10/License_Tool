@@ -1,10 +1,10 @@
 """
 License Suggestion Module.
 
-This module orchestrates the generation of AI-driven suggestions for resolving
-license compatibility conflicts. It interfaces with the LLM to:
-1. Suggest alternative compatible licenses for code files.
-2. Review documentation or notice files to recommend compliance actions.
+Questo modulo orchestra la generazione di suggerimenti basati su AI per risolvere
+conflitti di compatibilità delle licenze. Si interfaccia con l'LLM per:
+1. Suggerire licenze alternative compatibili per i file di codice.
+2. Rivedere file di documentazione o avvisi per raccomandare azioni di conformità.
 """
 
 import os
@@ -17,21 +17,21 @@ from app.utility.config import CLONE_BASE_DIR
 
 logger = logging.getLogger(__name__)
 
-# File extensions and names considered as documentation/notices
+# Estensioni e nomi dei file considerati come documentazione/avvisi
 DOCUMENT_EXTENSIONS = ('.md', '.txt', '.rst', 'THIRD-PARTY-NOTICE', 'NOTICE')
 
 
 def ask_llm_for_suggestions(issue: Dict[str, str], main_spdx: str) -> str:
     """
-    Queries the LLM for a list of alternative licenses compatible with the project.
+    Interroga l'LLM per un elenco di licenze alternative compatibili con il progetto.
 
     Args:
-        issue (Dict[str, str]): The issue dictionary containing 'file_path',
-            'detected_license', and 'reason'.
-        main_spdx (str): The project's main license identifier.
+        issue (Dict[str, str]): Il dizionario del problema contenente 'file_path',
+            'detected_license' e 'reason'.
+        main_spdx (str): L'identificatore della licenza principale del progetto.
 
     Returns:
-        str: A comma-separated string of recommended licenses (e.g., "MIT, Apache-2.0").
+        str: Una stringa separata da virgole di licenze raccomandate (es. "MIT, Apache-2.0").
     """
     prompt = (
         f"You are a software license expert. A file in the project has a license conflict.\n"
@@ -50,19 +50,19 @@ def ask_llm_for_suggestions(issue: Dict[str, str], main_spdx: str) -> str:
 
 def review_document(issue: Dict[str, str], main_spdx: str, licenses: str) -> Optional[str]:
     """
-    Reviews a documentation file to suggest handling of license mentions.
+    Rivede un file di documentazione per suggerire la gestione delle menzioni di licenza.
 
-    It reads the file content and asks the LLM for pragmatic advice (e.g.,
-    "Request dual-licensing", "Update notice").
+    Legge il contenuto del file e chiede all'LLM un consiglio pragmatico (es.
+    "Richiedi dual-licensing", "Aggiorna l'avviso").
 
     Args:
-        issue (Dict[str, str]): The issue dictionary containing 'file_path' and 'detected_license'.
-        main_spdx (str): The project's main license.
-        licenses (str): A list of previously identified alternative licenses (optional).
+        issue (Dict[str, str]): Il dizionario del problema contenente 'file_path' e 'detected_license'.
+        main_spdx (str): La licenza principale del progetto.
+        licenses (str): Un elenco di licenze alternative identificate in precedenza (opzionale).
 
     Returns:
-        Optional[str]: The operational advice extracted from the LLM response,
-        or None if reading fails or no advice is found.
+        Optional[str]: Il consiglio operativo estratto dalla risposta dell'LLM,
+        o None se la lettura fallisce o non viene trovato alcun consiglio.
     """
     file_path = issue["file_path"]
     abs_path = os.path.join(CLONE_BASE_DIR, file_path)
@@ -103,13 +103,13 @@ def review_document(issue: Dict[str, str], main_spdx: str, licenses: str) -> Opt
         if not response:
             return None
 
-        # Extract content within <advice> tags
+        # Estrae il contenuto all'interno dei tag <advice>
         match = re.search(r"<advice>(.*?)</advice>", response, re.DOTALL | re.IGNORECASE)
 
         if match:
             return match.group(1).strip()
 
-        # Fallback if the model ignores the tags
+        # Fallback se il modello ignora i tag
         logger.warning(
             "Warning: <advice> tag format not found in response for %s", file_path
         )
@@ -126,22 +126,22 @@ def enrich_with_llm_suggestions(
         regenerated_map: Optional[Dict[str, str]] = None
 ) -> List[Dict]:
     """
-    Enhances the list of issues with AI-generated suggestions and alternative licenses.
+    Arricchisce l'elenco dei problemi con suggerimenti generati dall'AI e licenze alternative.
 
-    For each issue:
-    - If compatible: Adds a "No action needed" message.
-    - If incompatible (Code): Queries LLM for alternative licenses.
-    - If incompatible (Docs): Reviews the document for specific advice.
+    Per ogni problema:
+    - Se compatibile: Aggiunge un messaggio "Nessuna azione necessaria".
+    - Se incompatibile (Codice): Interroga l'LLM per licenze alternative.
+    - Se incompatibile (Documenti): Rivede il documento per un consiglio specifico.
 
     Args:
-        main_spdx (str): The project's main license.
-        issues (List[Dict]): The list of raw issue dictionaries.
-        regenerated_map (Optional[Dict[str, str]]): A map of file paths to
-            regenerated code paths (if any).
+        main_spdx (str): La licenza principale del progetto.
+        issues (List[Dict]): L'elenco dei dizionari di problemi grezzi.
+        regenerated_map (Optional[Dict[str, str]]): Una mappa dei percorsi dei file ai
+            percorsi del codice rigenerato (se presenti).
 
     Returns:
-        List[Dict]: The list of issues enriched with 'suggestion', 'licenses',
-        and 'regenerated_code_path' fields.
+        List[Dict]: L'elenco dei problemi arricchiti con i campi 'suggestion', 'licenses',
+        e 'regenerated_code_path'.
     """
     if regenerated_map is None:
         regenerated_map = {}
@@ -168,14 +168,14 @@ def enrich_with_llm_suggestions(
 
         suggestion_text = ""
 
-        # Case 1: File is compatible
+        # Caso 1: Il file è compatibile
         if issue.get("compatible"):
             suggestion_text = (
                 "The file is compatible with the project's main license. No action needed."
             )
 
         elif issue.get("compatible") is None:
-            # Handle "conditional" or unknown statuses encoded in the reason text
+            # Gestisce stati "condizionali" o sconosciuti codificati nel testo del motivo
             reason_text = issue.get("reason", "")
             if "Outcome: conditional" in reason_text or "Outcome: unknown" in reason_text:
                 # User requested this specific suggestion for conditional/unknown outcomes
@@ -185,12 +185,12 @@ def enrich_with_llm_suggestions(
                     "The repository main license could not be determined, please click on the toggle 'Get Suggestion' to choose a main license."
                 )
 
-        # Case 2: Incompatible File
+        # Caso 2: File Incompatibile
         else:
             is_document = file_path.endswith(DOCUMENT_EXTENSIONS)
 
             if not is_document:
-                # It's a code file: ask for alternative licenses
+                # È un file di codice: chiedi licenze alternative
                 licenses_list_str = ask_llm_for_suggestions(issue, main_spdx)
 
                 suggestion_text = (
@@ -200,8 +200,8 @@ def enrich_with_llm_suggestions(
                     f"{licenses_list_str}"
                 )
             else:
-                # We pass empty licenses string here as we haven't asked for alternatives
-                # for this specific file
+                # Passiamo una stringa di licenze vuota qui poiché non abbiamo chiesto alternative
+                # per questo file specifico
                 doc_advice = review_document(issue, main_spdx, licenses_list_str)
 
                 # If review returns None, fallback to generic suggestion, otherwise append advice
@@ -213,7 +213,7 @@ def enrich_with_llm_suggestions(
                     f"3§ {advice_part}"
                 )
 
-        # Build final enriched dictionary
+        # Costruisce il dizionario arricchito finale
         enriched.append({
             "file_path": file_path,
             "detected_license": detected_license,

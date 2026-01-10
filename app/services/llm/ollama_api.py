@@ -1,9 +1,9 @@
 """
 Ollama API Integration Module.
 
-This module provides low-level helper functions to interact with the Ollama LLM API.
-It handles the lifecycle of the Ollama service (start, check status), model management
-(check installation, pull), and executes prompts against specific models (coding vs general).
+Questo modulo fornisce funzioni helper di basso livello per interagire con l'API LLM di Ollama.
+Gestisce il ciclo di vita del servizio Ollama (avvio, controllo stato), la gestione dei modelli
+(controllo installazione, pull) ed esegue prompt contro modelli specifici (coding vs general).
 """
 
 import json
@@ -27,15 +27,15 @@ logger = logging.getLogger(__name__)
 
 def _is_ollama_running(timeout: float = 2.0) -> bool:
     """
-    Verifies if the Ollama service is active.
+    Verifica se il servizio Ollama è attivo.
 
-    Sends a GET request to the configured version endpoint.
+    Invia una richiesta GET all'endpoint di versione configurato.
 
     Args:
-        timeout (float): The request timeout in seconds.
+        timeout (float): Il timeout della richiesta in secondi.
 
     Returns:
-        bool: True if the service responds, False otherwise.
+        bool: True se il servizio risponde, False altrimenti.
     """
     try:
         requests.get(f"{OLLAMA_HOST_VERSION}", timeout=timeout)
@@ -46,20 +46,20 @@ def _is_ollama_running(timeout: float = 2.0) -> bool:
 
 def _start_ollama(wait_seconds: float = 10.0) -> bool:
     """
-    Attempts to start the Ollama server process.
+    Tenta di avviare il processo server di Ollama.
 
-    It spawns a subprocess for `ollama serve` and waits for the service
-    to become responsive.
+    Genera un sottoprocesso per `ollama serve` e attende che il servizio
+    diventi reattivo.
 
     Args:
-        wait_seconds (float): Maximum duration to wait for the server to be ready.
+        wait_seconds (float): Durata massima di attesa affinché il server sia pronto.
 
     Returns:
-        bool: True if started successfully and responsive, False otherwise.
+        bool: True se avviato con successo e reattivo, False altrimenti.
     """
     try:
-        # We intentionally use Popen without a context manager because the process
-        # needs to keep running in the background (daemon-like) after this function returns.
+        # Usiamo intenzionalmente Popen senza un context manager perché il processo
+        # deve continuare a funzionare in background (come demone) dopo il ritorno di questa funzione.
         # pylint: disable=consider-using-with
         subprocess.Popen(
             ["ollama", "serve"],
@@ -70,7 +70,7 @@ def _start_ollama(wait_seconds: float = 10.0) -> bool:
         logger.exception("Failed to spawn Ollama process")
         return False
 
-    # Polling loop to check when the server is ready
+    # Ciclo di polling per verificare quando il server è pronto
     deadline = time.time() + wait_seconds
     while time.time() < deadline:
         if _is_ollama_running(1.0):
@@ -82,16 +82,16 @@ def _start_ollama(wait_seconds: float = 10.0) -> bool:
 
 def _is_model_installed(model_name: str) -> bool:
     """
-    Checks if a specific model is already installed in the local Ollama registry.
+    Controlla se un modello specifico è già installato nel registro locale di Ollama.
 
     Args:
-        model_name (str): The name of the model (e.g., "qwen2.5-coder").
+        model_name (str): Il nome del modello (es. "qwen2.5-coder").
 
     Returns:
-        bool: True if installed, False otherwise.
+        bool: True se installato, False altrimenti.
     """
     try:
-        # The endpoint usually returns a JSON with a "models" list
+        # L'endpoint di solito restituisce un JSON con un elenco "models"
         res = requests.get(f"{OLLAMA_HOST_TAGS}", timeout=3).json()
         models = [m.get("name") for m in res.get("models", []) if m.get("name")]
         return model_name in models
@@ -102,14 +102,14 @@ def _is_model_installed(model_name: str) -> bool:
 
 def _pull_model(model_name: str, timeout: int = 600) -> None:
     """
-    Executes the Ollama CLI command to pull a model.
+    Esegue il comando CLI di Ollama per scaricare un modello.
 
     Args:
-        model_name (str): The name of the model to download.
-        timeout (int): Max time to wait for the download to complete.
+        model_name (str): Il nome del modello da scaricare.
+        timeout (int): Tempo massimo di attesa per il completamento del download.
     """
     try:
-        # synchronous execution (blocking)
+        # esecuzione sincrona (bloccante)
         subprocess.run(
             ["ollama", "pull", model_name],
             check=True,
@@ -125,15 +125,15 @@ def ensure_ollama_ready(
         pull_if_needed: bool = True
 ) -> None:
     """
-    Orchestrator to ensure Ollama is running and the required model is available.
+    Orchestratore per garantire che Ollama sia in esecuzione e che il modello richiesto sia disponibile.
 
     Args:
-        model_name (str): The target model name.
-        start_if_needed (bool): If True, attempts to start the server if down.
-        pull_if_needed (bool): If True, attempts to pull the model if missing.
+        model_name (str): Il nome del modello di destinazione.
+        start_if_needed (bool): Se True, tenta di avviare il server se non è attivo.
+        pull_if_needed (bool): Se True, tenta di scaricare il modello se mancante.
 
     Raises:
-        RuntimeError: If the service cannot be started or the model is missing.
+        RuntimeError: Se il servizio non può essere avviato o il modello è mancante.
     """
     if not _is_ollama_running():
         if not start_if_needed or not _start_ollama():
@@ -147,20 +147,20 @@ def ensure_ollama_ready(
 
 def call_ollama_qwen3_coder(prompt: str) -> str:
     """
-    Executes a prompt against the coding-specific model (e.g., Qwen).
+    Esegue un prompt contro il modello specifico per il coding (es. Qwen).
 
-    Side Effects:
-        Writes the raw API response to `MINIMAL_JSON_BASE_DIR/model_coding_output.json`
-        for debugging purposes.
+    Effetti Collaterali:
+        Scrive la risposta grezza dell'API in `MINIMAL_JSON_BASE_DIR/model_coding_output.json`
+        per scopi di debug.
 
     Args:
-        prompt (str): The code generation instructions.
+        prompt (str): Le istruzioni per la generazione del codice.
 
     Returns:
-        str: The generated text response.
+        str: La risposta di testo generata.
 
     Raises:
-        requests.HTTPError: If the API returns a 4xx/5xx status.
+        requests.HTTPError: Se l'API restituisce uno stato 4xx/5xx.
     """
     ensure_ollama_ready(model_name=OLLAMA_CODING_MODEL)
 
@@ -174,7 +174,7 @@ def call_ollama_qwen3_coder(prompt: str) -> str:
     resp.raise_for_status()
     data = resp.json()
 
-    # Save debug output
+    # Salva output di debug
     os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)
     output_path = os.path.join(MINIMAL_JSON_BASE_DIR, "model_coding_output.json")
 
@@ -186,22 +186,22 @@ def call_ollama_qwen3_coder(prompt: str) -> str:
 
 def call_ollama_deepseek(prompt: str) -> str:
     """
-    Executes a prompt against the general-purpose model (e.g., DeepSeek).
+    Esegue un prompt contro il modello generico (es. DeepSeek).
 
-    It includes post-processing to strip Markdown code fences often used by
-    LLMs when returning JSON data.
+    Include la post-elaborazione per rimuovere i blocchi di codice Markdown spesso utilizzati dagli
+    LLM quando restituiscono dati JSON.
 
-    Side Effects:
-        Writes the raw API response to `MINIMAL_JSON_BASE_DIR/model_output.json`.
+    Effetti Collaterali:
+        Scrive la risposta grezza dell'API in `MINIMAL_JSON_BASE_DIR/model_output.json`.
 
     Args:
-        prompt (str): The input prompt.
+        prompt (str): Il prompt di input.
 
     Returns:
-        str: The cleaned response string.
+        str: La stringa di risposta pulita.
 
     Raises:
-        requests.HTTPError: If the API returns a 4xx/5xx status.
+        requests.HTTPError: Se l'API restituisce uno stato 4xx/5xx.
     """
     ensure_ollama_ready(model_name=OLLAMA_GENERAL_MODEL)
 
@@ -211,12 +211,12 @@ def call_ollama_deepseek(prompt: str) -> str:
         "stream": False,
     }
 
-    # Higher timeout for general models which might be more verbose/slow
+    # Timeout più alto per modelli generali che potrebbero essere più prolissi/lenti
     resp = requests.post(OLLAMA_URL, json=payload, timeout=240)
     resp.raise_for_status()
     data = resp.json()
 
-    # Save debug output
+    # Salva output di debug
     os.makedirs(MINIMAL_JSON_BASE_DIR, exist_ok=True)
     output_path = os.path.join(MINIMAL_JSON_BASE_DIR, "model_output.json")
 
@@ -225,7 +225,7 @@ def call_ollama_deepseek(prompt: str) -> str:
 
     response = data.get("response", "")
 
-    # Basic cleaning of Markdown JSON fences if present
+    # Pulizia di base dei blocchi JSON Markdown se presenti
     data_clean = response.replace("```json", "").replace("```", "")
 
     return data_clean

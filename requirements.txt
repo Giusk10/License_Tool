@@ -1,22 +1,37 @@
-fastapi~=0.121.1
-uvicorn[standard]
-gitpython~=3.1.45
-python-dotenv~=1.2.1
-requests~=2.32.5
-pydantic~=2.12.4
-license-expression
+# =============================
+# requirements.txt
+# Elenco delle dipendenze Python necessarie per il progetto License Tool
+# Le versioni sono specificate per garantire compatibilità e stabilità
+# =============================
 
-app~=0.0.1
-httpx~=0.28.1
-dotenv~=0.9.9
+# --- Dipendenze principali per l'applicazione FastAPI ---
+fastapi~=0.121.1           # Framework web moderno e veloce per API
+uvicorn[standard]          # Server ASGI per eseguire applicazioni FastAPI
 
-pytest~=9.0.1
-pytest-cov~=7.0.0
-pytest-mock~=3.15.1
-pytest-asyncio~=1.3.0
+gitpython~=3.1.45          # Interazione con repository Git da Python
+python-dotenv~=1.2.1       # Gestione delle variabili d'ambiente da file .env
+requests~=2.32.5           # Richieste HTTP semplici e affidabili
+pydantic~=2.12.4           # Validazione e parsing dei dati tramite modelli
+license-expression         # Parsing ed espressioni di licenze open source
+
+app~=0.0.1                 # Modulo locale dell'applicazione (se presente)
+httpx~=0.28.1              # Client HTTP asincrono e sincrono
+dotenv~=0.9.9              # (Obsoleto, preferire python-dotenv)
 
 python-multipart~=0.0.20
 pre-commit~=4.5.1
+
+behave~=1.3.3
+selenium~=4.39.0
+webdriver-manager~=4.0.2
+# --- Dipendenze per testing e sviluppo ---
+pytest~=9.0.1              # Framework di testing
+pytest-cov~=7.0.0          # Misurazione della copertura dei test
+pytest-mock~=3.15.1        # Mocking per i test
+pytest-asyncio~=1.3.0      # Supporto per test asincroni
+
+python-multipart~=0.0.20   # Gestione dei form multipart (upload file)
+pre-commit~=4.5.1          # Gestione degli hook pre-commit per la qualità del codice
 
 behave~=1.3.3
 selenium~=4.39.0

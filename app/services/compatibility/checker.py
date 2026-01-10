@@ -1,10 +1,9 @@
 """
 Compatibility Checker Module.
 
-This module serves as the public interface for verifying license compatibility.
-It orchestrates the process by normalizing license symbols, loading the compatibility
-matrix, parsing SPDX expressions from files, and evaluating them against the
-project's main license.
+Questo modulo funge da interfaccia pubblica per verificare la compatibilità delle licenze.
+Orchestra il processo normalizzando i simboli delle licenze, caricando la matrice di compatibilità,
+analizzando le espressioni SPDX dai file e valutandole rispetto alla licenza principale del progetto.
 """
 
 from typing import Dict, Any, List
@@ -17,26 +16,26 @@ from .matrix import get_matrix
 
 def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> Dict[str, Any]:
     """
-    Evaluates the compatibility of file-level licenses against the main project license.
+    Valuta la compatibilità delle licenze a livello di file rispetto alla licenza principale del progetto.
 
-    The process involves:
-    1. Normalizing the main license symbol.
-    2. Retrieving the compatibility matrix.
-    3. Iterating over each file's license expression to:
-        - Parse the SPDX string into a logical tree (Node).
-        - Evaluate the tree using `eval_node` to determine status (yes, no, conditional)
-          and generate a trace.
+    Il processo prevede:
+    1. Normalizzazione del simbolo della licenza principale.
+    2. Recupero della matrice di compatibilità.
+    3. Iterazione su ogni espressione di licenza del file per:
+        - Analizzare la stringa SPDX in un albero logico (Node).
+        - Valutare l'albero usando `eval_node` per determinare lo stato (yes, no, conditional)
+          e generare una traccia.
 
     Args:
-        main_license (str): The main license symbol of the project (e.g., "MIT").
-        file_licenses (Dict[str, str]): A dictionary mapping file paths to their
-            detected license expressions (e.g., {"src/file.js": "MIT AND Apache-2.0"}).
+        main_license (str): Il simbolo della licenza principale del progetto (es. "MIT").
+        file_licenses (Dict[str, str]): Un dizionario che mappa i percorsi dei file alle loro
+            espressioni di licenza rilevate (es. {"src/file.js": "MIT AND Apache-2.0"}).
 
     Returns:
-        Dict[str, Any]: A dictionary containing:
-            - "main_license" (str): The normalized main license identifier.
-            - "issues" (List[Dict]): A list of dictionaries representing the compatibility
-              result for each file. Each dictionary contains:
+        Dict[str, Any]: Un dizionario contenente:
+            - "main_license" (str): L'identificatore della licenza principale normalizzato.
+            - "issues" (List[Dict]): Un elenco di dizionari che rappresentano il risultato di compatibilità
+              per ogni file. Ogni dizionario contiene:
                 - file_path (str)
                 - detected_license (str)
                 - compatible (bool)
@@ -46,7 +45,7 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> Dic
     main_license_n = normalize_symbol(main_license)
     matrix = get_matrix()
 
-    # Case 1: Main license is missing or invalid
+    # Caso 1: La licenza principale è mancante o non valida
     if not main_license_n or main_license_n in {"UNKNOWN", "NOASSERTION", "NONE"}:
         for file_path, license_expr in file_licenses.items():
             issues.append({
@@ -57,7 +56,7 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> Dic
             })
         return {"main_license": main_license or "UNKNOWN", "issues": issues}
 
-    # Case 2: Matrix unavailable or main license not supported in matrix
+    # Caso 2: Matrice non disponibile o licenza principale non supportata nella matrice
     if not matrix or main_license_n not in matrix:
         for file_path, license_expr in file_licenses.items():
             issues.append({
@@ -71,14 +70,14 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> Dic
             })
         return {"main_license": main_license_n, "issues": issues}
 
-    # Case 3: Standard evaluation
+    # Caso 3: Valutazione standard
     for file_path, license_expr in file_licenses.items():
         license_expr = (license_expr or "").strip()
 
-        # Parse the SPDX expression into a logical tree
+        # Analizza l'espressione SPDX in un albero logico
         node = parse_spdx(license_expr)
 
-        # Evaluate compatibility against the main license
+        # Valuta la compatibilità rispetto alla licenza principale
         status, trace = eval_node(main_license_n, node)
 
         compatible = False
@@ -91,7 +90,7 @@ def check_compatibility(main_license: str, file_licenses: Dict[str, str]) -> Dic
             compatible = False
             reason = "; ".join(trace)
         else:
-            # Handle "conditional" or unknown statuses
+            # Gestisce stati "condizionali" o sconosciuti
             compatible = None
             hint = "conditional" if status == "conditional" else "unknown"
             reason = (

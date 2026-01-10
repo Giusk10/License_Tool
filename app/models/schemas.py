@@ -1,9 +1,9 @@
 """
 Schemas Module.
 
-This module defines the Pydantic models used for data validation
-in API requests and responses. It includes schemas for analysis requests,
-license issue reporting, and repository cloning results.
+Questo modulo definisce i modelli Pydantic utilizzati per la validazione dei dati
+nelle richieste e risposte API. Include schemi per le richieste di analisi,
+la segnalazione di problemi relativi alle licenze e i risultati della clonazione dei repository.
 """
 
 from typing import List, Optional
@@ -15,11 +15,11 @@ from pydantic import BaseModel
 
 class AnalyzeRequest(BaseModel):
     """
-    Represents the request payload for analyzing a repository.
+    Rappresenta il payload di richiesta per l'analisi di un repository.
 
     Attributes:
-        owner (str): The username or organization name of the repository owner.
-        repo (str): The name of the repository.
+        owner (str): Il nome utente o nome dell'organizzazione del proprietario del repository.
+        repo (str): Il nome del repository.
     """
     owner: str
     repo: str
@@ -31,16 +31,16 @@ class AnalyzeRequest(BaseModel):
 
 class LicenseIssue(BaseModel):
     """
-    Represents a single license compatibility issue or violation within a file.
+    Rappresenta un singolo problema di compatibilità o violazione di licenza all'interno di un file.
 
     Attributes:
-        file_path (str): The relative path to the file containing the issue.
-        detected_license (str): The license identifier detected in the file.
-        compatible (bool): Indicates if the file's license is compatible with the project.
-        reason (Optional[str]): Explanation of why the license is incompatible.
-        suggestion (Optional[str]): AI-generated suggestion to resolve the issue.
-        licenses (Optional[str]): Additional license details or raw identification strings.
-        regenerated_code_path (Optional[str]): Path to a locally generated file with fixes.
+        file_path (str): Il percorso relativo al file contenente il problema.
+        detected_license (str): L'identificatore della licenza rilevata nel file.
+        compatible (bool): Indica se la licenza del file è compatibile con il progetto.
+        reason (Optional[str]): Spiegazione del motivo per cui la licenza è incompatibile.
+        suggestion (Optional[str]): Suggerimento generato dall'AI per risolvere il problema.
+        licenses (Optional[str]): Dettagli aggiuntivi della licenza o stringhe di identificazione grezze.
+        regenerated_code_path (Optional[str]): Percorso a un file generato localmente con correzioni.
     """
     file_path: str
     detected_license: str
@@ -57,13 +57,13 @@ class LicenseIssue(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     """
-    Represents the main response payload for the analysis endpoint.
+    Rappresenta il payload di risposta principale per l'endpoint di analisi.
 
     Attributes:
-        repository (str): The full repository name (e.g., "owner/repo").
-        main_license (str): The primary license identified for the project.
-        issues (List[LicenseIssue]): A list of detailed compatibility issues found.
-        needs_license_suggestion (bool): Indicates if a license suggestion form should be shown.
+        repository (str): Il nome completo del repository (es. "owner/repo").
+        main_license (str): La licenza principale identificata per il progetto.
+        issues (List[LicenseIssue]): Un elenco di problemi di compatibilità dettagliati trovati.
+        needs_license_suggestion (bool): Indica se dovrebbe essere mostrato un modulo di suggerimento licenza.
     """
     repository: str
     main_license: str
@@ -77,14 +77,14 @@ class AnalyzeResponse(BaseModel):
 
 class CloneResult(BaseModel):
     """
-    Internal model to track the outcome of a repository cloning operation.
+    Modello interno per tracciare il risultato di un'operazione di clonazione del repository.
 
-    Used for both GitHub cloning and ZIP uploads.
+    Utilizzato sia per la clonazione GitHub che per il caricamento ZIP.
 
     Attributes:
-        success (bool): True if the operation was successful, False otherwise.
-        repo_path (Optional[str]): The local file system path to the cloned/uploaded repo.
-        error (Optional[str]): Error message if the operation failed.
+        success (bool): True se l'operazione è riuscita, False altrimenti.
+        repo_path (Optional[str]): Il percorso del file system locale al repository clonato/caricato.
+        error (Optional[str]): Messaggio di errore se l'operazione è fallita.
     """
     success: bool
     repo_path: Optional[str] = None
@@ -97,20 +97,20 @@ class CloneResult(BaseModel):
 
 class LicenseRequirementsRequest(BaseModel):
     """
-    Represents user requirements and constraints for license suggestion.
+    Rappresenta i requisiti e i vincoli dell'utente per il suggerimento della licenza.
 
     Attributes:
-        owner (str): The repository owner.
-        repo (str): The repository name.
-        commercial_use (bool): Whether commercial use is required.
-        modification (bool): Whether modification is allowed.
-        distribution (bool): Whether distribution is allowed.
-        patent_grant (bool): Whether patent grant is needed.
-        trademark_use (bool): Whether trademark use is needed.
-        liability (bool): Whether liability protection is needed.
-        copyleft (Optional[str]): Copyleft preference: "strong", "weak", "none", or None.
-        additional_requirements (Optional[str]): Any additional free-text requirements.
-        detected_licenses (Optional[List[str]]): List of licenses already detected in the project.
+        owner (str): Il proprietario del repository.
+        repo (str): Il nome del repository.
+        commercial_use (bool): Se è richiesto l'uso commerciale.
+        modification (bool): Se è consentita la modifica.
+        distribution (bool): Se è consentita la distribuzione.
+        patent_grant (bool): Se è necessaria la concessione di brevetti.
+        trademark_use (bool): Se è necessario l'uso del marchio.
+        liability (bool): Se è necessaria la protezione dalla responsabilità.
+        copyleft (Optional[str]): Preferenza copyleft: "strong", "weak", "none", o None.
+        additional_requirements (Optional[str]): Eventuali requisiti aggiuntivi in testo libero.
+        detected_licenses (Optional[List[str]]): Elenco delle licenze già rilevate nel progetto.
     """
     owner: str
     repo: str
@@ -127,15 +127,14 @@ class LicenseRequirementsRequest(BaseModel):
 
 class LicenseSuggestionResponse(BaseModel):
     """
-    Represents the AI-generated license suggestion response.
+    Rappresenta la risposta di suggerimento licenza generata dall'AI.
 
     Attributes:
-        suggested_license (str): The recommended license identifier.
-        explanation (str): Explanation of why this license was suggested.
-        alternatives (Optional[List[str]]): Alternative license options.
+        suggested_license (str): L'identificatore della licenza raccomandata.
+        explanation (str): Spiegazione del motivo per cui è stata suggerita questa licenza.
+        alternatives (Optional[List[str]]): Opzioni di licenza alternative.
     """
     suggested_license: str
     explanation: str
     alternatives: Optional[List[str]] = None
-
 

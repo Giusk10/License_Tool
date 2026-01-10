@@ -1,9 +1,9 @@
 """
 Download Service Module.
 
-This module handles the preparation of repository archives for download.
-It provides functionality to compress cloned repository directories into
-ZIP files, making them ready for client download.
+Questo modulo gestisce la preparazione degli archivi dei repository per il download.
+Fornisce funzionalità per comprimere le directory dei repository clonati in
+file ZIP, rendendoli pronti per il download da parte del client.
 """
 
 import os
@@ -17,21 +17,21 @@ logger = logging.getLogger(__name__)
 
 def perform_download(owner: str, repo: str) -> str:
     """
-    Archives a local repository folder into a ZIP file.
+    Archivia una cartella di repository locale in un file ZIP.
 
-    It validates the existence of the repository in the clone directory,
-    creates a ZIP archive, and returns the absolute path to the generated file.
+    Valida l'esistenza del repository nella directory di clonazione,
+    crea un archivio ZIP e restituisce il percorso assoluto del file generato.
 
     Args:
-        owner (str): The username or organization name of the repository owner.
-        repo (str): The name of the repository.
+        owner (str): Il nome utente o nome dell'organizzazione del proprietario del repository.
+        repo (str): Il nome del repository.
 
     Returns:
-        str: The full file system path of the generated ZIP archive.
+        str: Il percorso completo del file system dell'archivio ZIP generato.
 
     Raises:
-        ValueError: If the repository directory does not exist at the expected path.
-        OSError: If there are permission issues or disk errors during archiving.
+        ValueError: Se la directory del repository non esiste nel percorso previsto.
+        OSError: Se ci sono problemi di permessi o errori del disco durante l'archiviazione.
     """
     repo_dir_name = f"{owner}_{repo}"
     repo_path = os.path.join(CLONE_BASE_DIR, repo_dir_name)
@@ -40,13 +40,13 @@ def perform_download(owner: str, repo: str) -> str:
         logger.error("Repository not found for download: %s", repo_path)
         raise ValueError(f"Repository not found at {repo_path}. Please clone it first.")
 
-    # Define the output filename (shutil.make_archive appends the extension automatically)
+    # Definisce il nome del file di output (shutil.make_archive aggiunge automaticamente l'estensione)
     zip_base_name = os.path.join(CLONE_BASE_DIR, f"{repo_dir_name}_download")
 
     try:
-        # Create the ZIP archive.
-        # root_dir=CLONE_BASE_DIR and base_dir=repo_dir_name ensures the archive
-        # contains the folder 'owner_repo/' at its root.
+        # Crea l'archivio ZIP.
+        # root_dir=CLONE_BASE_DIR e base_dir=repo_dir_name assicurano che l'archivio
+        # contenga la cartella 'owner_repo/' alla sua radice.
         zip_path = shutil.make_archive(
             base_name=zip_base_name,
             format="zip",
