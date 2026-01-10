@@ -11,7 +11,7 @@ Feature: Zip File Upload
     And I enter "my-zip-project" in the Repository field
 
     # Specific step for file upload
-    And I upload the file "features/fixtures/test_repo.zip"
+    And I upload the file "tests/acceptance/features/fixtures/test_repo.zip"
 
     # Verify upload success
     Then I should wait to see "Repository Uploaded Successfully"
