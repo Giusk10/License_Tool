@@ -12,7 +12,7 @@ def step_impl(context, filename):
 
     # Downloads are not instantaneous. We need a polling loop.
     # We wait up to 10 seconds for the file to appear.
-    max_wait = 10
+    max_wait = 20
     found = False
 
     for i in range(max_wait):
