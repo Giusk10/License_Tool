@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 // Importa icone da lucide-react per UI
 import { Github, ArrowRight, Upload } from 'lucide-react';
 // Importa il logo dell'applicazione
-import logo from '../assets/Logo_Lu.svg';
+import logo from '../assets/logo-minimal.png';
 // Importa axios per le chiamate HTTP al backend
 import axios from 'axios';
 
