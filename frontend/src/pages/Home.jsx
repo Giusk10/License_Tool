@@ -4,6 +4,8 @@ import { Github, ArrowRight, Upload } from 'lucide-react';
 import logo from '../assets/logo-minimal.png';
 import axios from 'axios';
 
+import { API_BASE_URL } from '../config';
+
 const Home = () => {
     const [owner, setOwner] = useState('');
     const [repo, setRepo] = useState('');
@@ -19,7 +21,7 @@ const Home = () => {
         setLoading(true);
 
         try {
-            const response = await axios.post('https://licensechecker-license-checker-tool.hf.space/api/clone', {
+            const response = await axios.post(`${API_BASE_URL}/api/clone`, {
                 owner,
                 repo
             });
@@ -56,7 +58,7 @@ const Home = () => {
         formData.append('uploaded_file', file);
 
         try {
-            const response = await axios.post('https://licensechecker-license-checker-tool.hf.space/api/zip', formData, {
+            const response = await axios.post(`${API_BASE_URL}/api/zip`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -165,4 +167,3 @@ const Home = () => {
 };
 
 export default Home;
-
