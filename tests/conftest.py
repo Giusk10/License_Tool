@@ -1,13 +1,13 @@
 """
 test: tests/conftest.py
 
-Shared configuration and fixtures for the pytest suite.
+Configurazione condivisa e fixtures per la suite di test pytest.
 
-This module provides:
-- Utility helpers (e.g., `_msg_matches` for flexible string assertion).
-- Global environment variable mocking to isolate tests from local configuration.
-- Default patches for complex service dependencies (like compatibility matrices).
-- Reusable mock objects for SPDX parsing nodes (`MockNode`, `MockLeaf`, etc.).
+Questo modulo fornisce:
+- Helper di utilità (es. `_msg_matches` per asserzioni di stringhe flessibili).
+- Mocking delle variabili d'ambiente globali per isolare i test dalla configurazione locale.
+- Patch di default per dipendenze di servizi complessi (come le matrici di compatibilità).
+- Oggetti mock riutilizzabili per i nodi di parsing SPDX (`MockNode`, `MockLeaf`, ecc.).
 """
 
 import pytest
@@ -21,9 +21,9 @@ from unittest.mock import patch
 @pytest.fixture(scope="session", autouse=True)
 def mock_env_vars():
     """
-    Session-scoped fixture that mocks environment variables.
-    Ensures that tests run with a consistent, isolated configuration
-    and prevents accidental usage of real .env values.
+    Fixture a livello di sessione che simula (mock) le variabili d'ambiente.
+    Garantisce che i test vengano eseguiti con una configurazione coerente e isolata
+    e previene l'uso accidentale delle reali variabili presenti nel file .env.
     """
     with patch.dict(os.environ, {
         "GITHUB_CLIENT_ID": "test_id",
@@ -45,18 +45,18 @@ def mock_env_vars():
 @pytest.fixture(autouse=True)
 def patch_config_variables(tmp_path):
     """
-    Autouse fixture that patches configuration variables in `app.utility.config`
-    and dependent modules.
+    Fixture "autouse" che sostituisce (patcha) le variabili di configurazione in
+    `app.utility.config` e nei moduli dipendenti.
 
-    This is necessary because `config.py` loads environment variables at import time.
-    This fixture ensures that all modules use temporary test directories created
-    via `tmp_path`.
+    Questo è necessario perché `config.py` carica le variabili d'ambiente al momento
+    dell'importazione. Questa fixture garantisce che tutti i moduli usino directory
+    temporanee per i test create tramite `tmp_path`.
 
-    Args:
-        tmp_path: Pytest fixture providing a temporary unique directory.
+    Argomenti:
+        tmp_path: fixture di pytest che fornisce una directory temporanea unica.
 
-    Yields:
-        str: The path to the temporary clone directory.
+    Restituisce:
+        str: Il percorso alla directory temporanea per i clone.
     """
     test_clone_dir = str(tmp_path / "test_clones")
     test_output_dir = str(tmp_path / "test_output")
@@ -78,15 +78,14 @@ def patch_config_variables(tmp_path):
 @pytest.fixture(autouse=True)
 def _default_patches(monkeypatch, complex_matrix_data):
     """
-    Autouse fixture applying default mocks for common service functions.
+    Fixture "autouse" che applica patch/mocking di default per funzioni comuni dei servizi.
 
-    It mocks `normalize_symbol` to be a simple pass-through/strip and
-    `get_matrix` to return the test fixture data. This reduces boilerplate
-    in individual unit tests.
+    Mocka `normalize_symbol` come semplice pass-through/strip e `get_matrix` per restituire i dati
+    della fixture di test. Questo riduce il codice ripetuto (boilerplate) nei singoli test unitari.
 
-    Args:
-        monkeypatch: Pytest fixture for patching.
-        complex_matrix_data: Fixture providing the mock compatibility matrix.
+    Argomenti:
+        monkeypatch: fixture di pytest per applicare patch.
+        complex_matrix_data: fixture che fornisce la matrice di compatibilità di test.
     """
     # Default normalize: identity/strip
     normalize_mock = lambda s: s.strip() if isinstance(s, str) else s
@@ -111,11 +110,11 @@ def _default_patches(monkeypatch, complex_matrix_data):
 @pytest.fixture
 def complex_matrix_data():
     """
-    Provides a mock compatibility matrix for testing evaluation logic.
-    Covers 'yes', 'no', and 'conditional' scenarios.
+    Fornisce una matrice di compatibilità mock per testare la logica di valutazione.
+    Copre scenari 'yes', 'no' e 'conditional'.
 
-    Returns:
-        dict: A dictionary representing the compatibility matrix.
+    Restituisce:
+        dict: Un dizionario che rappresenta la matrice di compatibilità.
     """
     return {
         "MIT": {
@@ -141,27 +140,28 @@ def complex_matrix_data():
 
 @pytest.fixture
 def MockNode():
-    """Returns the Node class from the parser module."""
+    """Restituisce la classe `Node` dal modulo parser_spdx."""
     from app.services.compatibility import parser_spdx
     return parser_spdx.Node
 
 
 @pytest.fixture
 def MockLeaf():
-    """Returns the Leaf class from the parser module."""
+    """Restituisce la classe `Leaf` dal modulo parser_spdx."""
     from app.services.compatibility import parser_spdx
     return parser_spdx.Leaf
 
 
 @pytest.fixture
 def MockAnd():
-    """Returns the And class from the parser module."""
+    """Restituisce la classe `And` dal modulo parser_spdx."""
     from app.services.compatibility import parser_spdx
     return parser_spdx.And
 
 
 @pytest.fixture
 def MockOr():
-    """Returns the Or class from the parser module."""
+    """Restituisce la classe `Or` dal modulo parser_spdx."""
     from app.services.compatibility import parser_spdx
     return parser_spdx.Or
+
