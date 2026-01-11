@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Lightbulb, X, CheckCircle, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 
+import { API_BASE_URL } from '../config';
+
 const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, onSuggestionReceived }) => {
     const [loading, setLoading] = useState(false);
     const [suggestion, setSuggestion] = useState(null);
@@ -39,7 +41,7 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
         setLoading(true);
 
         try {
-            const response = await axios.post('https://licensechecker-license-checker-tool.hf.space/api/suggest-license', formData);
+            const response = await axios.post(`${API_BASE_URL}/api/suggest-license`, formData);
             setSuggestion(response.data);
             if (onSuggestionReceived) {
                 onSuggestionReceived(response.data);
@@ -367,4 +369,3 @@ const LicenseSuggestionForm = ({ owner, repo, detectedLicenses = [], onClose, on
 };
 
 export default LicenseSuggestionForm;
-

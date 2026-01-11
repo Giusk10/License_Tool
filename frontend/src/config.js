@@ -1,0 +1,1 @@
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://licensechecker-license-checker-tool.hf.space";
