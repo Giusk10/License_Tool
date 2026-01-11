@@ -19,4 +19,4 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-push]
-        args: ["-k", "not acceptance"]
+        args: ["-k", "not acceptance", "--cov=app", "--cov-fail-under=75"]
