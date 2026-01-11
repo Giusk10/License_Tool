@@ -19,6 +19,8 @@ import {
     Download, HelpCircle
 } from 'lucide-react';
 
+import { API_BASE_URL } from '../config';
+
 // Helper function to extract unique detected licenses from analysis data
 const extractDetectedLicenses = (analysisData) => {
     if (!analysisData || !analysisData.issues) return [];
@@ -105,7 +107,7 @@ const Callback = () => {
         }, 2000);
 
         try {
-            const response = await axios.post(`https://licensechecker-license-checker-tool.hf.space/api/analyze`, {
+            const response = await axios.post(`${API_BASE_URL}/api/analyze`, {
                 owner: cloneData.owner,
                 repo: cloneData.repo
             });
@@ -113,14 +115,6 @@ const Callback = () => {
             setAnalysisData(response.data);
             setStatus('success');
             clearInterval(interval);
-
-            // Check if license suggestion is needed
-            // REMOVED AUTO OPEN: if (response.data.needs_license_suggestion) {
-            //     setShowLicenseSuggestionForm(true);
-            // }
-
-            // Check for regeneration needs immediately after analysis
-            // REMOVED AUTO REGENERATION: checkAndRegenerate(response.data, cloneData.owner, cloneData.repo);
 
         } catch (err) {
             console.error(err);
@@ -131,13 +125,12 @@ const Callback = () => {
     };
 
     // 3. Check and Regenerate Logic
-    // 3. Check and Regenerate Logic
     const handleRegenerate = async () => {
         if (!analysisData) return;
 
         setIsRegenerating(true);
         try {
-            const regenResponse = await axios.post(`https://licensechecker-license-checker-tool.hf.space/api/regenerate`, analysisData);
+            const regenResponse = await axios.post(`${API_BASE_URL}/api/regenerate`, analysisData);
             setRegeneratedData(regenResponse.data);
         } catch (regenErr) {
             console.error("Regeneration failed:", regenErr);
@@ -150,7 +143,7 @@ const Callback = () => {
     const handleDownload = async () => {
         if (!cloneData) return;
         try {
-            const response = await axios.post('https://licensechecker-license-checker-tool.hf.space/api/download', {
+            const response = await axios.post(`${API_BASE_URL}/api/download`, {
                 owner: cloneData.owner,
                 repo: cloneData.repo
             }, { responseType: 'blob' });

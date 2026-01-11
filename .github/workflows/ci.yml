@@ -28,15 +28,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev]
       - name: Run Unit and Integration Tests
-        # Excludes security tests (run in their own job) and acceptance tests (run in Stage 2)
+        # Excludes security and acceptance tests (run in separate jobs)
         run: pytest --ignore=tests/security --ignore=tests/acceptance
 
   security-tests:
     name: Security Tests
     runs-on: ubuntu-latest
     env:
-      # Prevents Git from asking for credentials interactively, avoiding CI timeouts
-      # during negative testing (e.g., accessing private/non-existent repos).
+      # Disables interactive Git prompts to prevent timeouts
+      # during negative testing (e.g., accessing private/non-existent repos)
       GIT_TERMINAL_PROMPT: 0
     steps:
       - name: Checkout code
@@ -51,7 +51,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev]
       - name: Run Security Tests
-        # Targets only the security test suite
         run: pytest tests/security
 
   static-analysis:
@@ -89,9 +88,13 @@ jobs:
       - name: Install Dependencies
         run: npm ci
       - name: Build Frontend
+        # CRITICAL FIX: Forces the frontend to point to the LOCAL backend (CI)
+        # instead of the remote Hugging Face instance defined in the code.
+        env:
+          VITE_API_URL: "http://localhost:8000"
         run: npm run build
 
-      # Uploads the compiled frontend for use in Acceptance Tests
+      # Uploads the compiled frontend artifact for use in Acceptance Tests
       - name: Upload Frontend Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -107,6 +110,19 @@ jobs:
     name: E2E Acceptance Tests
     runs-on: ubuntu-latest
     needs: [test-backend, security-tests, static-analysis, build-frontend]
+    env:
+      HEADLESS: "true"
+      FRONTEND_URL: "http://localhost:5173"
+      # Ollama Configuration (Backend)
+      OLLAMA_URL: "http://localhost:11434/api/generate"
+      OLLAMA_HOST_VERSION: "http://localhost:11434/api/version"
+      OLLAMA_HOST_TAGS: "http://localhost:11434/api/tags"
+      # Use the lightest model possible to save resources and time
+      OLLAMA_CODING_MODEL: "qwen2.5-coder:0.5b"
+      OLLAMA_GENERAL_MODEL: "qwen2.5-coder:0.5b"
+      # ScanCode Configuration
+      SCANCODE_BIN: "scancode"
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -117,10 +133,13 @@ jobs:
         with:
           python-version: "3.13"
           cache: 'pip'
+
       - name: Install Backend Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
+          # ScanCode Toolkit is required for actual analysis execution
+          pip install scancode-toolkit
 
       # 2. Setup Node.js (Required to serve static files)
       - name: Setup Node.js
@@ -135,21 +154,26 @@ jobs:
           name: frontend-dist
           path: frontend/dist
 
-      # 4. Start Services (Backend & Frontend)
+      # 4. Install and Start Ollama
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          sleep 5
+          ollama pull qwen2.5-coder:0.5b
+
+      # 5. Start Services (Backend & Frontend)
       - name: Start Services
         run: |
           # Start Backend on port 8000
           uvicorn app.main:app --host 0.0.0.0 --port 8000 &
           
-          # Serve Frontend on port 3000
-          npx serve -s frontend/dist -l 3000 &
+          # Serve Frontend on port 5173 
+          npx serve -s frontend/dist -l 5173 &
           
-          # Allow services to initialize
+          # Wait for services to initialize
           sleep 10
 
-      # 5. Run Acceptance Tests (Behave)
+      # 6. Run Acceptance Tests (Behave)
       - name: Run Acceptance Tests
-        env:
-          HEADLESS: "true"
-          FRONTEND_URL: "http://localhost:3000"
         run: behave tests/acceptance/features
