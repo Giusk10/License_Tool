@@ -1,10 +1,15 @@
 name: Python CI
 
+# ----------------------
+# Eventi che attivano la pipeline
+# ----------------------
+# "on" specifica quando GitHub Actions esegue il workflow.
+# Qui viene lanciato su qualsiasi push (qualsiasi branch) e su PR verso main.
 on:
   push:
-    branches: [ "**" ]
+    branches: [ "**" ]      # ogni branch: utile per testare rapidamente le modifiche
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main" ]    # PR verso main attivano la pipeline completa
 
 jobs:
   # ==============================================================================
@@ -18,18 +23,27 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        # Recupera il codice del repository nella runner VM.
+
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: 'pip'
+        # Configura Python e abilita la cache pip per velocizzare installazioni.
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
+        # Installa le dipendenze del progetto; '-e .[dev]' usa extras
+        # definiti in setup/pyproject per sviluppatori (test, lint, etc.).
+
       - name: Run Unit and Integration Tests
         # Excludes security and acceptance tests (run in separate jobs)
         run: pytest --ignore=tests/security --ignore=tests/acceptance
+        # Lancia pytest per i test veloci; esclude la cartella dei test di
+        # sicurezza e dei test end-to-end perché risorse lente o interattive.
 
   security-tests:
     name: Security Tests
@@ -41,17 +55,24 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: 'pip'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
+
       - name: Run Security Tests
         run: pytest tests/security
+        # Qui vengono eseguiti i test di sicurezza (possono fare richieste a Git,
+        # probe filesystem, ecc.). Sono isolati in job separato perché possano
+        # fallire o richiedere configurazioni particolari senza bloccare il
+        # flusso principale dei test unitari.
 
   static-analysis:
     name: Static Code Analysis
@@ -59,17 +80,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: 'pip'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
+
       - name: Run Pylint
         run: pylint app
+        # Esegue Pylint sulla cartella 'app' per controllo stile e alcuni errori
 
   build-frontend:
     name: Build Frontend
@@ -79,14 +104,19 @@ jobs:
         working-directory: ./frontend
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
+        # Configura Node e cache npm basata su package-lock.json.
+
       - name: Install Dependencies
         run: npm ci
+        # npm ci installa in modo deterministico usando il lockfile.
+
       - name: Build Frontend
         # CRITICAL FIX: Forces the frontend to point to the LOCAL backend (CI)
         # instead of the remote Hugging Face instance defined in the code.
@@ -110,9 +140,13 @@ jobs:
     name: E2E Acceptance Tests
     runs-on: ubuntu-latest
     needs: [test-backend, security-tests, static-analysis, build-frontend]
+    # "needs" definisce le dipendenze: questo job parte solo se i jobs
+    # elencati sono completati con successo. Puoi rimuovere 'security-tests'
+    # da qui se vuoi evitare che i test di sicurezza blocchino gli E2E.
+
     env:
-      HEADLESS: "true"
-      FRONTEND_URL: "http://localhost:5173"
+      HEADLESS: "true"                        # indica ai test di usare modalità headless
+      FRONTEND_URL: "http://localhost:5173"   # dove verrà servito il frontend in questo job
       # Ollama Configuration (Backend)
       OLLAMA_URL: "http://localhost:11434/api/generate"
       OLLAMA_HOST_VERSION: "http://localhost:11434/api/version"
@@ -153,6 +187,7 @@ jobs:
         with:
           name: frontend-dist
           path: frontend/dist
+        # Scarica la build frontend dalla fase precedente.
 
       # 4. Install and Start Ollama
       - name: Install Ollama
@@ -161,11 +196,13 @@ jobs:
           ollama serve &
           sleep 5
           ollama pull qwen2.5-coder:0.5b
+        # Questo job installa e avvia Ollama (modello LLM) localmente.
+        # Nota: l'installazione/avvio può richiedere tempo e risorse.
 
       # 5. Start Services (Backend & Frontend)
       - name: Start Services
         run: |
-          # Start Backend on port 8000
+          # Start Backend on port 8000 in background
           uvicorn app.main:app --host 0.0.0.0 --port 8000 &
           
           # Serve Frontend on port 5173 
@@ -177,3 +214,5 @@ jobs:
       # 6. Run Acceptance Tests (Behave)
       - name: Run Acceptance Tests
         run: behave tests/acceptance/features
+        # Esegue i test end-to-end con Behave; questi test usano il
+        # frontend e backend avviati sopra e possono essere lenti.
