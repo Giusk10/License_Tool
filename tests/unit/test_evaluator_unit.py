@@ -1,16 +1,16 @@
 """
 test: services/compatibility/evaluator.py
 
-This module contains unit tests for the license compatibility evaluator engine.
-It verifies the logic for determining compatibility between license expressions
-(including complex SPDX strings with AND/OR operators and WITH exceptions)
-against a main project license.
+Questo modulo contiene test unitari per il motore di valutazione della compatibilità delle licenze.
+Verifica la logica per determinare la compatibilità tra espressioni di licenza
+(inclusi stringhe SPDX complesse con operatori AND/OR e eccezioni WITH)
+rispetto alla licenza principale di un progetto.
 
-- The `evaluator` module is tested in isolation by mocking external dependencies
-  such as the compatibility matrix and the SPDX parser classes.
-- Compatibility data is injected via `conftest.py` to ensure consistent
-  test scenarios across the suite.
-- Specific tests cover empty matrices, unknown licenses, and nested logical operators.
+- Il modulo `evaluator` viene testato in isolamento tramite il mocking delle dipendenze esterne
+  come la matrice di compatibilità e le classi del parser SPDX.
+- I dati di compatibilità sono iniettati tramite `conftest.py` per garantire scenari di test
+  consistenti in tutta la suite.
+- Test specifici coprono matrici vuote, licenze sconosciute e operatori logici annidati.
 """
 
 import pytest
@@ -18,32 +18,32 @@ from unittest.mock import patch
 from app.services.compatibility import evaluator
 
 """
-The following classes are defined here to mock the behavior of the real SPDX parser nodes.
-They are required because `evaluator.py` performs `isinstance()` checks that must pass
-during testing without importing the actual logic from `parser_spdx`.
+Le seguenti classi sono definite qui per simulare il comportamento dei veri nodi del parser SPDX.
+Sono necessarie perché `evaluator.py` esegue controlli `isinstance()` che devono avere esito positivo
+nei test senza importare la logica reale da `parser_spdx`.
 """
 
 def test_lookup_status_found():
     """
-    Verifies that the internal `_lookup_status` function correctly retrieves
-    compatibility statuses ('yes', 'no') from the mocked matrix.
+    Verifica che la funzione interna `_lookup_status` recuperi correttamente
+    gli stati di compatibilità ('yes', 'no') dalla matrice simulata.
     """
-    # Note: Relies on data defined in `complex_matrix_data` (conftest.py)
+    # Nota: Si basa sui dati definiti in `complex_matrix_data` (conftest.py)
     assert evaluator._lookup_status("MIT", "Apache-2.0") == "yes"
     assert evaluator._lookup_status("MIT", "Proprietary") == "no"
 
 def test_lookup_status_unknown():
     """
-    Verifies that `_lookup_status` returns 'unknown' for licenses
-    that are not present in the compatibility matrix.
+    Verifica che `_lookup_status` restituisca 'unknown' per le licenze
+    che non sono presenti nella matrice di compatibilità.
     """
     assert evaluator._lookup_status("MIT", "Unknown-License") == "unknown"
     assert evaluator._lookup_status("NonExistentMain", "MIT") == "unknown"
 
 def test_eval_node_none():
     """
-    Ensures that passing `None` as a node results in an 'unknown' status
-    and an appropriate error message in the trace.
+    Garantisce che passando `None` come nodo si ottenga uno stato 'unknown'
+    e un messaggio di errore appropriato nel trace.
     """
     status, trace = evaluator.eval_node("MIT", None)
     assert status == "unknown"
@@ -51,9 +51,9 @@ def test_eval_node_none():
 
 def test_eval_leaf_simple(MockLeaf):
     """
-    Tests the evaluation of a simple Leaf node (single license).
-    Scenario: Checking 'Apache-2.0' against 'MIT'.
-    Expected: Compatible ('yes').
+    Testa la valutazione di un nodo Leaf semplice (singola licenza).
+    Scenario: Controllo di 'Apache-2.0' contro 'MIT'.
+    Atteso: Compatibile ('yes').
     """
     node = MockLeaf("Apache-2.0")
 
@@ -63,28 +63,28 @@ def test_eval_leaf_simple(MockLeaf):
 
 def test_eval_leaf_with_exception(MockLeaf):
     """
-    Tests the handling of the 'WITH' clause.
+    Testa la gestione della clausola 'WITH'.
     Scenario: 'GPL-3.0 WITH Classpath-exception'.
-    Logic: The evaluator should strip the exception and evaluate the base license ('GPL-3.0').
-    Expected: Compatible ('yes'), with a trace note regarding the exception.
+    Logica: Il valutatore dovrebbe rimuovere l'eccezione e valutare la licenza di base ('GPL-3.0').
+    Atteso: Compatibile ('yes'), con una nota di trace riguardante l'eccezione.
     """
     node = MockLeaf("GPL-3.0 WITH Classpath-exception")
 
-    # In conftest, GPL-3.0 is compatible with itself.
+    # In conftest, GPL-3.0 è compatibile con se stesso.
     status, trace = evaluator.eval_node("GPL-3.0", node)
 
     assert status == "yes"
-    # Ensure the failure message is NOT present
+    # Assicurati che il messaggio di errore NON sia presente
     assert "exception requires manual verification" not in trace[0]
-    # Ensure the success/detection message IS present
+    # Assicurati che il messaggio di successo/rilevamento SIA presente
     assert "Exception detected" in trace[0]
 
 def test_eval_or_logic_optimistic(MockLeaf, MockOr):
     """
-    Tests the 'OR' operator logic.
-    Rule: Optimistic evaluation. If at least one branch is compatible, the result is compatible.
-    Scenario: 'GPL-3.0 (incompatible) OR Apache-2.0 (compatible)' against 'MIT'.
-    Expected: Compatible ('yes').
+    Testa la logica dell'operatore 'OR'.
+    Regola: Valutazione ottimistica. Se almeno un ramo è compatibile, il risultato è compatibile.
+    Scenario: 'GPL-3.0 (incompatibile) OR Apache-2.0 (compatibile)' contro 'MIT'.
+    Atteso: Compatibile ('yes').
     """
     node = MockOr(MockLeaf("GPL-3.0"), MockLeaf("Apache-2.0"))
 
@@ -95,34 +95,34 @@ def test_eval_or_logic_optimistic(MockLeaf, MockOr):
 
 def test_eval_and_logic_conservative(MockLeaf, MockAnd):
     """
-    Tests the 'AND' operator logic.
-    Rule: Conservative evaluation. If any branch is incompatible, the result is incompatible.
-    Scenario: 'MIT (compatible) AND GPL-3.0 (incompatible)' against 'MIT'.
-    Expected: Incompatible ('no').
+    Testa la logica dell'operatore 'AND'.
+    Regola: Valutazione conservativa. Se un ramo è incompatibile, il risultato è incompatibile.
+    Scenario: 'MIT (compatibile) AND GPL-3.0 (incompatibile)' contro 'MIT'.
+    Atteso: Incompatibile ('no').
     """
     node = MockAnd(MockLeaf("MIT"), MockLeaf("GPL-3.0"))
 
     status, trace = evaluator.eval_node("MIT", node)
     assert status == "no"
-    # Verify trace contains evaluation of both branches
+    # Verifica che il trace contenga la valutazione di entrambi i rami
     assert len(trace) >= 2
 
 
 def test_and_cross_compatibility_check(MockLeaf, MockAnd):
     """
-    Verifies that the 'AND' logic performs cross-compatibility checks between operands.
+    Verifica che la logica 'AND' esegua controlli incrociati di compatibilità tra gli operandi.
     Scenario: 'Apache-2.0 AND GPL-3.0'.
-    Logic: Besides checking against the main license, the system must check if
-    Apache-2.0 is compatible with GPL-3.0 (left-to-right cross-check).
+    Logica: Oltre a controllare rispetto alla licenza principale, il sistema deve verificare se
+    Apache-2.0 è compatibile con GPL-3.0 (controllo incrociato da sinistra a destra).
     """
     node = MockAnd(MockLeaf("Apache-2.0"), MockLeaf("GPL-3.0"))
 
-    # We are not asserting the final status here, but rather the *process*.
-    # The trace must record that a cross-check occurred.
+    # Non stiamo asserendo lo stato finale qui, ma piuttosto il *processo*.
+    # Il trace deve registrare che è avvenuto un controllo incrociato.
     status, trace = evaluator.eval_node("GPL-3.0", node)
 
     trace_str = " ".join(trace)
-    # Verify that at least one cross-compatibility check is recorded (L->R)
+    # Verifica che almeno un controllo di compatibilità incrociata sia registrato (da sinistra a destra)
     assert "Cross compatibility:" in trace_str
 
 @pytest.mark.parametrize("a,b,expected", [
@@ -132,8 +132,8 @@ def test_and_cross_compatibility_check(MockLeaf, MockAnd):
 ])
 def test_combine_and_parametrized(a, b, expected):
     """
-    Directly tests the helper functions for combining tri-state logic values.
-    Verifies the truth tables for AND/OR operations with 'yes', 'no', and 'conditional'.
+    Testa direttamente le funzioni helper per combinare valori di logica a tre stati.
+    Verifica le tabelle di verità per le operazioni AND/OR con 'yes', 'no' e 'conditional'.
     """
     assert evaluator._combine_and(a, b) == expected
 
@@ -145,17 +145,17 @@ def test_combine_and_parametrized(a, b, expected):
 ])
 def test_combine_or_parametrized(a, b, expected):
     """
-    Directly tests the helper functions for combining tri-state logic values.
-    Verifies the truth tables for AND/OR operations with 'yes', 'no', and 'conditional'.
+    Testa direttamente le funzioni helper per combinare valori di logica a tre stati.
+    Verifica le tabelle di verità per le operazioni AND/OR con 'yes', 'no' e 'conditional'.
     """
     assert evaluator._combine_or(a, b) == expected
 
 def test_lookup_status_empty_matrix():
     """
-    Edge Case: Tests behavior when the compatibility matrix is None or empty.
-    Should fail gracefully returning 'unknown'.
+    Caso limite: Testa il comportamento quando la matrice di compatibilità è None o vuota.
+    Dovrebbe fallire in modo controllato restituendo 'unknown'.
     """
-    # Override the global patch specifically for this test
+    # Sovrascrivi il patch globale specificamente per questo test
     with patch("app.services.compatibility.evaluator.get_matrix", return_value=None):
         assert evaluator._lookup_status("MIT", "MIT") == "unknown"
 
@@ -164,11 +164,11 @@ def test_lookup_status_empty_matrix():
 
 def test_eval_leaf_with_exception_fail(MockLeaf):
     """
-    Tests a 'WITH' exception clause where the base license is inherently INCOMPATIBLE.
-    Scenario: 'Proprietary WITH Some-Exception' against 'GPL-3.0'.
-    Expected: Incompatible ('no'). The exception existence should not override the base incompatibility.
+    Testa una clausola di eccezione 'WITH' dove la licenza di base è intrinsecamente INCOMPATIBILE.
+    Scenario: 'Proprietary WITH Some-Exception' contro 'GPL-3.0'.
+    Atteso: Incompatibile ('no'). L'esistenza dell'eccezione non dovrebbe sovrascrivere l'incompatibilità di base.
     """
-    # Proprietary -> NO for GPL-3.0 in our mock data
+    # Proprietary -> NO per GPL-3.0 nei nostri dati mock
     node = MockLeaf("Proprietary WITH Some-Exception")
 
     status, trace = evaluator.eval_node("GPL-3.0", node)
@@ -178,23 +178,23 @@ def test_eval_leaf_with_exception_fail(MockLeaf):
 
 def test_combine_conditional_logic():
     """
-    Tests specific combinations that result in a 'conditional' status.
-    Ensures that 'conditional' propagates correctly through boolean logic.
+    Testa combinazioni specifiche che portano a uno stato 'conditional'.
+    Garantisce che 'conditional' si propaghi correttamente attraverso la logica booleana.
     """
-    # AND: If one side is conditional and the other is yes, result is conditional.
+    # AND: Se un lato è condizionale e l'altro è sì, il risultato è condizionale.
     assert evaluator._combine_and("yes", "conditional") == "conditional"
     assert evaluator._combine_and("conditional", "conditional") == "conditional"
 
-    # OR: If one side is conditional and the other is no, result is conditional
-    # (because the 'no' side is discarded in OR logic).
+    # OR: Se un lato è condizionale e l'altro è no, il risultato è condizionale
+    # (perché il lato 'no' viene scartato nella logica OR).
     assert evaluator._combine_or("no", "conditional") == "conditional"
     assert evaluator._combine_or("conditional", "conditional") == "conditional"
 
 def test_eval_node_unrecognized_type(MockNode):
     """
-    Defensive Coding: Tests the system's reaction to an unknown node type
-    (e.g., if the parser is extended but the evaluator is not updated).
-    Expected: Returns 'unknown'.
+    Codifica difensiva: Testa la reazione del sistema a un tipo di nodo sconosciuto
+    (ad esempio, se il parser è esteso ma il valutatore non è aggiornato).
+    Atteso: Restituisce 'unknown'.
     """
     class UnknownNode(MockNode):
         pass
@@ -205,13 +205,13 @@ def test_eval_node_unrecognized_type(MockNode):
 
 def test_and_nested_leaves_collection(MockLeaf, MockOr, MockAnd):
     """
-    Advanced Test: Verifies the recursive collection of leaves for cross-checks
-    in nested structures.
-    Structure: '(MIT OR Apache-2.0) AND GPL-3.0'.
-    Logic: The system must extract ALL leaves from the left side (MIT, Apache)
-    and cross-check them against the right side (GPL).
+    Test avanzato: Verifica la raccolta ricorsiva delle foglie per i controlli incrociati
+    in strutture annidate.
+    Struttura: '(MIT OR Apache-2.0) AND GPL-3.0'.
+    Logica: Il sistema deve estrarre TUTTE le foglie dal lato sinistro (MIT, Apache)
+    e controllarle rispetto al lato destro (GPL).
     """
-    # Constructing the tree: (MIT OR Apache) AND GPL
+    # Costruzione dell'albero: (MIT OR Apache) AND GPL
     left_node = MockOr(MockLeaf("MIT"), MockLeaf("Apache-2.0"))
     right_node = MockLeaf("GPL-3.0")
     root = MockAnd(left_node, right_node)
@@ -220,7 +220,7 @@ def test_and_nested_leaves_collection(MockLeaf, MockOr, MockAnd):
 
     trace_str = " ".join(trace)
 
-    # Verify that cross-checks were performed for ALL nested leaves
+    # Verifica che i controlli incrociati siano stati eseguiti per TUTTE le foglie annidate
     assert "Cross compatibility:" in trace_str
 
 @pytest.mark.parametrize("main,left,right,expected", [
@@ -233,7 +233,7 @@ def test_eval_and_parametrized(MockAnd, MockLeaf, main, left, right, expected):
     node = MockAnd(MockLeaf(left), MockLeaf(right))
     status, trace = evaluator.eval_node(main, node)
     assert status == expected
-    # Verify trace contains evaluation information for both operands
+    # Verifica che il trace contenga informazioni di valutazione per entrambi gli operandi
     assert len(trace) >= 2
 
 
@@ -241,7 +241,7 @@ def test_eval_and_parametrized(MockAnd, MockLeaf, main, left, right, expected):
     ("MIT", "Apache-2.0", "GPL-3.0", "yes"),          # yes OR no -> yes
     ("MIT", "GPL-3.0", "GPL-3.0", "no"),             # no OR no -> no
     ("MIT", "LGPL-2.1", "GPL-3.0", "conditional"),   # conditional OR no -> conditional
-    ("GPL-3.0", "MIT", "Apache-2.0", "yes"),        # yes OR no -> yes (different main)
+    ("GPL-3.0", "MIT", "Apache-2.0", "yes"),        # yes OR no -> yes (licenza principale diversa)
 ])
 def test_eval_or_parametrized(MockOr, MockLeaf, main, left, right, expected):
     node = MockOr(MockLeaf(left), MockLeaf(right))
@@ -252,88 +252,88 @@ def test_eval_or_parametrized(MockOr, MockLeaf, main, left, right, expected):
 
 def test_collect_leaves_with_unknown_node(MockAnd, MockLeaf, MockNode):
     """
-    Verifies that `_collect_leaves` handles unrecognized node types gracefully
-    (returning an empty list), ensuring 100% coverage of the implicit fallback path.
+    Verifica che `_collect_leaves` gestisca i tipi di nodo non riconosciuti in modo controllato
+    (restituendo un elenco vuoto), garantendo una copertura del 100% del percorso di fallback implicito.
     """
 
     class UnknownNode(MockNode):
         pass
 
-    # Create a structure: UnknownNode AND MIT
-    # This triggers _collect_leaves on UnknownNode during the cross-check phase of _eval_and
+    # Crea una struttura: UnknownNode AND MIT
+    # Questo attiva _collect_leaves su UnknownNode durante la fase di controllo incrociato di _eval_and
     node = MockAnd(UnknownNode(), MockLeaf("MIT"))
 
-    # We evaluate it to trigger the flow
+    # La valutiamo per attivare il flusso
     status, trace = evaluator.eval_node("MIT", node)
 
-    # Verify execution flow:
-    # 1. UnknownNode evaluates to 'unknown' (already covered)
-    # 2. _collect_leaves is called on UnknownNode -> returns []
-    # 3. Cross-checks loop runs 0 times for the left side
+    # Verifica il flusso di esecuzione:
+    # 1. UnknownNode viene valutato come 'unknown' (già coperto)
+    # 2. _collect_leaves viene chiamato su UnknownNode -> restituisce []
+    # 3. Il ciclo di controlli incrociati viene eseguito 0 volte per il lato sinistro
 
-    # Since one branch is 'unknown' and the other 'yes', result should be 'conditional'
+    # Poiché un ramo è 'unknown' e l'altro è 'yes', il risultato dovrebbe essere 'conditional'
     assert status == "conditional"
 
-    # Ensure no cross-compatibility checks were recorded (because UnknownNode yielded no leaves)
+    # Assicurati che non siano stati registrati controlli di compatibilità incrociata (perché UnknownNode ha prodotto nessuna foglia)
     assert not any("Cross compatibility:" in line for line in trace)
 
 
 def test_collect_leaves_with_unknown_node(MockAnd, MockLeaf, MockNode):
     """
-    Verifies that `_collect_leaves` handles unrecognized node types gracefully
-    (returning an empty list).
+    Verifica che `_collect_leaves` gestisca i tipi di nodo non riconosciuti in modo controllato
+    (restituendo un elenco vuoto).
 
-    This test targets the implicit return statement at the end of `_collect_leaves`.
-    By nesting an UnknownNode inside an And node, we trigger `_collect_leaves`
-    during the cross-compatibility check phase.
+    Questo test mira alla dichiarazione di ritorno implicita alla fine di `_collect_leaves`.
+    Annidando un UnknownNode all'interno di un nodo And, attiviamo `_collect_leaves`
+    durante la fase di controllo di compatibilità incrociata.
     """
 
-    # Define a node type that is neither Leaf nor And/Or
+    # Definisci un tipo di nodo che non è né Leaf né And/Or
     class UnknownNode(MockNode):
         pass
 
-    # Structure: UnknownNode AND MIT
-    # _eval_and will call _collect_leaves(node.left) which is our UnknownNode
+    # Struttura: UnknownNode AND MIT
+    # _eval_and chiamerà _collect_leaves(node.left) che è il nostro UnknownNode
     node = MockAnd(UnknownNode(), MockLeaf("MIT"))
 
-    # Evaluate against a dummy main license
+    # Valuta contro una licenza principale fittizia
     status, trace = evaluator.eval_node("MIT", node)
 
-    # Execution flow verification:
-    # 1. eval_node(UnknownNode) -> returns "unknown"
-    # 2. _collect_leaves(UnknownNode) -> returns []
-    # 3. Cross-check loop doesn't run because left_leaves is empty.
+    # Verifica il flusso di esecuzione:
+    # 1. eval_node(UnknownNode) -> restituisce "unknown"
+    # 2. _collect_leaves(UnknownNode) -> restituisce []
+    # 3. Il ciclo di controllo incrociato non viene eseguito perché left_leaves è vuoto.
 
-    # Result should be 'conditional' because we have "unknown AND yes"
+    # Il risultato dovrebbe essere 'conditional' perché abbiamo "unknown AND yes"
     assert status == "conditional"
 
-    # Verify that the unknown node didn't crash the cross-check logic
+    # Verifica che il nodo sconosciuto non abbia interrotto la logica di controllo incrociato
     assert not any("Cross compatibility:" in line for line in trace)
 
 
 def test_collect_leaves_with_exception_in_and(MockAnd, MockLeaf):
     """
-    Verifies that `_collect_leaves` correctly parses licenses with 'WITH' exceptions
-    when they appear inside an AND structure.
+    Verifica che `_collect_leaves` analizzi correttamente le licenze con eccezioni 'WITH'
+    quando appaiono all'interno di una struttura AND.
 
-    This covers the 'if " WITH " in v:' branch inside `_collect_leaves`, which is
-    only triggered during the cross-compatibility check phase of an AND node.
+    Questo copre il ramo 'if " WITH " in v:' all'interno di `_collect_leaves`, che viene
+    attivato solo durante la fase di controllo di compatibilità incrociata di un nodo AND.
     """
     # Scenario: (GPL-3.0 WITH Classpath-exception) AND MIT
-    # This forces _collect_leaves to run on the left node, splitting the string.
+    # Questo costringe _collect_leaves a essere eseguito sul nodo sinistro, dividendo la stringa.
     node = MockAnd(
         MockLeaf("GPL-3.0 WITH Classpath-exception"),
         MockLeaf("MIT")
     )
 
-    # Evaluate against a dummy main license
+    # Valuta contro una licenza principale fittizia
     status, trace = evaluator.eval_node("MIT", node)
 
-    # We verify that the cross-check used the base license name ("GPL-3.0")
-    # instead of the full string. This confirms that the split logic in
-    # _collect_leaves was executed.
+    # Verifichiamo che il controllo incrociato abbia utilizzato il nome della licenza di base ("GPL-3.0")
+    # invece della stringa completa. Questo conferma che la logica di divisione in
+    # _collect_leaves è stata eseguita.
 
     trace_str = " ".join(trace)
 
-    # The trace should show a cross-check between GPL-3.0 (stripped) and MIT
+    # Il trace dovrebbe mostrare un controllo incrociato tra GPL-3.0 (ripulito) e MIT
     assert "Cross compatibility: GPL-3.0 with respect to MIT" in trace_str

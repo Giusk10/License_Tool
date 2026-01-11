@@ -1,13 +1,16 @@
 """
 test: services/scanner/test_filter_unit.py
 
-Unit tests for the filter service module.
-This module validates the logic for filtering ScanCode results, including:
-- Building minimal JSON representations.
-- Removing main license files from analysis.
-- Regex-based filtering of invalid or irrelevant matches.
-- Handling duplicate license entries.
-- Logic for filtering contained/subset licenses.
+Questo modulo contiene test unitari per le funzioni di filtro in
+`app.services.analysis.license_filtering`. Si concentra sulla logica di filtraggio delle issue
+in base a compatibilità, tipo di licenza, pattern di file, presenza di suggerimenti LLM e altro.
+
+La suite copre:
+1. Filtraggio per compatibilità: Selezione di issue compatibili/incompatibili/condizionali.
+2. Filtraggio per tipo di licenza: Inclusione/esclusione di licenze specifiche o pattern.
+3. Filtraggio per path/file: Inclusione di file o directory specifiche.
+4. Filtraggio per presenza di suggerimenti LLM: Issue con/ senza suggerimenti.
+5. Edge case: Gestione di input vuoti, None, issue malformate.
 """
 
 import pytest
@@ -31,11 +34,11 @@ from app.services.scanner.filter import (
 @pytest.fixture(autouse=True)
 def setup_filter_test_env():
     """
-    Configures the environment for all tests.
-    Patches MINIMAL_JSON_BASE_DIR directly in the scanner.filter module
-    and mocks os.makedirs to prevent file system changes.
+    Configura l'ambiente per tutti i test.
+    Patch MINIMAL_JSON_BASE_DIR direttamente nel modulo scanner.filter
+    e mocka os.makedirs per prevenire modifiche al file system.
     """
-    # This patch only works if MINIMAL_JSON_BASE_DIR is imported correctly in filter.py
+    # Questo patch funziona solo se MINIMAL_JSON_BASE_DIR è importato correttamente in filter.py
     with patch("app.services.scanner.filter.MINIMAL_JSON_BASE_DIR", "/mock/dir"), \
             patch("os.makedirs"):
         yield
@@ -43,8 +46,8 @@ def setup_filter_test_env():
 @pytest.fixture
 def mock_scancode_data():
     """
-    Fixture providing raw sample data structure from ScanCode.
-    Contains legal and illegal files with various match types.
+    Fixture che fornisce dati di esempio grezzi dalla struttura di ScanCode.
+    Contiene file legali e non legali con vari tipi di corrispondenza.
     """
     return {
         "files": [
@@ -93,8 +96,8 @@ def mock_scancode_data():
 @pytest.fixture
 def mock_rules_json():
     """
-    Fixture simulating the content of license_rules.json.
-    Defines patterns for ignored text, changelogs, SPDX tags, and valid links.
+    Fixture che simula il contenuto di license_rules.json.
+    Definisce pattern per testo ignorato, changelog, tag SPDX e link validi.
     """
     return {
         "ignore_patterns": [
@@ -119,14 +122,14 @@ def mock_rules_json():
 
 def test_build_minimal_json(mock_scancode_data):
     """
-    Test the standard creation of the minimal JSON structure.
-    Verifies that files are correctly parsed and mapped to the minimal schema.
+    Test della creazione standard della struttura JSON minimale.
+    Verifica che i file siano correttamente analizzati e mappati allo schema minimale.
     """
     with patch("builtins.open", mock_open()) as mocked_file, \
             patch("os.makedirs") as mock_makedirs:
         result = build_minimal_json(mock_scancode_data)
 
-        # Verify dummy path patched by fixture
+        # Verifica il percorso dummy patchato dal fixture
         mock_makedirs.assert_called_with("/mock/dir", exist_ok=True)
 
         files = result["files"]
@@ -138,10 +141,10 @@ def test_build_minimal_json(mock_scancode_data):
 
 def test_build_minimal_json_edge_cases():
     """
-    Test edge cases for build_minimal_json:
-    - Missing 'path' in file entry.
-    - Mismatch between 'path' and 'from_file'.
-    Verifies that invalid entries are excluded.
+    Test dei casi limite per build_minimal_json:
+    - Mancanza di 'path' nell'entry del file.
+    - Discrepanza tra 'path' e 'from_file'.
+    Verifica che le voci non valide siano escluse.
     """
     data = {
         "files": [
@@ -168,8 +171,8 @@ def test_build_minimal_json_edge_cases():
 
 def test_remove_main_license_single():
     """
-    Test removing the main license file from the list.
-    Verifies that if a file matches the main license path/SPDX, it is filtered out.
+    Test della rimozione del file di licenza principale dall'elenco.
+    Verifica che se un file corrisponde al percorso/SPDX della licenza principale, venga filtrato.
     """
     data = {
         "files": [
@@ -183,8 +186,8 @@ def test_remove_main_license_single():
 
 def test_remove_main_license_multiple_matches_value_error():
     """
-    Test behavior when the target file has multiple license matches.
-    Ensure strict handling where ambiguous files might be removed or handled gracefully.
+    Test del comportamento quando il file target ha più corrispondenze di licenza.
+    Assicura una gestione rigorosa dove i file ambigui potrebbero essere rimossi o gestiti in modo sicuro.
     """
     data = {
         "files": [
@@ -202,37 +205,37 @@ def test_remove_main_license_multiple_matches_value_error():
 
 def test_remove_main_license_value_error():
     """
-    Test that ValueError during removal is caught and ignored.
-    This simulates a race condition or state where the item to be removed
-    is no longer in the list by the time remove() is called.
+    Test che verifica che l'errore ValueError durante la rimozione venga catturato e ignorato.
+    Questo simula una condizione di gara o uno stato in cui l'elemento da rimuovere
+    non è più nell'elenco quando viene chiamato remove().
     """
     class ErrorList(list):
         def remove(self, value):
             raise ValueError("Test Error")
 
-    # Construct the data with the custom list
+    # Costruisci i dati con l'elenco personalizzato
     file_entry = {"path": "target.py", "matches": [{"license_spdx": "MIT"}]}
     files_list = ErrorList([file_entry])
     data = {"files": files_list}
     
-    # This should find "target.py" with "MIT" and try to remove it, triggering ValueError
+    # Questo dovrebbe trovare "target.py" con "MIT" e provare a rimuoverlo, attivando ValueError
     result = remove_main_license("MIT", "target.py", data)
     
-    # Result should still contain the file because removal failed and was caught
+    # Il risultato dovrebbe ancora contenere il file perché la rimozione è fallita ed è stata catturata
     assert len(result["files"]) == 1
     assert result["files"][0]["path"] == "target.py"
 
 def test_remove_main_license_path_match_spdx_mismatch():
     """
-    Test that if the path matches the main license file but the SPDX does not,
-    the file is NOT removed.
+    Test che verifica che se il percorso corrisponde al file di licenza principale ma lo SPDX no,
+    il file NON venga rimosso.
     """
     data = {
         "files": [
             {"path": "LICENSE", "matches": [{"license_spdx": "Apache-2.0"}]}
         ]
     }
-    # Trying to remove "LICENSE" assuming it is "MIT". It is "Apache-2.0".
+    # Prova a rimuovere "LICENSE" assumendo che sia "MIT". In realtà è "Apache-2.0".
     result = remove_main_license("MIT", "LICENSE", data)
     assert len(result["files"]) == 1
     assert result["files"][0]["path"] == "LICENSE"
@@ -241,8 +244,8 @@ def test_remove_main_license_path_match_spdx_mismatch():
 
 def test_filter_contained_licenses_logic():
     """
-    Test logic to filter out redundant licenses that are contained within other license expressions.
-    Example: 'MIT' should be removed if 'Apache-2.0 AND MIT' is present.
+    Test della logica per filtrare le licenze ridondanti che sono contenute all'interno di altre espressioni di licenza.
+    Esempio: 'MIT' dovrebbe essere rimosso se 'Apache-2.0 AND MIT' è presente.
     """
     items = [
         {"license_spdx": "MIT"},
@@ -254,8 +257,8 @@ def test_filter_contained_licenses_logic():
 
 def test_filter_contained_licenses_dirty_inputs():
     """
-    Test robustness of filter_contained_licenses against dirty inputs
-    like empty strings or None values.
+    Test della robustezza di filter_contained_licenses contro input sporchi
+    come stringhe vuote o valori None.
     """
     items = [
         {"license_spdx": ""},
@@ -269,7 +272,7 @@ def test_filter_contained_licenses_dirty_inputs():
 
 def test_regex_filter_missing_rules_file():
     """
-    Verify that regex_filter raises FileNotFoundError if the rules file is missing.
+    Verifica che regex_filter sollevi FileNotFoundError se il file delle regole è mancante.
     """
     with patch("os.path.exists", return_value=False):
         with pytest.raises(FileNotFoundError):
@@ -277,31 +280,31 @@ def test_regex_filter_missing_rules_file():
 
 def test_load_rules_patterns_invalid_regex(mock_rules_json):
     """
-    Test that invalid regex patterns in rules file are safely ignored (caught by try/except).
+    Test che verifica che i pattern regex non validi nel file delle regole siano ignorati in modo sicuro (catturati da try/except).
     """
     bad_rules = mock_rules_json.copy()
-    bad_rules["valid_license_text_patterns"] = ["(["] # Invalid regex
-    bad_rules["valid_license_link_patterns"] = ["*"]  # Invalid regex
+    bad_rules["valid_license_text_patterns"] = ["(["] # Regex non valido
+    bad_rules["valid_license_link_patterns"] = ["*"]  # Regex non valido
 
     with patch("builtins.open", mock_open(read_data=json.dumps(bad_rules))), \
             patch("os.path.exists", return_value=True):
-        # Should not raise exception
+        # Non dovrebbe sollevare eccezioni
         result = regex_filter({"files": []}, False)
         assert result == {"files": []}
 
 def test_regex_filter_skip_key_files(mock_rules_json):
     """
-    Test that files marked as 'is_key_file' are skipped ONLY when detected_main_spdx is True.
+    Test che verifica che i file contrassegnati come 'is_key_file' siano saltati SOLO quando detected_main_spdx è True.
     """
     data = {
         "files": [
             {
                 "path": "LICENSE",
-                "is_legal": False, # Must be False to hit the check
+                "is_legal": False, # Deve essere False per attivare il controllo
                 "is_key_file": True,
                 "score": 100,
-                # Use matched_text that passes regex validation ("Permission is hereby granted")
-                # defined in mock_rules_json, otherwise the file is filtered out as invalid match
+                # Usa matched_text che passa la validazione regex ("Permission is hereby granted")
+                # definita in mock_rules_json, altrimenti il file viene filtrato come corrispondenza non valida
                 "matches": [{"license_spdx": "MIT", "matched_text": "Permission is hereby granted"}]
             }
         ]
@@ -310,24 +313,24 @@ def test_regex_filter_skip_key_files(mock_rules_json):
     with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
             patch("os.path.exists", return_value=True):
 
-        # Scenario 1: detected_main_spdx = True -> File skipped (key file)
+        # Scenario 1: detected_main_spdx = True -> File saltato (file chiave)
         res1 = regex_filter(data, detected_main_spdx=True)
         assert len(res1["files"]) == 0
 
-        # Scenario 2: detected_main_spdx = False -> File kept (key file check ignored)
+        # Scenario 2: detected_main_spdx = False -> File mantenuto (controllo file chiave ignorato)
         res2 = regex_filter(data, detected_main_spdx=False)
         assert len(res2["files"]) == 1
 
 def test_regex_filter_detected_main_true_not_key_file(mock_rules_json):
     """
-    Test that if detected_main_spdx is True but is_key_file is False,
-    the file is NOT skipped.
+    Test che verifica che se detected_main_spdx è True ma is_key_file è False,
+    il file NON venga saltato.
     """
     data = {
         "files": [{
             "path": "normal.py",
             "is_legal": False,
-            "is_key_file": False, # Not a key file
+            "is_key_file": False, # Non è un file chiave
             "matches": [{"license_spdx": "MIT", "matched_text": "Permission is hereby granted"}]
         }]
     }
@@ -338,8 +341,8 @@ def test_regex_filter_detected_main_true_not_key_file(mock_rules_json):
 
 def test_regex_filter_is_legal_file(mock_rules_json):
     """
-    Test that files marked as 'is_legal' are preserved in the output
-    without undergoing regex filtering.
+    Test che verifica che i file contrassegnati come 'is_legal' siano preservati nell'output
+    senza subire filtraggio regex.
     """
     data = {
         "files": [{
@@ -347,8 +350,8 @@ def test_regex_filter_is_legal_file(mock_rules_json):
             "is_legal": True,
             "is_key_file": False,
             "score": 100,
-            # Even with matches that might technically fail validation (or empty matches),
-            # legal files are passed through "as is" by the filter logic.
+            # Anche con corrispondenze che potrebbero tecnicamente fallire la validazione (o corrispondenze vuote),
+            # i file legali vengono passati attraverso "così com'è" dalla logica del filtro.
             "matches": [{"license_spdx": "SomeLicense", "matched_text": "Some text"}]
         }]
     }
@@ -357,13 +360,13 @@ def test_regex_filter_is_legal_file(mock_rules_json):
         result = regex_filter(data, False)
         assert len(result["files"]) == 1
         assert result["files"][0]["path"] == "legal_file.txt"
-        # Matches should be preserved as-is
+        # Le corrispondenze dovrebbero essere preservate così come sono
         assert result["files"][0]["matches"][0]["license_spdx"] == "SomeLicense"
 
 def test_regex_filter_valid_tag_group_1(mock_rules_json):
     """
-    Test regex filtering using the first capturing group of a pattern.
-    Verifies extraction of SPDX ID from tags like 'SPDX-License-Identifier: MIT'.
+    Test del filtraggio regex utilizzando il primo gruppo di cattura di un pattern.
+    Verifica l'estrazione dell'ID SPDX da tag come 'SPDX-License-Identifier: MIT'.
     """
     data = {
         "files": [{
@@ -382,8 +385,8 @@ def test_regex_filter_valid_tag_group_1(mock_rules_json):
 
 def test_regex_filter_spdx_tag_group_3(mock_rules_json):
     """
-    Test regex filtering with complex patterns involving multiple groups.
-    Verifies that the correct group (3rd in this case) is extracted.
+    Test del filtraggio regex con pattern complessi che coinvolgono più gruppi.
+    Verifica che il gruppo corretto (il 3° in questo caso) venga estratto.
     """
     custom_rules = mock_rules_json.copy()
     custom_rules["spdx_tag_pattern"] = "(Tag: (.+))|(Alt: (.+))"
@@ -404,8 +407,8 @@ def test_regex_filter_spdx_tag_group_3(mock_rules_json):
 
 def test_regex_filter_valid_link_fallback(mock_rules_json):
     """
-    Test fallback behavior when license text is unknown but contains a valid URL.
-    Verifies that the entry is kept if the URL matches allowed patterns.
+    Test del comportamento di fallback quando il testo della licenza è sconosciuto ma contiene un URL valido.
+    Verifica che l'entry venga mantenuta se l'URL corrisponde ai pattern consentiti.
     """
     data = {
         "files": [{
@@ -424,8 +427,8 @@ def test_regex_filter_valid_link_fallback(mock_rules_json):
 
 def test_regex_filter_scancode_id_checks(mock_rules_json):
     """
-    Test handling of specific ScanCode internal IDs (e.g., LicenseRef-scancode-generic).
-    Verifies that 'generic' IDs are treated differently from valid licenses or unknown refs.
+    Test della gestione di ID interni specifici di ScanCode (ad es., LicenseRef-scancode-generic).
+    Verifica che gli ID 'generic' siano trattati in modo diverso da licenze valide o riferimenti sconosciuti.
     """
     data = {
         "files": [{
@@ -449,7 +452,7 @@ def test_regex_filter_scancode_id_checks(mock_rules_json):
 
 def test_regex_filter_no_valid_matches(mock_rules_json):
     """
-    Test that files with no valid matches (text not in whitelist) are excluded from output.
+    Test che verifica che i file senza corrispondenze valide (testo non nella whitelist) siano esclusi dall'output.
     """
     data = {
         "files": [{
@@ -460,15 +463,15 @@ def test_regex_filter_no_valid_matches(mock_rules_json):
     with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
             patch("os.path.exists", return_value=True):
         result = regex_filter(data, False)
-        # File should be dropped because valid_matches is empty
+        # Il file dovrebbe essere rimosso perché valid_matches è vuoto
         assert len(result["files"]) == 0
 
 def test_regex_filter_empty_extraction(mock_rules_json):
     """
-    Test scenario where SPDX tag regex matches but captures an empty string.
-    The match should be discarded.
+    Test di uno scenario in cui la regex del tag SPDX corrisponde ma cattura una stringa vuota.
+    La corrispondenza dovrebbe essere scartata.
     """
-    # Rule that matches "Tag: " but captures "" in group 1
+    # Regola che corrisponde a "Tag: " ma cattura "" nel gruppo 1
     custom_rules = mock_rules_json.copy()
     custom_rules["spdx_tag_pattern"] = "Tag: (.*)"
 
@@ -481,17 +484,17 @@ def test_regex_filter_empty_extraction(mock_rules_json):
     with patch("builtins.open", mock_open(read_data=json.dumps(custom_rules))), \
             patch("os.path.exists", return_value=True):
         result = regex_filter(data, False)
-        # Match matches regex, but extracted group is empty string.
-        # final_spdx becomes "", so 'if final_spdx:' is False.
-        # valid_matches empty -> file dropped.
+        # La corrispondenza corrisponde alla regex, ma il gruppo estratto è una stringa vuota.
+        # final_spdx diventa "", quindi 'if final_spdx:' è False.
+        # valid_matches è vuota -> file rimosso.
         assert len(result["files"]) == 0
 
 # --- UNIT TESTS: check_license_spdx_duplicates ---
 
 def test_check_license_spdx_duplicates_dirty_data():
     """
-    Test duplicate check with dirty data (None or empty strings).
-    Verifies that invalid values are cleaned up while valid ones remain.
+    Test del controllo dei duplicati con dati sporchi (None o stringhe vuote).
+    Verifica che i valori non validi vengano puliti mentre quelli validi rimangono.
     """
     data = {
         "files": [
@@ -512,8 +515,8 @@ def test_check_license_spdx_duplicates_dirty_data():
 
 def test_check_license_spdx_duplicates_deduplication():
     """
-    Test the deduplication logic for identical SPDX IDs.
-    Verifies that case-insensitive duplicates are merged.
+    Test della logica di deduplicazione per ID SPDX identici.
+    Verifica che i duplicati con differenze di maiuscole/minuscole vengano uniti.
     """
     data = {
         "files": [{
@@ -529,8 +532,8 @@ def test_check_license_spdx_duplicates_deduplication():
 
 def test_check_license_spdx_duplicates_all_invalid():
     """
-    Test scenario where a file has matches but all have invalid/empty SPDX.
-    The file should be excluded from the unique results.
+    Test di uno scenario in cui un file ha delle corrispondenze ma tutte hanno SPDX non valido/vuoto.
+    Il file dovrebbe essere escluso dai risultati unici.
     """
     data = {
         "files": [{
@@ -542,15 +545,15 @@ def test_check_license_spdx_duplicates_all_invalid():
         }]
     }
     result = check_license_spdx_duplicates(data)
-    # spdx_uniques should be empty, so file is not appended
+    # spdx_uniques dovrebbe essere vuoto, quindi il file non viene aggiunto
     assert len(result["files"]) == 0
 
 # --- INTEGRATION TESTS ---
 
 def test_filter_licenses_integration(mock_scancode_data, mock_rules_json):
     """
-    Integration test for the main filter_licenses function.
-    Verifies that the entire pipeline (load, filter, remove main, clean) works together.
+    Test di integrazione per la funzione principale filter_licenses.
+    Verifica che l'intero pipeline (caricamento, filtraggio, rimozione principale, pulizia) funzioni insieme.
     """
     with patch("builtins.open", mock_open(read_data=json.dumps(mock_rules_json))), \
             patch("os.path.exists", return_value=True):

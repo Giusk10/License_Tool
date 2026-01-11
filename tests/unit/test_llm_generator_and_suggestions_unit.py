@@ -1,13 +1,14 @@
 """
 test: services/llm/test_llm_generator_and_suggestions_unit.py
 
-Unit tests for the LLM-based services:
-1. Code Generator (regenerate_code)
-2. Suggestion Enrichment (enrich_with_llm_suggestions)
-3. License Recommender (suggest_license_based_on_requirements)
+Questo modulo contiene test per la logica di generazione dei prompt per LLM e per la gestione dei suggerimenti di licenza.
+Verifica la corretta costruzione dei prompt, la gestione delle risposte dell'LLM, la robustezza contro errori di parsing e la coerenza delle raccomandazioni.
 
-These tests verify the interaction with the LLM API wrappers (mocked),
-parsing/validation of generated content, and error handling strategies.
+La suite copre:
+1. Generazione dei prompt: Costruzione di prompt dettagliati per l'LLM in base ai requisiti e alle licenze rilevate.
+2. Parsing delle risposte: Gestione di risposte JSON e Markdown, fallback in caso di errori.
+3. Raccomandazioni di licenza: Coerenza tra i suggerimenti forniti e i requisiti specificati.
+4. Edge case: Gestione di input vuoti, errori di parsing, risposte malformate.
 """
 
 import json
@@ -22,8 +23,8 @@ from app.services.llm import license_recommender
 
 def test_regenerate_code_success_with_markdown():
     """
-    Verify that code generation works correctly when the LLM output includes
-    Markdown code blocks (e.g., ```python ... ```). The blocks should be stripped.
+    Verifica che la generazione del codice funzioni correttamente quando l'output dell'LLM include
+    blocchi di codice Markdown (ad es., ```python ... ```). I blocchi devono essere rimossi.
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
         mock_call.return_value = "```python\nprint('hello')\n```"
@@ -33,8 +34,8 @@ def test_regenerate_code_success_with_markdown():
 
 def test_regenerate_code_success_no_markdown():
     """
-    Verify that code generation works correctly when the LLM returns raw code
-    without any Markdown formatting.
+    Verifica che la generazione del codice funzioni correttamente quando l'LLM restituisce codice non formattato
+    senza alcuna formattazione Markdown.
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
         mock_call.return_value = "print('hello')"
@@ -44,7 +45,7 @@ def test_regenerate_code_success_no_markdown():
 
 def test_regenerate_code_no_response():
     """
-    Verify that the function returns None if the LLM backend returns no response
+    Verifica che la funzione restituisca None se il backend dell'LLM non restituisce alcuna risposta
     (None).
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
@@ -55,8 +56,8 @@ def test_regenerate_code_no_response():
 
 def test_regenerate_code_exception():
     """
-    Verify that exceptions raised during the LLM call are caught and handled
-    gracefully, returning None.
+    Verifica che le eccezioni sollevate durante la chiamata all'LLM vengano catturate e gestite
+    in modo elegante, restituendo None.
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
         mock_call.side_effect = Exception("error")
@@ -66,11 +67,11 @@ def test_regenerate_code_exception():
 
 def test_regenerate_code_validation_fails():
     """
-    Verify that generated code is rejected (returns None) if it fails general
-    validation checks (e.g., being too short).
+    Verifica che il codice generato venga rifiutato (restituisce None) se non supera i controlli di validazione generali
+    (ad es., se è troppo corto).
     """
     with patch('app.services.llm.code_generator.call_ollama_qwen3_coder') as mock_call:
-        mock_call.return_value = "short"  # Too short
+        mock_call.return_value = "short"  # Troppo corto
         result = regenerate_code("old code", "MIT", "GPL", "MIT, Apache")
         assert result is None
 
@@ -81,8 +82,8 @@ def test_regenerate_code_validation_fails():
 
 def test_ask_llm_for_suggestions():
     """
-    Verify that `ask_llm_for_suggestions` correctly invokes the LLM with the
-    issue details and returns the license string suggested by the model.
+    Verifica che `ask_llm_for_suggestions` invochi correttamente l'LLM con i dettagli del problema e restituisca
+    la stringa di licenza suggerita dal modello.
     """
     issue = {"file_path": "file.py", "detected_license": "GPL", "reason": "incompatible"}
     with patch('app.services.llm.suggestion.call_ollama_deepseek') as mock_call:
@@ -93,8 +94,8 @@ def test_ask_llm_for_suggestions():
 
 def test_review_document_success():
     """
-    Verify that `review_document` reads the file content, sends it to the LLM,
-    and extracts the advice contained within the expected XML tags (<advice>).
+    Verifica che `review_document` legga il contenuto del file, lo invii all'LLM e
+    estragga il consiglio contenuto all'interno dei tag XML previsti (<advice>).
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
@@ -106,8 +107,8 @@ def test_review_document_success():
 
 def test_review_document_no_tags():
     """
-    Verify that `review_document` returns None if the LLM response does not
-    contain the required XML tags to extract the advice.
+    Verifica che `review_document` restituisca None se la risposta dell'LLM non contiene
+    i tag XML richiesti per estrarre il consiglio.
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
@@ -119,8 +120,8 @@ def test_review_document_no_tags():
 
 def test_review_document_llm_returns_none():
     """
-    Verify that `review_document` returns None if the LLM response is None or empty.
-    This covers the `if not response:` check.
+    Verifica che `review_document` restituisca None se la risposta dell'LLM è None o vuota.
+    Questo copre il controllo `if not response:`.
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
@@ -132,7 +133,7 @@ def test_review_document_llm_returns_none():
 
 def test_review_document_file_error():
     """
-    Verify that `review_document` handles file I/O errors gracefully (returns None).
+    Verifica che `review_document` gestisca gli errori di I/O dei file in modo elegante (restituisce None).
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', side_effect=Exception("error")):
@@ -142,7 +143,7 @@ def test_review_document_file_error():
 
 def test_review_document_llm_error():
     """
-    Verify that `review_document` handles LLM API errors gracefully (returns None).
+    Verifica che `review_document` gestisca gli errori dell'API dell'LLM in modo elegante (restituisce None).
     """
     issue = {"file_path": "file.md", "detected_license": "GPL"}
     with patch('builtins.open', mock_open(read_data="content")), \
@@ -153,8 +154,8 @@ def test_review_document_llm_error():
 
 def test_enrich_with_llm_suggestions_compatible():
     """
-    Verify that for issues marked as 'compatible', the enrichment logic adds a
-    standard 'No action needed' message without calling the LLM.
+    Verifica che per i problemi contrassegnati come 'compatibili', la logica di arricchimento aggiunga un
+    messaggio standard 'Nessuna azione necessaria' senza chiamare l'LLM.
     """
     issues = [{"file_path": "file.py", "detected_license": "MIT", "compatible": True, "reason": "ok"}]
     result = enrich_with_llm_suggestions("MIT", issues)
@@ -165,8 +166,8 @@ def test_enrich_with_llm_suggestions_compatible():
 
 def test_enrich_with_llm_suggestions_incompatible_code():
     """
-    Verify that for incompatible code files, the enrichment logic calls
-    `ask_llm_for_suggestions` and populates the results.
+    Verifica che per i file di codice incompatibili, la logica di arricchimento chiami
+    `ask_llm_for_suggestions` e popoli i risultati.
     """
     issues = [{"file_path": "file.py", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
     with patch('app.services.llm.suggestion.ask_llm_for_suggestions') as mock_ask:
@@ -179,8 +180,8 @@ def test_enrich_with_llm_suggestions_incompatible_code():
 
 def test_enrich_with_llm_suggestions_incompatible_doc():
     """
-    Verify that for incompatible documentation files (e.g., .md), the enrichment logic
-    calls `review_document` instead of the code suggestion flow.
+    Verifica che per i file di documentazione incompatibili (ad es., .md), la logica di arricchimento
+    chiami `review_document` invece del flusso di suggerimento del codice.
     """
     issues = [{"file_path": "file.md", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
     with patch('app.services.llm.suggestion.review_document') as mock_review:
@@ -193,8 +194,8 @@ def test_enrich_with_llm_suggestions_incompatible_doc():
 
 def test_enrich_with_llm_suggestions_with_regenerated():
     """
-    Verify that if a mapping of regenerated code paths is provided, the issue
-    is updated with the path to the new file.
+    Verifica che se viene fornita una mappatura dei percorsi del codice rigenerato, il problema
+    venga aggiornato con il percorso del nuovo file.
     """
     issues = [{"file_path": "file.py", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
     regenerated_map = {"file.py": "/path/to/new.py"}
@@ -206,9 +207,9 @@ def test_enrich_with_llm_suggestions_with_regenerated():
 
 def test_enrich_with_llm_suggestions_conditional_outcome():
     """
-    Verify that when compatibility is None and the reason contains
-    'Outcome: conditional', the specific suggestion message is returned
-    and no licenses are proposed.
+    Verifica che quando la compatibilità è None e il motivo contiene
+    'Outcome: conditional', venga restituito il messaggio di suggerimento specifico
+    e nessuna licenza venga proposta.
     """
     issues = [{
         "file_path": "file.py",
@@ -224,9 +225,9 @@ def test_enrich_with_llm_suggestions_conditional_outcome():
 
 def test_enrich_with_llm_suggestions_unknown_outcome():
     """
-    Verify that when compatibility is None and the reason contains
-    'Outcome: unknown', the specific suggestion message is returned
-    and no licenses are proposed.
+    Verifica che quando la compatibilità è None e il motivo contiene
+    'Outcome: unknown', venga restituito il messaggio di suggerimento specifico
+    e nessuna licenza venga proposta.
     """
     issues = [{
         "file_path": "file.py",
@@ -242,8 +243,8 @@ def test_enrich_with_llm_suggestions_unknown_outcome():
 
 def test_enrich_with_llm_suggestions_compatible_none_fallback():
     """
-    Verify that when compatibility is None but reason is neither conditional nor unknown,
-    the fallback 'could not be determined' message is returned.
+    Verifica che quando la compatibilità è None ma il motivo non è né condizionale né sconosciuto,
+    venga restituito il messaggio di fallback 'non può essere determinato'.
     """
     issues = [{
         "file_path": "file.py",
@@ -263,7 +264,7 @@ def test_enrich_with_llm_suggestions_compatible_none_fallback():
 
 def test_validate_generated_code_valid_python():
     """
-    Verify that valid Python code passes validation.
+    Verifica che codice Python valido superi la validazione.
     """
     code = "print('hello world')"
     assert validate_generated_code(code) is True
@@ -271,7 +272,7 @@ def test_validate_generated_code_valid_python():
 
 def test_validate_generated_code_too_short():
     """
-    Verify that code failing the minimum length requirement fails validation.
+    Verifica che il codice che non supera il requisito di lunghezza minima non superi la validazione.
     """
     code = "hi"
     assert validate_generated_code(code) is False
@@ -279,7 +280,7 @@ def test_validate_generated_code_too_short():
 
 def test_validate_generated_code_empty():
     """
-    Verify that empty code strings fail validation.
+    Verifica che le stringhe di codice vuote non superino la validazione.
     """
     code = ""
     assert validate_generated_code(code) is False
@@ -287,7 +288,7 @@ def test_validate_generated_code_empty():
 
 def test_validate_generated_code_none():
     """
-    Verify that None fails validation.
+    Verifica che None non superi la validazione.
     """
     code = None
     assert validate_generated_code(code) is False
@@ -295,7 +296,7 @@ def test_validate_generated_code_none():
 
 def test_validate_generated_code_invalid_type():
     """
-    Verify that non-string inputs fail validation (covers isinstance check).
+    Verifica che gli input non stringa non superino la validazione (copre il controllo isinstance).
     """
     assert validate_generated_code(123) is False
     assert validate_generated_code({}) is False
@@ -307,8 +308,8 @@ def test_validate_generated_code_invalid_type():
 
 def test_suggest_license_success_clean_json():
     """
-    Verifies that a valid JSON response from the LLM is correctly parsed
-    and returned.
+    Verifica che una risposta JSON valida dall'LLM venga correttamente analizzata
+    e restituita.
     """
     requirements = {"commercial_use": True}
     mock_response = json.dumps({
@@ -325,8 +326,8 @@ def test_suggest_license_success_clean_json():
 
 def test_suggest_license_strips_markdown():
     """
-    Verifies that Markdown code blocks (```json ... ```) are stripped from
-    the LLM response before parsing.
+    Verifica che i blocchi di codice Markdown (```json ... ```) vengano rimossi da
+    la risposta dell'LLM prima dell'analisi.
     """
     requirements = {"commercial_use": True}
     mock_response = "```json\n" + json.dumps({
@@ -342,23 +343,23 @@ def test_suggest_license_strips_markdown():
 
 def test_suggest_license_empty_response_fallback():
     """
-    Verifies that if the LLM returns None or empty string, the function
-    raises/catches ValueError and returns the fallback (MIT).
+    Verifica che se l'LLM restituisce None o una stringa vuota, la funzione
+    solleva/cattura ValueError e restituisce il fallback (MIT).
     """
     requirements = {}
 
-    # Simulate empty response
+    # Simula risposta vuota
     with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value=""):
         result = license_recommender.suggest_license_based_on_requirements(requirements)
 
-        # Should return fallback
+        # Dovrebbe restituire il fallback
         assert result["suggested_license"] == "MIT"
         assert "recommended as it's permissive" in result["explanation"]
 
 def test_suggest_license_invalid_json_fallback():
     """
-    Verifies that if the LLM returns invalid JSON (garbage text),
-    the function catches JSONDecodeError and returns the fallback.
+    Verifica che se l'LLM restituisce JSON non valido (testo spazzatura),
+    la funzione catturi JSONDecodeError e restituisca il fallback.
     """
     requirements = {}
 
@@ -369,8 +370,8 @@ def test_suggest_license_invalid_json_fallback():
 
 def test_suggest_license_generic_exception_fallback():
     """
-    Verifies that unexpected exceptions (e.g. network error) are caught
-    and result in a safe fallback.
+    Verifica che eccezioni inaspettate (ad es. errore di rete) vengano catturate
+    e risultino in un fallback sicuro.
     """
     requirements = {}
 
@@ -382,8 +383,8 @@ def test_suggest_license_generic_exception_fallback():
 
 def test_suggest_license_prompt_construction_full_flags():
     """
-    Verifies that all requirement flags are correctly converted into the prompt text.
-    Inspects the argument passed to the mock.
+    Verifica che tutti i flag dei requisiti vengano correttamente convertiti nel testo del prompt.
+    Ispeziona l'argomento passato al mock.
     """
     requirements = {
         "commercial_use": True,
@@ -402,7 +403,7 @@ def test_suggest_license_prompt_construction_full_flags():
 
         call_arg = mock_call.call_args[0][0]
 
-        # Check presence of all flags in the prompt
+        # Controlla la presenza di tutti i flag nel prompt
         assert "Commercial use: REQUIRED" in call_arg
         assert "Modification: ALLOWED" in call_arg
         assert "Distribution: ALLOWED" in call_arg
@@ -416,14 +417,14 @@ def test_suggest_license_prompt_construction_full_flags():
 
 def test_suggest_license_prompt_construction_false_flags():
     """
-    Verifies that 'False' flags generate the correct 'NOT required/allowed' text
-    and handles 'weak'/'none' copyleft options.
+    Verifica che i flag 'False' generino il corretto testo 'NON richiesto/consentito'
+    e gestiscano le opzioni di copyleft 'weak'/'none'.
     """
     requirements = {
         "commercial_use": False,
         "modification": False,
         "distribution": False,
-        "copyleft": "weak" # Test 'weak' logic
+        "copyleft": "weak" # Test logica 'weak'
     }
 
     with patch("app.services.llm.license_recommender.call_ollama_deepseek", return_value="{}") as mock_call:
@@ -438,7 +439,7 @@ def test_suggest_license_prompt_construction_false_flags():
 
 def test_suggest_license_prompt_construction_no_copyleft():
     """
-    Verifies specific logic for 'copyleft': 'none'.
+    Verifica la logica specifica per 'copyleft': 'none'.
     """
     requirements = {"copyleft": "none"}
 
@@ -449,7 +450,7 @@ def test_suggest_license_prompt_construction_no_copyleft():
 
 def test_needs_suggestion_true_unknown_main():
     """
-    Verifies that suggestion is needed if main license is Unknown/None.
+    Verifica che sia necessaria una suggestione se la licenza principale è Sconosciuta/None.
     """
     assert license_recommender.needs_license_suggestion(None, []) is True
     assert license_recommender.needs_license_suggestion("Unknown", []) is True
@@ -457,31 +458,31 @@ def test_needs_suggestion_true_unknown_main():
 
 def test_needs_suggestion_false_known_main():
     """
-    Verifies that suggestion is NOT needed if main license is known (e.g. MIT).
-    Also covers the loop execution where issues have known licenses.
+    Verifica che NON sia necessaria una suggestione se la licenza principale è conosciuta (ad es. MIT).
+    Copre anche l'esecuzione del ciclo dove i problemi hanno licenze conosciute.
     """
     issues = [{"detected_license": "MIT"}]
-    # Main license known ("MIT") -> logic falls through to loop -> returns False
+    # Licenza principale conosciuta ("MIT") -> la logica passa al ciclo -> restituisce False
     assert license_recommender.needs_license_suggestion("MIT", issues) is False
 
 def test_needs_suggestion_false_unknown_files():
     """
-    Verifies the specific branch where files have 'unknown' licenses.
-    Note: Current implementation returns False in this case too.
+    Verifica il ramo specifico in cui i file hanno licenze 'sconosciute'.
+    Nota: L'implementazione attuale restituisce False anche in questo caso.
     """
     issues = [{"detected_license": "unknown"}]
-    # Main known ("MIT") -> issue is unknown -> loop hits 'return False' early
+    # Principale conosciuto ("MIT") -> problema sconosciuto -> ciclo colpisce 'return False' presto
     assert license_recommender.needs_license_suggestion("MIT", issues) is False
 
 
 def test_suggest_license_strips_generic_markdown():
     """
-    Verifies that generic Markdown code blocks (``` ... ``` without 'json')
-    are correctly stripped. This covers the specific branch:
-    'if response.startswith("```"):' which is otherwise skipped by json blocks.
+    Verifica che i blocchi di codice Markdown generici (``` ... ``` senza 'json')
+    vengano correttamente rimossi. Questo copre il ramo specifico:
+    'if response.startswith("```"):' che viene altrimenti saltato dai blocchi json.
     """
     requirements = {"commercial_use": True}
-    # Response with generic code block tags
+    # Risposta con tag di blocco di codice generico
     mock_response = "```\n" + json.dumps({
         "suggested_license": "GPL-3.0",
         "explanation": "Strong copyleft",
@@ -496,31 +497,32 @@ def test_suggest_license_strips_generic_markdown():
 
 def test_enrich_with_llm_suggestions_llm_failure_fallback():
     """
-    Verifies that if the LLM fails to return a suggestion (returns None) for a
-    code file, the suggestion text handles it gracefully.
+    Verifica che se l'LLM non riesce a restituire un suggerimento (restituisce None) per un
+    file di codice, il testo del suggerimento gestisca la situazione in modo elegante.
     """
     issues = [{"file_path": "file.py", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
 
-    # Mock ask_llm_for_suggestions to return None (simulating failure/empty response)
+    # Mock ask_llm_for_suggestions per restituire None (simulando errore/riposta vuota)
     with patch('app.services.llm.suggestion.ask_llm_for_suggestions', return_value=None):
         result = enrich_with_llm_suggestions("MIT", issues)
 
         assert len(result) == 1
-        # When licenses_list_str is None, f"{licenses_list_str}" becomes "None"
+        # Quando licenses_list_str è None, f"{licenses_list_str}" diventa "None"
         assert "None" in result[0]["suggestion"]
         assert result[0]["licenses"] is None
 
 
 def test_enrich_with_llm_suggestions_doc_review_failure_fallback():
     """
-    Verifies that if the LLM fails to review a document (returns None) for a
-    text/markdown file, the fallback message 'Check document manually.' is used.
+    Verifica che se l'LLM non riesce a esaminare un documento (restituisce None) per un
+    file di testo/markdown, il messaggio di fallback 'Controlla il documento manualmente.' venga utilizzato.
     """
     issues = [{"file_path": "README.md", "detected_license": "GPL", "compatible": False, "reason": "incompatible"}]
 
-    # Mock review_document to return None
+    # Mock review_document per restituire None
     with patch('app.services.llm.suggestion.review_document', return_value=None):
         result = enrich_with_llm_suggestions("MIT", issues)
 
         assert len(result) == 1
         assert "Check document manually." in result[0]["suggestion"]
+

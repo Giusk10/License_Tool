@@ -1,17 +1,17 @@
 """
 License Compatibility Checker Unit Test Module.
 
-This module provides unit tests for the `check_compatibility` function located in
-`app.services.compatibility.checker`. It validates the logic used to compare
-a project's main license against individual file licenses using a professional
-compatibility matrix and SPDX expression parsing.
+Questo modulo fornisce test unitari per la funzione `check_compatibility` situata in
+`app.services.compatibility.checker`. Valida la logica utilizzata per confrontare
+la licenza principale di un progetto con le licenze dei singoli file usando una matrice
+professionale di compatibilità e il parsing delle espressioni SPDX.
 
-The suite covers:
-1. Main License Validation: Handling of missing, invalid, or special SPDX values.
-2. Matrix Availability: Behavior when the compatibility matrix is missing or incomplete.
-3. Evaluation Outcomes: Correct processing of 'yes', 'no', 'conditional', and 'unknown' statuses.
-4. SPDX Integration: Verification of recursive parsing calls for complex expressions.
-5. Bulk Processing: Ensuring all files in a repository are processed and reported correctly.
+La suite copre:
+1. Validazione della licenza principale: Gestione di valori SPDX mancanti, non validi o speciali.
+2. Disponibilità della matrice: Comportamento quando la matrice di compatibilità è assente o incompleta.
+3. Esiti di valutazione: Corretta gestione degli stati 'yes', 'no', 'conditional' e 'unknown'.
+4. Integrazione SPDX: Verifica delle chiamate ricorsive di parsing per espressioni complesse.
+5. Elaborazione bulk: Verifica che tutti i file del repository vengano processati e riportati correttamente.
 """
 
 from unittest.mock import MagicMock
@@ -21,22 +21,21 @@ from app.services.compatibility.checker import check_compatibility
 #                                     FIXTURES
 # ==================================================================================
 
-# Note: This module relies on global fixtures defined in conftest.py:
-# - complex_matrix_data: Provides a standardized mock of the compatibility matrix.
-# - _msg_matches: Helper for bilingual (IT/EN) assertion of error messages.
+# Nota: Questo modulo si basa su fixture globali definite in conftest.py:
+# - complex_matrix_data: Fornisce un mock standardizzato della matrice di compatibilità.
+# - _msg_matches: Helper per asserzioni bilingue (IT/EN) sui messaggi di errore.
 
 # ==================================================================================
-#                           TESTS: VALIDATION & INITIALIZATION
+#                           TEST: VALIDAZIONE E INIZIALIZZAZIONE
 # ==================================================================================
 
 
 def test_main_license_invalid_returns_issues(monkeypatch):
     """
-    Verifies behavior when the main license is missing or fails normalization.
+    Verifica il comportamento quando la licenza principale manca o fallisce la normalizzazione.
 
-    Ensures that if no valid main license is detected, the system flags all
-    files with a status indicating the main license is invalid, rather than
-    attempting a compatibility check.
+    Assicura che se non viene rilevata una licenza principale valida, il sistema segnali tutti i file
+    con uno stato che indica la licenza principale non valida, invece di tentare un controllo di compatibilità.
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "")
     res = check_compatibility("", {"a.py": "MIT"})
@@ -50,10 +49,10 @@ def test_main_license_invalid_returns_issues(monkeypatch):
 
 def test_matrix_missing_or_license_not_in_matrix(monkeypatch):
     """
-    Tests behavior when the professional compatibility matrix is unavailable.
+    Testa il comportamento quando la matrice professionale di compatibilità non è disponibile.
 
-    Ensures that if 'get_matrix' returns None, the system reports a specific
-    error indicating the matrix is missing rather than failing silently.
+    Assicura che se 'get_matrix' restituisce None, il sistema segnali uno specifico errore
+    che indica la mancanza della matrice invece di fallire silenziosamente.
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: None)
@@ -65,10 +64,10 @@ def test_matrix_missing_or_license_not_in_matrix(monkeypatch):
 
 def test_eval_yes_marks_compatible_and_includes_trace(complex_matrix_data, monkeypatch):
     """
-    Validates a successful 'yes' (Compatible) outcome.
+    Valida un esito 'yes' (Compatibile) di successo.
 
-    Verifies that when the evaluator confirms compatibility, the issue is
-    marked as True and the specific trace (e.g., 'direct match') is included.
+    Verifica che quando l'evaluator conferma la compatibilità, il problema sia
+    marcato come True e la traccia specifica (es. 'direct match') sia inclusa.
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: complex_matrix_data)
@@ -85,10 +84,10 @@ def test_eval_yes_marks_compatible_and_includes_trace(complex_matrix_data, monke
 
 def test_eval_no_marks_incompatible_and_includes_trace(complex_matrix_data, monkeypatch):
     """
-    Validates a 'no' (Incompatible) outcome.
+    Valida un esito 'no' (Incompatibile).
 
-    Ensures that license conflicts are correctly identified, marking the
-    issue as incompatible and providing the conflict trace in the reason.
+    Assicura che i conflitti di licenza vengano identificati correttamente, marcando il
+    problema come incompatibile e fornendo la traccia del conflitto nella motivazione.
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "GPL-3.0")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: complex_matrix_data)
@@ -102,10 +101,10 @@ def test_eval_no_marks_incompatible_and_includes_trace(complex_matrix_data, monk
 
 def test_eval_conditional_returns_hint_in_reason_and_not_compatible(complex_matrix_data, monkeypatch):
     """
-    Verifies processing of 'conditional' compatibility.
+    Verifica la gestione della compatibilità 'conditional'.
 
-    Ensures that conditional outcomes are treated as indeterminate (None)
-    for safety, while providing the user with the necessary clauses/hints.
+    Assicura che gli esiti condizionali siano trattati come indeterminati (None)
+    per sicurezza, fornendo comunque all'utente le clausole/hint necessari.
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: complex_matrix_data)
@@ -121,16 +120,16 @@ def test_eval_conditional_returns_hint_in_reason_and_not_compatible(complex_matr
     assert "Outcome: conditional" in issue["reason"]
 
 # ==================================================================================
-#                              TESTS: DATA EDGE CASES
+#                              TEST: CASI LIMITE SUI DATI
 # ==================================================================================
 
 
 def test_all_files_compatible_returns_no_issues(complex_matrix_data, monkeypatch):
     """
-    Ensures correct reporting when all files are compatible.
+    Assicura la corretta segnalazione quando tutti i file sono compatibili.
 
-    Verifies that the service still returns entries for all analyzed files,
-    correctly marking them as compatible without raising false alarms.
+    Verifica che il servizio restituisca comunque voci per tutti i file analizzati,
+    marcandoli correttamente come compatibili senza falsi allarmi.
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: complex_matrix_data)
@@ -146,11 +145,11 @@ def test_all_files_compatible_returns_no_issues(complex_matrix_data, monkeypatch
 
 def test_matrix_present_but_main_not_in_matrix(monkeypatch):
     """
-    Handles cases where the main license is not defined in the professional matrix.
+    Gestisce i casi in cui la licenza principale non è definita nella matrice professionale.
 
-    Verifies that if the project's primary license is missing from the
-    compatibility data, the checker generates an issue alerting the user
-    that the specific license combination cannot be professionally validated.
+    Verifica che se la licenza primaria del progetto manca nei dati di compatibilità,
+    il checker generi un problema che avvisa l'utente che la combinazione specifica
+    non può essere validata professionalmente.
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: {"GPL-3.0": {"MIT": "no"}})
@@ -164,10 +163,10 @@ def test_matrix_present_but_main_not_in_matrix(monkeypatch):
 
 def test_eval_unknown_status_shows_unknown_hint(complex_matrix_data, monkeypatch):
     """
-    Validates fallback for unexpected evaluation statuses.
+    Valida il fallback per stati di valutazione inattesi.
 
-    Ensures that if the node evaluator returns an unrecognized status code,
-    the service defaults to marking the file as indeterminate (None).
+    Assicura che se l'evaluator restituisce uno stato non riconosciuto,
+    il servizio segni il file come indeterminato (None).
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: complex_matrix_data)
@@ -182,10 +181,10 @@ def test_eval_unknown_status_shows_unknown_hint(complex_matrix_data, monkeypatch
 
 def test_empty_detected_license_calls_parse_with_empty(monkeypatch, complex_matrix_data):
     """
-    Tests handling of 'None' or empty detected licenses.
+    Testa la gestione di licenze rilevate 'None' o vuote.
 
-    Ensures that if the scanner fails to detect a license (returning None),
-    the checker passes an empty string to the SPDX parser to avoid crashes.
+    Assicura che se lo scanner non rileva una licenza (restituisce None),
+    il checker passi una stringa vuota al parser SPDX per evitare crash.
     """
     monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s: "MIT")
     monkeypatch.setattr("app.services.compatibility.checker.get_matrix", lambda: complex_matrix_data)
@@ -201,10 +200,10 @@ def test_empty_detected_license_calls_parse_with_empty(monkeypatch, complex_matr
 
 def test_main_license_special_values_treated_as_invalid(monkeypatch):
     """
-    Handles SPDX special keywords (UNKNOWN, NOASSERTION, NONE).
+    Gestisce le parole chiave speciali SPDX (UNKNOWN, NOASSERTION, NONE).
 
-    Ensures that non-descriptive primary license values trigger an
-    invalidation error, as compatibility cannot be determined against them.
+    Assicura che valori primari non descrittivi generino un errore di invalidazione,
+    poiché la compatibilità non può essere determinata rispetto a essi.
     """
     for val in ("UNKNOWN", "NOASSERTION", "NONE"):
         monkeypatch.setattr("app.services.compatibility.checker.normalize_symbol", lambda s, v=val: v)

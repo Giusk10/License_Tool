@@ -1,18 +1,17 @@
 """
-License Suggestion Integration Test Module.
+Modulo di test di integrazione per il suggerimento di licenza.
 
-This module contains integration tests for the license suggestion feature, focusing
-on the `/api/suggest-license` endpoint and related analysis responses.
-Unlike unit tests, these tests utilize the FastAPI `TestClient` to verify the
-full request/response cycle, including routing, Pydantic validation, and
-controller orchestration.
+Questo modulo contiene test di integrazione per la funzionalità di suggerimento licenza, con focus
+sull'endpoint `/api/suggest-license` e sulle risposte di analisi correlate.
+A differenza dei test di unità, questi test utilizzano il `TestClient` di FastAPI per verificare l'intero ciclo richiesta/risposta,
+compresi routing, validazione Pydantic e orchestrazione dei controller.
 
-The suite covers:
-1. License Suggestion Endpoint: Verifying successful suggestions based on user requirements.
-2. Contextual Suggestions: Ensuring existing project licenses influence the recommendation.
-3. Copyleft Logic: Validating that specific constraints (e.g., strong copyleft) are respected.
-4. Error Handling & Fallback: Verifying behavior when the LLM service returns malformed data.
-5. Analysis Integration: Checking that the analysis endpoint correctly flags when a suggestion is needed.
+La suite copre:
+1. Endpoint di suggerimento licenza: verifica suggerimenti corretti in base ai requisiti utente.
+2. Suggerimenti contestuali: verifica che le licenze già presenti influenzino la raccomandazione.
+3. Logica copyleft: verifica che vincoli specifici (es. strong copyleft) siano rispettati.
+4. Gestione errori e fallback: verifica il comportamento quando il servizio LLM restituisce dati malformati.
+5. Integrazione con l'analisi: verifica che l'endpoint di analisi segnali correttamente quando serve un suggerimento.
 """
 
 
@@ -26,18 +25,18 @@ client = TestClient(app)
 
 class TestLicenseSuggestionEndpoint:
     """
-    Integration tests for the /api/suggest-license endpoint.
+    Test di integrazione per l'endpoint /api/suggest-license.
 
-    Verifies the correct handling of HTTP requests, payload validation,
-    and JSON response formatting by simulating calls to the running application.
+    Verifica la corretta gestione delle richieste HTTP, la validazione dei payload
+    e la formattazione della risposta JSON simulando chiamate all'applicazione in esecuzione.
     """
 
     def test_suggest_license_success(self):
         """
-        Verifies a standard successful suggestion request.
+        Verifica una richiesta di suggerimento standard andata a buon fine.
 
-        Ensures that providing valid requirements returns a 200 OK status
-        and a JSON structure containing the suggestion, explanation, and alternatives.
+        Assicura che fornendo requisiti validi venga restituito uno status 200 OK
+        e una struttura JSON contenente suggerimento, spiegazione e alternative.
         """
         payload = {
             "owner": "test_owner",
@@ -69,10 +68,10 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_with_detected_licenses(self):
         """
-        Verifies that detected licenses are passed to the context.
+        Verifica che le licenze rilevate vengano passate nel contesto.
 
-        Ensures that if the request includes a list of pre-detected licenses,
-        these are correctly formatted and included in the prompt sent to the LLM.
+        Assicura che, se la richiesta include una lista di licenze già rilevate,
+        queste vengano correttamente formattate e incluse nel prompt inviato al LLM.
         """
         payload = {
             "owner": "test_owner",
@@ -104,10 +103,10 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_with_detected_gpl_should_suggest_compatible(self):
         """
-        Verifies compatibility logic with viral licenses.
+        Verifica la logica di compatibilità con licenze virali.
 
-        Ensures that if a GPL license is detected in the project, the suggestion
-        engine prioritizes compatible licenses (e.g., avoiding permissive-only suggestions).
+        Assicura che, se nel progetto viene rilevata una licenza GPL, il motore di suggerimento
+        dia priorità a licenze compatibili (es. evitando solo suggerimenti permissivi).
         """
         payload = {
             "owner": "test_owner",
@@ -134,10 +133,10 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_with_empty_detected_licenses(self):
         """
-        Verifies behavior when the detected licenses list is empty.
+        Verifica il comportamento quando la lista delle licenze rilevate è vuota.
 
-        Ensures the 'EXISTING LICENSES' section is omitted from the prompt
-        to avoid confusing the LLM with empty data.
+        Assicura che la sezione 'EXISTING LICENSES' venga omessa dal prompt
+        per non confondere il LLM con dati vuoti.
         """
         payload = {
             "owner": "test_owner",
@@ -165,10 +164,10 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_with_strong_copyleft(self):
         """
-        Verifies strict copyleft requirement handling.
+        Verifica la gestione di vincoli di copyleft forte.
 
-        Ensures that setting 'copyleft' to 'strong' forces the system
-        to suggest licenses like GPL or AGPL.
+        Assicura che impostando 'copyleft' a 'strong' il sistema suggerisca
+        licenze come GPL o AGPL.
         """
         payload = {
             "owner": "test_owner",
@@ -198,10 +197,10 @@ class TestLicenseSuggestionEndpoint:
 
     def test_suggest_license_llm_failure_fallback(self):
         """
-        Verifies resilience against LLM failures.
+        Verifica la resilienza in caso di fallimento del LLM.
 
-        Ensures that if the LLM returns invalid JSON or fails, the endpoint
-        gracefully degrades to a default safe suggestion (MIT).
+        Assicura che, se il LLM restituisce JSON non valido o fallisce, l'endpoint
+        degradi in modo sicuro suggerendo una licenza di default (MIT).
         """
         payload = {
             "owner": "test_owner",
@@ -225,16 +224,16 @@ class TestLicenseSuggestionEndpoint:
 
 class TestAnalyzeResponseWithSuggestion:
     """
-    Integration tests for schema validation in analysis workflows.
+    Test di integrazione per la validazione dello schema nei workflow di analisi.
     """
 
     @patch('app.controllers.analysis.perform_initial_scan')
     def test_analyze_sets_needs_suggestion_flag(self, mock_scan):
         """
-        Verifies that the analysis endpoint sets the suggestion flag.
+        Verifica che l'endpoint di analisi imposti il flag di suggerimento.
 
-        When the main license is unknown, the API response must include
-        `needs_license_suggestion=True` to trigger frontend prompts.
+        Quando la licenza principale è sconosciuta, la risposta API deve includere
+        `needs_license_suggestion=True` per attivare i prompt lato frontend.
         """
         from app.models.schemas import AnalyzeResponse
 
@@ -256,3 +255,4 @@ class TestAnalyzeResponseWithSuggestion:
         assert response.status_code == 200
         data = response.json()
         assert data.get("needs_license_suggestion") is True
+

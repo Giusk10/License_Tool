@@ -6,14 +6,14 @@ from app.services.llm.license_recommender import (
 
 class TestLicenseRecommenderService:
     """
-    Unit tests for the license_recommender service logic.
-    These tests verify the core logic functions in isolation without invoking the API.
+    Test unitari per la logica del servizio license_recommender.
+    Questi test verificano le funzioni di logica principale in isolamento senza invocare l'API.
     """
 
     def test_needs_license_suggestion_no_main_license(self):
         """
-        Test `needs_license_suggestion` when no main license exists.
-        Should return True if the main license is 'Unknown', 'None', or empty.
+        Test di `needs_license_suggestion` quando non esiste una licenza principale.
+        Deve restituire True se la licenza principale è 'Unknown', 'None' o vuota.
         """
         issues = [{"detected_license": "MIT", "compatible": True}]
         assert needs_license_suggestion("Unknown", issues) is True
@@ -22,8 +22,8 @@ class TestLicenseRecommenderService:
 
     def test_needs_license_suggestion_not_needed(self):
         """
-        Test `needs_license_suggestion` when a main license is already present.
-        Should return False.
+        Test di `needs_license_suggestion` quando una licenza principale è già presente.
+        Deve restituire False.
         """
         issues = [
             {"detected_license": "MIT", "compatible": True},
@@ -34,8 +34,8 @@ class TestLicenseRecommenderService:
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_based_on_requirements_permissive(self, mock_llm):
         """
-        Test `suggest_license_based_on_requirements` for permissive license requirements.
-        Verifies that the service correctly calls the LLM and parses the response.
+        Test di `suggest_license_based_on_requirements` per requisiti di licenza permissiva.
+        Verifica che il servizio chiami correttamente l'LLM e analizzi la risposta.
         """
         mock_llm.return_value = '''
         {
@@ -60,6 +60,9 @@ class TestLicenseRecommenderService:
 
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_with_detected_licenses_in_prompt(self, mock_llm):
+        """
+        Test che verifica che le licenze rilevate siano incluse nel prompt passato all'LLM.
+        """
         mock_llm.return_value = '''
         {
             "suggested_license": "Apache-2.0",
@@ -78,13 +81,16 @@ class TestLicenseRecommenderService:
         result = suggest_license_based_on_requirements(requirements, detected_licenses=detected_licenses)
         assert result["suggested_license"] == "Apache-2.0"
 
-        # Verify the prompt includes detected licenses
+        # Verifica che il prompt includa le licenze rilevate
         call_args = mock_llm.call_args[0][0]
         assert "EXISTING LICENSES IN PROJECT" in call_args
         assert "Apache-2.0, MIT, BSD-3-Clause" in call_args
 
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_without_detected_licenses(self, mock_llm):
+        """
+        Test che verifica che il prompt NON includa la sezione delle licenze rilevate se non sono fornite.
+        """
         mock_llm.return_value = '''
         {
             "suggested_license": "MIT",
@@ -99,14 +105,14 @@ class TestLicenseRecommenderService:
         result = suggest_license_based_on_requirements(requirements, detected_licenses=None)
         assert result["suggested_license"] == "MIT"
 
-        # Verify the prompt does NOT include detected licenses section
+        # Verifica che il prompt NON includa la sezione delle licenze rilevate
         call_args = mock_llm.call_args[0][0]
         assert "EXISTING LICENSES IN PROJECT" not in call_args
 
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_json_parsing_error(self, mock_llm):
         """
-        Test robustness against malformed JSON responses from the LLM.
+        Test della robustezza contro risposte JSON malformate dall'LLM.
         """
         mock_llm.return_value = "This is not valid JSON"
         requirements = {
@@ -116,14 +122,14 @@ class TestLicenseRecommenderService:
             "copyleft": "none"
         }
         result = suggest_license_based_on_requirements(requirements)
-        # Should return MIT as fallback
+        # Deve restituire MIT come fallback
         assert result["suggested_license"] == "MIT"
         assert "explanation" in result
 
     @patch('app.services.llm.license_recommender.call_ollama_deepseek')
     def test_suggest_license_with_markdown_wrapper(self, mock_llm):
         """
-        Test that Markdown code blocks are stripped from the LLM response before parsing.
+        Test che verifica che i blocchi di codice Markdown vengano rimossi dalla risposta dell'LLM prima del parsing.
         """
         mock_llm.return_value = '''```json
         {
@@ -139,3 +145,4 @@ class TestLicenseRecommenderService:
         }
         result = suggest_license_based_on_requirements(requirements)
         assert result["suggested_license"] == "Apache-2.0"
+

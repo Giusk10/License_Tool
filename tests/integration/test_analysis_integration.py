@@ -1,17 +1,19 @@
 """
-API Integration Testing Suite - Analysis & Authentication.
+Suite di test di integrazione API - Analisi e Autenticazione.
 
-This module validates the integration between FastAPI controllers and the
-underlying services (GitHub OAuth, ZIP handling, and License Analysis).
-It ensures that the API correctly orchestrates complex workflows, handles
-file system I/O, and manages external service failures gracefully.
+Questo modulo valida l'integrazione tra i controller FastAPI e i servizi sottostanti (OAuth GitHub, gestione ZIP e Analisi Licenze).
+Garantisce che l'API orchestrii correttamente flussi di lavoro complessi, gestisca l'I/O del file system e gestisca con grazia i fallimenti dei servizi esterni.
 
-The suite is divided into:
-1. OAuth Authentication Flow (GitHub).
-2. ZIP Archive Lifecycle (Upload, Extraction, Normalization).
-3. Analysis Orchestration (Scanning and LLM integration).
-4. Artifact Retrieval (Regeneration and Download).
+La suite è suddivisa in:
+1. Flusso di autenticazione OAuth (GitHub).
+2. Ciclo di vita degli archivi ZIP (Caricamento, Estrazione, Normalizzazione).
+3. Orchestrazione dell'analisi (Scansione e integrazione LLM).
+4. Recupero degli artefatti (Rigenerazione e Download).
 """
+
+# ==================================================================================
+#                          TEST SUITE: GITHUB OAUTH FLOW
+# ==================================================================================
 
 import pytest
 import httpx
@@ -19,25 +21,25 @@ from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 from app.main import app
 
-# Global client for testing that does not require patched directories
+# Client globale per i test che non richiede directory patchate
 client = TestClient(app)
 
 """
-Integration tests for the /api/auth/start and /api/callback endpoints
-These tests verify the complete OAuth authentication flow with GitHub
+Test di integrazione per gli endpoint /api/auth/start e /api/callback
+Questi test verificano l'intero flusso di autenticazione OAuth con GitHub
 """
 
 # --- CLEANUP FIXTURES ---
 @pytest.fixture
 def mock_env_credentials():
-    """Emulates environment variables or the function that retrieves them."""
+    """Emula le variabili d'ambiente o la funzione che le recupera."""
     with patch("app.controllers.analysis.github_auth_credentials", side_effect=["MOCK_CID", "MOCK_SEC"]) as m:
         yield m
 
 
 @pytest.fixture
 def mock_httpx_post():
-    """Mock the httpx POST call."""
+    """Mock della chiamata httpx POST."""
     with patch("app.controllers.analysis.httpx.AsyncClient.post", new_callable=AsyncMock) as m:
         yield m
 
@@ -48,21 +50,15 @@ def mock_clone():
     with patch("app.controllers.analysis.perform_cloning") as m:
         yield m
 
-# ==================================================================================
-#                          TEST SUITE: GITHUB OAUTH FLOW
-# ==================================================================================
-
 """
-API Integration Suite: Archive Lifecycle & Analysis Orchestration.
+Suite di integrazione API: Ciclo di vita degli archivi & Orchestrazione dell'analisi.
 
-This module validates the core "Upload-Analyze-Fix" pipeline. It ensures that 
-the system correctly handles file system operations, archive extraction, 
-and the sequence of calls between the API layer and the backend workers.
+Questo modulo valida la pipeline principale "Carica-Analizza-Correggi". Garantisce che il sistema gestisca correttamente le operazioni sul file system, l'estrazione degli archivi e la sequenza di chiamate tra il livello API e i worker di backend.
 
-Key Functional Areas:
-1. ZIP Extraction: Handling varying archive structures and filesystem overwrites.
-2. Analysis Pipeline: Coordinating scanners and AI models (Hybrid integration).
-3. Regeneration Workflow: Applying fixes to physical source files.
+Aree funzionali chiave:
+1. Estrazione ZIP: Gestione di strutture di archivio variabili e sovrascritture del file system.
+2. Pipeline di analisi: Coordinamento di scanner e modelli AI (integrazione ibrida).
+3. Flusso di rigenerazione: Applicazione delle correzioni ai file sorgente fisici.
 """
 import os
 import shutil
@@ -77,7 +73,7 @@ from app.utility import config
 @pytest.fixture
 def sample_zip_file():
     """
-    Create a ZIP file in memory with a simple test structure:
+    Crea un file ZIP in memoria con una semplice struttura di test:
     test-repo-main/
         ├── README.md
         ├── LICENSE (MIT)
@@ -101,7 +97,7 @@ def sample_zip_file():
 @pytest.fixture
 def flat_zip_file():
     """
-    Create a "flat" ZIP file (without the root directory):
+    Crea un file ZIP "piatto" (senza la directory radice):
     ├── README.md
     ├── LICENSE
     └── main.py
@@ -118,9 +114,9 @@ def flat_zip_file():
 
 @pytest.fixture
 def cleanup_test_repos():
-    """Fixture to clean test repositories after each test."""
+    """Fixture per pulire i repository di test dopo ogni test."""
     yield
-    # Cleanup after the test
+    # Pulizia dopo il test
     test_patterns = [
         'testowner_testrepo',
         'flatowner_flatrepo',
@@ -146,21 +142,19 @@ def cleanup_test_repos():
 # ==================================================================================
 #                          TEST SUITE: ZIP ARCHIVE LIFECYCLE
 # ==================================================================================
-# These tests verify real-world integration between:
-# - FastAPI endpoint (/api/zip)
-# - File system (extraction, directory creation)
-# - ZIP management (zipfile library)
-# - Parameter validation
-# NO MOCKS of the features under test
+# Questi test verificano l'integrazione nel mondo reale tra:
+# - Endpoint FastAPI (/api/zip)
+# - File system (estrazione, creazione directory)
+# - Gestione ZIP (libreria zipfile)
+# - Validazione dei parametri
+# NON CI SONO MOCK dei funzionalità sotto test
 # ==============================================================================
 
 def test_upload_zip_success_with_root_folder(sample_zip_file, cleanup_test_repos):
     """
-    Validates ZIP extraction and path normalization logic.
+    Valida la logica di estrazione ZIP e normalizzazione dei percorsi.
 
-    This test ensures that repositories packaged with a single parent directory
-    (e.g., test-repo-main/) are "flattened" so that the source code resides
-    directly in the target directory without redundant nesting.
+    Questo test garantisce che i repository impacchettati con una singola directory padre (es. test-repo-main/) vengano "appiattiti" in modo che il codice sorgente risieda direttamente nella directory di destinazione senza nidificazioni ridondanti.
     """
     files = {
         'uploaded_file': ('test-repo.zip', sample_zip_file, 'application/zip')
@@ -172,7 +166,7 @@ def test_upload_zip_success_with_root_folder(sample_zip_file, cleanup_test_repos
 
     response = client.post('/api/zip', files=files, data=data)
 
-    # Check answer
+    # Verifica risposta
     assert response.status_code == 200
     json_response = response.json()
     assert json_response['status'] == 'cloned_from_zip'
@@ -187,24 +181,21 @@ def test_upload_zip_success_with_root_folder(sample_zip_file, cleanup_test_repos
     assert os.path.exists(os.path.join(repo_path, 'LICENSE'))
     assert os.path.exists(os.path.join(repo_path, 'src', 'main.py'))
 
-    # Make sure there is NOT an extra directory (test-repo-main/)
+    # Assicurati che NON ci sia una directory extra (test-repo-main/)
     assert not os.path.exists(os.path.join(repo_path, 'test-repo-main'))
 
 
 def test_upload_zip_success_flat_structure(flat_zip_file, cleanup_test_repos):
     """
-    Integration Test: Upload of a ZIP with a flat directory structure.
+    Test di integrazione: Caricamento di uno ZIP con una struttura di directory piatta.
 
-    Objective:
-    Ensures that the extraction logic correctly identifies that there is
-    no single root directory to 'flatten' and instead extracts all files
-    directly into the designated {owner}_{repo} target directory.
+    Obiettivo:
+    Garantisce che la logica di estrazione identifichi correttamente che non esiste una singola directory radice da "appiattire" ed estragga invece tutti i file direttamente nella directory di destinazione {owner}_{repo}.
 
-    Validation:
-    1. HTTP 200 OK response.
-    2. Verification of the 'local_path' returned in the JSON payload.
-    3. Physical existence check of core files (README, LICENSE, main.py)
-       inside the target directory on the host filesystem.
+    Validazione:
+    1. Risposta HTTP 200 OK.
+    2. Verifica del 'local_path' restituito nel payload JSON.
+    3. Controllo dell'esistenza fisica dei file principali (README, LICENSE, main.py) all'interno della directory di destinazione sul file system host.
     """
     files = {
         'uploaded_file': ('flat-repo.zip', flat_zip_file, 'application/zip')
@@ -227,11 +218,9 @@ def test_upload_zip_success_flat_structure(flat_zip_file, cleanup_test_repos):
 
 def test_upload_zip_invalid_file_type(cleanup_test_repos):
     """
-    Verify that unsupported files are blocked.
+    Verifica che i file non supportati vengano bloccati.
 
-    The endpoint must act as a gatekeeper: if the user attempts to upload a
-    text file (.txt) instead of an archive, the system must abort
-    the operation before touching the file system.
+    L'endpoint deve agire come un gatekeeper: se l'utente tenta di caricare un file di testo (.txt) invece di un archivio, il sistema deve interrompere l'operazione prima di toccare il file system.
     """
     fake_file = BytesIO(b"This is not a zip file")
     files = {
@@ -250,11 +239,11 @@ def test_upload_zip_invalid_file_type(cleanup_test_repos):
 
 def test_upload_zip_corrupted_file(cleanup_test_repos):
     """
-     Tests the handling of corrupt binary archives.
+     Testa la gestione di archivi binari corrotti.
 
-     Tests the system's resilience against files that have the correct extension
-    but malformed binary content. The system should catch the 'BadZipFile'
-    exception and return a client-side error (400) instead of a crash (500).
+     Testa la resilienza del sistema contro file che hanno l'estensione corretta
+     ma contenuto binario malformato. Il sistema dovrebbe catturare l'eccezione 'BadZipFile'
+     e restituire un errore client-side (400) invece di un crash (500).
      """
     corrupted_zip = BytesIO(b"PK\x03\x04CORRUPTED_DATA")
     files = {
@@ -273,11 +262,10 @@ def test_upload_zip_corrupted_file(cleanup_test_repos):
 
 def test_upload_zip_overwrites_existing(sample_zip_file, cleanup_test_repos):
     """
-    Integration Test: Filesystem Idempotency.
+    Test di integrazione: Idempotenza del file system.
 
-    Verifies that uploading a ZIP for an existing owner/repo triggers a
-    complete cleanup of the old directory. This prevents 'file pollution'
-    where legacy files from a previous upload remain in the workspace.
+    Verifica che il caricamento di uno ZIP per un owner/repo esistente attivi una pulizia completa della vecchia directory. Questo previene la 'polluzione dei file'
+    dove i file legacy di un caricamento precedente rimangono nello spazio di lavoro.
     """
     # First creation
     files1 = {
@@ -292,7 +280,7 @@ def test_upload_zip_overwrites_existing(sample_zip_file, cleanup_test_repos):
     assert response1.status_code == 200
     repo_path = response1.json()['local_path']
 
-    # Let's add a marker file to check for overwriting
+    # Aggiungiamo un file marker per verificare la sovrascrittura
     marker_file = os.path.join(repo_path, 'MARKER.txt')
     with open(marker_file, 'w') as f:
         f.write('This should be deleted')
@@ -308,7 +296,7 @@ def test_upload_zip_overwrites_existing(sample_zip_file, cleanup_test_repos):
     response2 = client.post('/api/zip', files=files2, data=data)
     assert response2.status_code == 200
 
-    # Verify that the marker no longer exists (directory overwritten)
+    # Verifica che il marker non esista più (directory sovrascritta)
     assert not os.path.exists(marker_file)
     assert os.path.exists(os.path.join(repo_path, 'README.md'))
 
@@ -319,11 +307,11 @@ def test_upload_zip_overwrites_existing(sample_zip_file, cleanup_test_repos):
 
 def test_upload_zip_missing_owner_or_repo():
     """
-    Validation Test: Missing mandatory metadata.
+    Test di validazione: Metadati obbligatori mancanti.
 
-    Ensures that FastAPI's request validation correctly triggers a
-    422 Unprocessable Entity error when the multipart form lacks
-    required fields (owner or repo).
+    Garantisce che la validazione delle richieste FastAPI attivi correttamente un errore
+    422 Unprocessable Entity quando il modulo multipart manca
+    dei campi richiesti (owner o repo).
     """
     fake_zip = BytesIO(b"PK\x03\x04...")
 
@@ -347,11 +335,11 @@ def test_upload_zip_missing_owner_or_repo():
 
 def test_upload_zip_empty_file():
     """
-    Edge Case: 0-byte file upload.
+    Caso limite: Caricamento di file 0-byte.
 
-    Verifies that the system handles empty binary streams gracefully,
-    returning a client-side error (400) or server error (500)
-    depending on the zipfile library's initialization failure.
+    Verifica che il sistema gestisca i flussi binari vuoti in modo elegante,
+    restituendo un errore client (400) o errore server (500)
+    a seconda del fallimento dell'inizializzazione della libreria zipfile.
     """
     empty_file = BytesIO(b"")
     files = {
@@ -364,17 +352,17 @@ def test_upload_zip_empty_file():
 
     response = client.post('/api/zip', files=files, data=data)
 
-    # It can be 400 (corrupt zip) or 500 (internal error), it depends on the implementation
+    # Può essere 400 (zip corrotto) o 500 (errore interno), dipende dall'implementazione
     assert response.status_code in [400, 500]
 
 
 def test_upload_zip_with_special_characters_in_filename():
     """
-    Integration Test: Upload with complex characters in the ZIP filename.
+    Test di integrazione: Caricamento con caratteri complessi nel nome dello ZIP.
 
-    Verifies that the system correctly handles filenames with spaces, brackets,
-    and versioning tags. The filename of the ZIP itself should not affect
-    the target destination directory (which is derived from owner/repo).
+    Verifica che il sistema gestisca correttamente i nomi dei file con spazi, parentesi e
+    tag di versioning. Il nome dello ZIP non dovrebbe influenzare la directory di destinazione
+    (che è derivata da owner/repo).
     """
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
@@ -391,7 +379,7 @@ def test_upload_zip_with_special_characters_in_filename():
 
     response = client.post('/api/zip', files=files, data=data)
 
-    # Success expected: destination is independent of source filename
+    # Successo previsto: la destinazione è indipendente dal nome del file sorgente
     assert response.status_code == 200
 
     # Cleanup
@@ -402,14 +390,14 @@ def test_upload_zip_with_special_characters_in_filename():
 
 def test_upload_zip_with_nested_directories():
     """
-    Integration Test: Deeply nested directory structure.
+    Test di integrazione: Struttura di directory profondamente annidata.
 
-    Validates that the extraction engine correctly preserves complex hierarchical
-    structures and ensures files are accessible at the expected deep paths.
+    Valida che il motore di estrazione preservi correttamente strutture gerarchiche complesse
+    e garantisce che i file siano accessibili nei percorsi profondi previsti.
     """
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        # Deeply nested structure
+        # Struttura profondamente annidata
         zip_file.writestr('root/level1/level2/level3/deep_file.txt', 'Deep content')
         zip_file.writestr('root/README.md', '# Nested')
     zip_buffer.seek(0)
@@ -427,7 +415,7 @@ def test_upload_zip_with_nested_directories():
     assert response.status_code == 200
     repo_path = response.json()['local_path']
 
-    # Verify that nested files exist at the correct relative path
+    # Verifica che i file annidati esistano nel percorso relativo corretto
     assert os.path.exists(os.path.join(repo_path, 'level1', 'level2', 'level3', 'deep_file.txt'))
 
     # Cleanup
@@ -437,10 +425,9 @@ def test_upload_zip_with_nested_directories():
 
 def test_upload_zip_with_multiple_root_folders():
     """
-    Integration Test: ZIP with multiple folders at the root level.
+    Test di integrazione: ZIP con più cartelle a livello radice.
 
-    Verifies that archives containing multiple directories or files in the root
-    level are extracted completely without losing data or failing the structure check.
+    Verifica che gli archivi contenenti più directory o file a livello radice vengano estratti completamente senza perdere dati o fallire nel controllo della struttura.
     """
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
@@ -462,7 +449,7 @@ def test_upload_zip_with_multiple_root_folders():
     assert response.status_code == 200
     repo_path = response.json()['local_path']
 
-    # Verify all components exist at the extraction target
+    # Verifica che tutti i componenti esistano nella destinazione di estrazione
     assert os.path.exists(os.path.join(repo_path, 'folder1', 'file1.txt'))
     assert os.path.exists(os.path.join(repo_path, 'folder2', 'file2.txt'))
     assert os.path.exists(os.path.join(repo_path, 'root_file.txt'))
@@ -474,11 +461,10 @@ def test_upload_zip_with_multiple_root_folders():
 
 def test_analyze_on_empty_repository(cleanup_test_repos):
     """
-    Integration Test: Analyzing an empty repository (directory exists, no files).
+    Test di integrazione: Analisi di un repository vuoto (directory esiste, nessun file).
 
-    Validates the orchestration between the endpoint, filesystem, and the
-    analysis workflow when no data is present. Uses a minimal mock for
-    ScanCode to avoid real execution on an empty directory.
+    Valida l'orchestrazione tra l'endpoint, il file system e il flusso di lavoro di analisi quando non sono presenti dati. Utilizza un mock minimo per
+    ScanCode per evitare l'esecuzione reale su una directory vuota.
     """
     # Manually create an empty directory
     owner, repo = 'emptyowner', 'emptyrepo'
@@ -492,7 +478,7 @@ def test_analyze_on_empty_repository(cleanup_test_repos):
 
             response = client.post('/api/analyze', json={'owner': owner, 'repo': repo})
 
-            # Check for non-crashing behavior (expected 200, 400, or 500 depending on business logic)
+            # Verifica comportamento senza crash (previsto 200, 400 o 500 a seconda della logica di business)
             assert response.status_code in [200, 400, 500]
     finally:
         if os.path.exists(empty_path):
@@ -501,10 +487,10 @@ def test_analyze_on_empty_repository(cleanup_test_repos):
 
 def test_run_analysis_with_empty_string_parameters():
     """
-    Validation Test: /api/analyze called with empty string parameters.
+    Test di validazione: /api/analyze chiamato con parametri stringa vuota.
 
-    Verifies that the API enforces non-empty values for owner/repo
-    (not just presence, but content). Should return 400 Bad Request.
+    Verifica che l'API imponga valori non vuoti per owner/repo
+    (non solo presenza, ma contenuto). Dovrebbe restituire 400 Bad Request.
     """
     # Case 1: Owner is empty string
     response1 = client.post('/api/analyze', json={'owner': '', 'repo': 'testrepo'})
@@ -522,11 +508,11 @@ def test_run_analysis_with_empty_string_parameters():
 
 def test_run_analysis_repository_not_found():
     """
-     Integration Test: Analysis request for a non-existent repository.
+     Test di integrazione: Analisi richiesta per un repository non esistente.
 
-     Verifies the integration between the endpoint, workflow orchestration,
-     and the filesystem check. If the directory is missing, it should
-     return a 400 Bad Request with a clear error message.
+     Verifica l'integrazione tra l'endpoint, l'orchestrazione del flusso di lavoro,
+     e il controllo del file system. Se la directory è mancante, dovrebbe
+     restituire un errore 400 Bad Request con un chiaro messaggio di errore.
      """
     payload = {
         'owner': 'nonexistent',
@@ -541,10 +527,10 @@ def test_run_analysis_repository_not_found():
 
 def test_run_analysis_with_special_characters_in_params():
     """
-     Integration Test: Analysis with special characters in owner/repo.
+     Test di integrazione: Analisi con caratteri speciali in owner/repo.
 
-     Ensures the system handles non-standard characters (dashes, underscores)
-     in URL parameters correctly. The test expects a 400 error because the
+     Garantisce che il sistema gestisca correttamente caratteri non standard (trattini, sottolineature)
+     nei parametri URL. Il test si aspetta un errore 400 perché il
      directory won't exist, but validates that the request parsing is stable.
      """
     # Owner/repo with valid GitHub special characters
@@ -562,11 +548,11 @@ def test_run_analysis_with_special_characters_in_params():
 @patch('app.controllers.analysis.perform_initial_scan')
 def test_run_analysis_generic_exception(mock_scan):
     """
-    Integration Test: Handling unexpected runtime exceptions.
+    Test di integrazione: Gestione di eccezioni di runtime inaspettate.
 
-    Simulates a generic RuntimeError during the workflow (non-ValueError).
-    Verifies that the API catches the error and returns a 500 status
-    code with a generic 'Internal error' message to the client.
+    Simula un'eccezione RuntimeError generica durante il flusso di lavoro (non-ValueError).
+    Verifica che l'API catturi l'errore e restituisca un codice di stato 500
+    con un generico messaggio 'Internal error' al client.
     """
     # Mock that raises a generic Exception (simulates unexpected error)
     mock_scan.side_effect = RuntimeError("Unexpected error during scan")
@@ -582,30 +568,30 @@ def test_run_analysis_generic_exception(mock_scan):
 # ==============================================================================
 # HYBRID TESTS - RUN_ANALYSIS WORKFLOW
 # ==============================================================================
-# These tests verify the orchestration between the endpoint and the workflow
-# logic while MOCKING HEAVY external dependencies to avoid:
+# Questi test verificano l'orchestrazione tra l'endpoint e il flusso di lavoro
+# logica mentre MOCKING HEAVY external dependencies to avoid:
 # - Slow ScanCode execution (CLI tool)
 # - External LLM/Ollama API calls (Network/GPU cost)
 # - Physical report file generation
 #
-# They are labeled HYBRID because:
-# ✅ They test: HTTP routing, request validation, and workflow logic.
-# ❌ They DO NOT test: Real integration with the external AI or ScanCode tools.
+# Sono etichettati come IBRIDI perché:
+# ✅ Testano: routing HTTP, validazione delle richieste e logica del flusso di lavoro.
+# ❌ NON testano: Integrazione reale con gli strumenti esterni AI o ScanCode.
 # ==============================================================================
 
 @pytest.fixture
 def mock_scancode_and_llm():
     """
-    Fixture for HYBRID TESTS: Mocks all external dependencies of the analysis workflow.
+    Fixture per TEST IBRIDI: Mocka tutte le dipendenze esterne del flusso di lavoro di analisi.
 
-    Mocked components:
-    - ScanCode Tool (run_scancode)
-    - Primary License Detection (detect_main_license_scancode)
-    - Data Filtering (filter_licenses)
-    - AI-based Extraction (extract_file_licenses)
-    - License Ranking (choose_most_permissive_license_in_file)
-    - Compatibility Engine (check_compatibility)
-    - AI Suggestion Engine (enrich_with_llm_suggestions)
+    Componenti mockati:
+    - Strumento ScanCode (run_scancode)
+    - Rilevamento licenza principale (detect_main_license_scancode)
+    - Filtraggio dati (filter_licenses)
+    - Estrazione basata su AI (extract_file_licenses)
+    - Ranking licenze (choose_most_permissive_license_in_file)
+    - Motore di compatibilità (check_compatibility)
+    - Motore di suggerimenti AI (enrich_with_llm_suggestions)
     """
     with patch('app.services.analysis_workflow.run_scancode') as mock_scancode, \
             patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
@@ -667,12 +653,12 @@ def mock_scancode_and_llm():
 def test_run_analysis_success_after_upload(sample_zip_file, mock_scancode_and_llm, cleanup_test_repos):
     """
     [HYBRID TEST]
-    Full E2E flow: ZIP Upload -> Analysis execution with mocked dependencies.
+    Flusso E2E completo: Caricamento ZIP -> Esecuzione analisi con dipendenze mockate.
 
-    Steps:
-    1. Upload a ZIP file (Real filesystem integration).
-    2. Request analysis for that repository.
-    3. Verify that the result matches the mocked scan data.
+    Passi:
+    1. Carica un file ZIP (Integrazione reale del file system).
+    2. Richiedi analisi per quel repository.
+    3. Verifica che il risultato corrisponda ai dati di scansione mockati.
     """
     # Step 1: Upload ZIP
     files = {
@@ -704,12 +690,12 @@ def test_run_analysis_success_after_upload(sample_zip_file, mock_scancode_and_ll
 
 def test_run_analysis_with_incompatible_licenses(sample_zip_file, cleanup_test_repos):
     """
-    [HYBRID TEST]
-    Scenario: Detecting incompatible licenses using mocks.
+    [TEST IBRIDO]
+    Scenario: Rilevamento di licenze incompatibili utilizzando mock.
 
-    Ensures issues are correctly reported in the JSON response when:
-    - Main license is detected as MIT.
-    - A specific file contains GPL-3.0 (which is incompatible).
+    Garantisce che i problemi siano correttamente riportati nella risposta JSON quando:
+    - La licenza principale è rilevata come MIT.
+    - Un file specifico contiene GPL-3.0 (che è incompatibile).
     """
     with patch('app.services.analysis_workflow.run_scancode') as mock_scancode, \
             patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
@@ -776,27 +762,31 @@ def test_run_analysis_with_incompatible_licenses(sample_zip_file, cleanup_test_r
 def test_complete_workflow_upload_analyze(sample_zip_file, mock_scancode_and_llm, cleanup_test_repos):
     """
     [HYBRID TEST]
-    Full end-to-end workflow test: from ZIP upload to analysis completion.
+    Test completo del flusso di lavoro end-to-end: da caricamento ZIP a completamento analisi.
 
-    This test ensures that the system can successfully transition from
-    receiving a binary file to orchestrating a license scan on the
-    resulting directory structure.
+    Questo test garantisce che il sistema possa passare con successo dalla
+    ricezione di un file binario all'orchestrazione di una scansione licenza sulla
+    struttura di directory risultante.
 
-    Execution Steps:
-    1. Upload ZIP: Real integration test for multipart form handling and disk extraction.
-    2. Analyze: Trigger the workflow on the newly created directory.
-    3. Consistency Check: Verify that the analysis result correctly maps to the uploaded metadata.
+    Passi di esecuzione:
+    1. Carica ZIP: Test di integrazione reale per la gestione del modulo multipart e l'estrazione su disco.
+    2. Analizza: Attiva il flusso di lavoro sulla nuova directory creata.
+    3. Controllo di coerenza: Verifica che il risultato dell'analisi corrisponda ai metadati caricati.
 
-    External Dependencies Mocked: 6 (via mock_scancode_and_llm fixture).
+    Dipendenze esterne mockate: 6 (tramite la fixture mock_scancode_and_llm).
     """
     owner, repo = 'workflowowner', 'workflowrepo'
 
     # Step 1: Upload
-    upload_resp = client.post(
-        '/api/zip',
-        files={'uploaded_file': ('workflow.zip', sample_zip_file, 'application/zip')},
-        data={'owner': owner, 'repo': repo}
-    )
+    files = {
+        'uploaded_file': ('test-repo.zip', sample_zip_file, 'application/zip')
+    }
+    data = {
+        'owner': owner,
+        'repo': repo
+    }
+
+    upload_resp = client.post('/api/zip', files=files, data=data)
     assert upload_resp.status_code == 200
     local_path = upload_resp.json()['local_path']
     assert os.path.exists(local_path)
@@ -805,15 +795,16 @@ def test_complete_workflow_upload_analyze(sample_zip_file, mock_scancode_and_llm
     analyze_resp = client.post('/api/analyze', json={'owner': owner, 'repo': repo})
     assert analyze_resp.status_code == 200
 
+    # Step 3: Validate analysis result
     result = analyze_resp.json()
     assert result['repository'] == f'{owner}/{repo}'
     assert result['main_license'] is not None
 
 
 """
-INTEGRATION tests for the /api/regenerate and /api/download endpoints
-These tests verify the complete flow with real interactions between components,
-using mocks ONLY for expensive external dependencies (ScanCode, LLM).
+TEST di integrazione per gli endpoint /api/regenerate e /api/download
+Questi test verificano il flusso completo con interazioni reali tra componenti,
+utilizzando mock SOLO per dipendenze esterne costose (ScanCode, LLM).
 """
 from app.models.schemas import AnalyzeResponse, LicenseIssue
 
@@ -824,14 +815,14 @@ from app.models.schemas import AnalyzeResponse, LicenseIssue
 @pytest.fixture
 def cleanup_test_repos():
     """
-    Cleanup Fixture: Removes physical test directories and generated ZIPs.
+    Fixture di pulizia: Rimuove le directory di test fisiche e gli ZIP generati.
 
-    Ensures that temporary folders (e.g., regenowner_regenrepo) and
-    downloaded artifacts are deleted after each test to prevent
-    cross-test data contamination.
+    Garantisce che le cartelle temporanee (ad es., regenowner_regenrepo) e
+    gli artefatti scaricati siano eliminati dopo ogni test per prevenire
+    la contaminazione incrociata tra test.
     """
     yield
-    # Cleanup after test
+    # Pulizia dopo il test
     test_patterns = [
         'regenowner_regenrepo',
         'downloadowner_downloadrepo',
@@ -858,18 +849,18 @@ def cleanup_test_repos():
 
 @pytest.fixture
 def create_test_repo():
-    """Helper to create a physical test repository on the file system."""
+    """Helper per creare un repository di test fisico sul file system."""
     def _create(owner: str, repo: str, files: dict = None):
         """
-    Helper Fixture: Manually populates the filesystem with a test repository.
+    Helper Fixture: Popola manualmente il filesystem con un repository di test.
 
-    Args:
-        owner: The repository owner's name.
-        repo: The repository name.
-        files: A dictionary mapping file paths to their string content.
+    Argomenti:
+        owner: Il nome del proprietario del repository.
+        repo: Il nome del repository.
+        files: Un dizionario che mappa percorsi file al loro contenuto stringa.
 
-    Returns:
-        The absolute path to the created repository.
+    Restituisce:
+        Il percorso assoluto al repository creato.
     """
         repo_path = os.path.join(config.CLONE_BASE_DIR, f"{owner}_{repo}")
         os.makedirs(repo_path, exist_ok=True)
@@ -898,10 +889,10 @@ def create_test_repo():
 @pytest.fixture
 def sample_analyze_response():
     """
-    Fixture: Provides a standard AnalyzeResponse object.
+    Fixture: Fornisce un oggetto AnalyzeResponse standard.
 
-    Used to simulate a previous analysis result that needs
-    to be passed into the regeneration endpoint.
+    Utilizzato per simulare un risultato di analisi precedente che deve
+    essere passato all'endpoint di rigenerazione.
     """
     return AnalyzeResponse(
         repository="regenowner/regenrepo",
@@ -928,14 +919,14 @@ def test_regenerate_analysis_success_integration(
         cleanup_test_repos
 ):
     """
-    Integration Test: Successful code regeneration.
+    Test di integrazione: Rigenerazione del codice riuscita.
 
-    Workflow:
-    1. Populate the filesystem with a physical repository.
-    2. Call /api/regenerate with a previous AnalyzeResponse.
-    3. Verify the orchestration between the endpoint, workflow, and filesystem.
+    Flusso di lavoro:
+    1. Popola il file system con un repository fisico.
+    2. Chiama /api/regenerate con un AnalyzeResponse precedente.
+    3. Verifica l'orchestrazione tra l'endpoint, il flusso di lavoro e il file system.
 
-    Mocks: Only 'perform_regeneration' is mocked to avoid external LLM calls.
+    Mock: Solo 'perform_regeneration' è mockato per evitare chiamate esterne all'LLM.
     """
     # Step 1: Create test repositories
     repo_path = create_test_repo(
@@ -991,10 +982,10 @@ def test_regenerate_analysis_success_integration(
 
 def test_regenerate_analysis_invalid_repository_format():
     """
-    Validation Test: Rejects malformed repository identifiers.
+    Test di validazione: Rifiuta identificatori di repository malformati.
 
-    Ensures the endpoint returns HTTP 400 if the 'repository' string
-    does not follow the 'owner/repo' format.
+    Garantisce che l'endpoint restituisca HTTP 400 se la stringa 'repository'
+    non segue il formato 'owner/repo'.
     """
     invalid_payload = {
         "repository": "noslash",  # Missing "/"
@@ -1011,10 +1002,10 @@ def test_regenerate_analysis_invalid_repository_format():
 
 def test_regenerate_analysis_repository_not_found(cleanup_test_repos):
     """
-    Error Handling Test: Regeneration on a missing repository.
+    Test di gestione degli errori: Rigenerazione su un repository mancante.
 
-    Verifies that the system correctly maps a 'Repository not found'
-    Value Error to a client-side HTTP 400 response.
+    Verifica che il sistema mappi correttamente un errore ValueError 'Repository not found'
+    a una risposta client-side HTTP 400.
     """
     with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         # Mock that raises ValueError (repository not found)
@@ -1034,13 +1025,13 @@ def test_regenerate_analysis_repository_not_found(cleanup_test_repos):
 
 def test_regenerate_analysis_generic_exception(cleanup_test_repos):
     """
-    Pure Integration Test: Real repository download.
+    Test di integrazione pura: Download reale del repository.
 
-    Flow:
-    1. Create a physical repository with multiple files and subdirectories.
-    2. Request a download via /api/download.
-    3. Validate HTTP headers (Content-Type: application/zip).
-    4. Physically extract the returned ZIP to verify internal content integrity.
+    Flusso:
+    1. Crea un repository fisico con più file e sottodirectory.
+    2. Richiedi un download tramite /api/download.
+    3. Valida le intestazioni HTTP (Content-Type: application/zip).
+    4. Estrai fisicamente lo ZIP restituito per verificare l'integrità del contenuto interno.
     """
     with patch('app.controllers.analysis.perform_regeneration') as mock_regen:
         # Mock that raises generic Exception
@@ -1064,15 +1055,15 @@ def test_regenerate_analysis_generic_exception(cleanup_test_repos):
 
 def test_download_repo_success_integration(create_test_repo, cleanup_test_repos):
     """
-    Full Integration Test: Successful repository download.
+    Test di integrazione completo: Download riuscito del repository.
 
-    Workflow:
-    1. Populate the filesystem with a physical test repository.
-    2. Call the /api/download endpoint.
-    3. Verify the HTTP response (200 OK, application/zip).
-    4. Validate the ZIP content integrity and structure.
+    Flusso di lavoro:
+    1. Popola il file system con un repository di test fisico.
+    2. Chiama l'endpoint /api/download.
+    3. Valida la risposta HTTP (200 OK, application/zip).
+    4. Valida l'integrità e la struttura del contenuto ZIP.
 
-    Note: This is a PURE integration test with no mocks.
+    Nota: Questo è un test di integrazione PURO senza mock.
     """
     # Step 1: Setup physical repo
     repo_path = create_test_repo(
@@ -1119,10 +1110,9 @@ def test_download_repo_success_integration(create_test_repo, cleanup_test_repos)
 
 def test_download_repo_repository_not_found():
     """
-     Error Handling Test: Attempt to download a non-existent repository.
+     Test di gestione degli errori: Tentativo di download di un repository non esistente.
 
-     Verifies the integration between the endpoint, the service layer,
-     and the filesystem check. Should return a 400 Bad Request.
+     Verifica l'integrazione tra l'endpoint, il servizio e il controllo del file system. Dovrebbe restituire un errore 400 Bad Request.
      """
     response = client.post(
         "/api/download",
@@ -1130,15 +1120,14 @@ def test_download_repo_repository_not_found():
     )
 
     assert response.status_code == 400
-    # Assuming _msg_matches checks if either string is in the detail
     assert "Repository not found" in response.json()["detail"]
 
 def test_download_repo_missing_parameters():
     """
-    Validation Test: Missing mandatory parameters.
+    Test di validazione: Parametri obbligatori mancanti.
 
-    Ensures the API rejects requests missing the 'owner' or 'repo'
-    keys with a 400 Bad Request.
+    Garantisce che l'API rifiuti le richieste mancanti delle chiavi 'owner' o 'repo'
+    con un errore 400 Bad Request.
     """
     # Case 1: missing owner
     response1 = client.post("/api/download", json={"repo": "test"})
@@ -1156,10 +1145,9 @@ def test_download_repo_missing_parameters():
 
 def test_download_repo_empty_repository(create_test_repo, cleanup_test_repos):
     """
-     Edge Case Test: Downloading an empty repository.
+     Caso limite: Download di un repository vuoto.
 
-     Verifies that a directory with no files can still be successfully
-     zipped and returned to the user.
+     Verifica che una directory senza file possa ancora essere compressa e restituita all'utente con successo.
      """
     # Create empty repo (directory only)
     repo_path = create_test_repo("emptyowner", "emptyrepo", files={})
@@ -1181,10 +1169,10 @@ def test_download_repo_with_special_characters_in_filenames(
         cleanup_test_repos
 ):
     """
-    Integration Test: Handling special characters in filenames during ZIP creation.
+    Test di integrazione: Gestione di caratteri speciali nei nomi dei file durante la creazione dello ZIP.
 
-    Ensures that files containing spaces, dashes, underscores, and
-    parentheses are correctly preserved and included in the final archive.
+    Garantisce che i file contenenti spazi, trattini, sottolineature e
+    parentesi siano correttamente preservati e inclusi nell'archivio finale.
     """
     repo_path = create_test_repo(
         "specialowner",
@@ -1226,10 +1214,10 @@ def test_download_repo_with_special_characters_in_filenames(
 
 def test_download_repo_with_empty_string_parameters():
     """
-     Validation Test: Empty string inputs.
+     Test di validazione: Input di stringhe vuote.
 
-     Ensures that empty strings ("") are not treated as valid identifiers
-     for owner or repository names.
+     Garantisce che le stringhe vuote ("") non siano trattate come identificatori validi
+     per nomi di owner o repository.
      """
     # Empty owner string
     response1 = client.post("/api/download", json={"owner": "", "repo": "test"})
@@ -1246,10 +1234,10 @@ def test_download_repo_with_empty_string_parameters():
 
 def test_download_repo_generic_exception(create_test_repo, cleanup_test_repos):
     """
-    Error Handling Test: Internal Server Error during the ZIP process.
+    Test di gestione degli errori: Errore interno del server durante il processo ZIP.
 
-    Verifies that if an unexpected RuntimeError occurs during compression,
-    the API returns a 500 status with an 'Internal error' detail.
+    Verifica che se si verifica un'eccezione RuntimeError inaspettata durante la compressione,
+    l'API restituisca uno stato 500 con un dettaglio 'Internal error'.
     """
     # Create repository
     create_test_repo("errorowner", "errorrepo")
@@ -1273,16 +1261,16 @@ def test_download_repo_generic_exception(create_test_repo, cleanup_test_repos):
 
 def test_complete_workflow_integration(create_test_repo, cleanup_test_repos):
     """
-    End-to-End Orchestration Test: Full Application Lifecycle.
+    Test di orchestrazione end-to-end: Ciclo di vita completo dell'applicazione.
 
-    Tests the integration between:
-    1. Repository Setup (Manual creation)
-    2. Analysis Workflow (Mocked external scan)
-    3. Regeneration Workflow (Mocked AI remediation)
-    4. Download (Real filesystem zipping)
+    Verifica l'integrazione tra:
+    1. Configurazione del repository (creazione manuale)
+    2. Flusso di lavoro di analisi (mockate le scansioni esterne)
+    3. Flusso di lavoro di rigenerazione (mockata la correzione AI)
+    4. Download (vera compressione del file system)
 
-    This ensures that the output from the 'Analyze' phase is valid
-    input for the 'Regenerate' phase, and the final state is downloadable.
+    Questo garantisce che l'output della fase 'Analizza' sia un valido
+    input per la fase 'Rigenera' e che lo stato finale sia scaricabile.
     """
     # Step 1: Setup repository
     owner, repo = "workflowowner", "workflowrepo"
@@ -1346,10 +1334,10 @@ def test_complete_workflow_integration(create_test_repo, cleanup_test_repos):
 
 def test_clone_repository_integration_success():
     """
-    Integration test: Clone a repository using /api/clone endpoint.
+    Test di integrazione: Clona un repository utilizzando l'endpoint /api/clone.
 
-    Verifies that the endpoint correctly accepts owner and repo parameters,
-    calls the cloning service, and returns proper status and path information.
+    Verifica che l'endpoint accetti correttamente i parametri owner e repo,
+    chiami il servizio di clonazione e restituisca informazioni corrette sullo stato e sul percorso.
     """
     with patch('app.controllers.analysis.perform_cloning') as mock_clone:
         mock_clone.return_value = "/test/path/owner_repo"
@@ -1372,7 +1360,7 @@ def test_clone_repository_integration_success():
 
 def test_clone_repository_missing_owner():
     """
-    Integration test: Clone endpoint rejects request without owner.
+    Test di integrazione: L'endpoint Clone rifiuta la richiesta senza owner.
     """
     response = client.post("/api/clone", json={"repo": "testrepo"})
 
@@ -1382,7 +1370,7 @@ def test_clone_repository_missing_owner():
 
 def test_clone_repository_missing_repo():
     """
-    Integration test: Clone endpoint rejects request without repo.
+    Test di integrazione: L'endpoint Clone rifiuta la richiesta senza repo.
     """
     response = client.post("/api/clone", json={"owner": "testowner"})
 
@@ -1392,7 +1380,7 @@ def test_clone_repository_missing_repo():
 
 def test_clone_repository_both_params_missing():
     """
-    Integration test: Clone endpoint rejects request with no parameters.
+    Test di integrazione: L'endpoint Clone rifiuta la richiesta senza parametri.
     """
     response = client.post("/api/clone", json={})
 
@@ -1402,7 +1390,7 @@ def test_clone_repository_both_params_missing():
 
 def test_clone_repository_empty_strings():
     """
-    Integration test: Clone endpoint rejects empty string parameters.
+    Test di integrazione: L'endpoint Clone rifiuta i parametri vuoti.
     """
     response1 = client.post("/api/clone", json={"owner": "", "repo": "testrepo"})
     assert response1.status_code == 400
@@ -1416,10 +1404,10 @@ def test_clone_repository_empty_strings():
 
 def test_clone_repository_service_value_error():
     """
-    Integration test: Clone endpoint handles service-level ValueError.
+    Test di integrazione: L'endpoint Clone gestisce il ValueError a livello di servizio.
 
-    Verifies that when the cloning service raises a ValueError,
-    it's properly caught and returns a 400 status.
+    Verifica che quando il servizio di clonazione genera un ValueError,
+    venga catturato correttamente e restituisca uno stato 400.
     """
     with patch('app.controllers.analysis.perform_cloning') as mock_clone:
         mock_clone.side_effect = ValueError("Repository not found or access denied")
@@ -1435,9 +1423,9 @@ def test_clone_repository_service_value_error():
 
 def test_clone_repository_service_generic_exception():
     """
-    Integration test: Clone endpoint handles unexpected exceptions.
+    Test di integrazione: L'endpoint Clone gestisce le eccezioni inattese.
 
-    Verifies that unexpected errors are caught and return a 500 status.
+    Verifica che gli errori inattesi vengano catturati e restituiscano uno stato 500.
     """
     with patch('app.controllers.analysis.perform_cloning') as mock_clone:
         mock_clone.side_effect = Exception("Unexpected error occurred")
@@ -1453,10 +1441,10 @@ def test_clone_repository_service_generic_exception():
 
 def test_clone_repository_with_special_characters():
     """
-    Integration test: Clone with special characters in repository name.
+    Test di integrazione: Clona con caratteri speciali nel nome del repository.
 
-    Verifies that repositories with dots, hyphens, and underscores
-    are handled correctly.
+    Verifica che i repository con punti, trattini e sottolineature
+    siano gestiti correttamente.
     """
     with patch('app.controllers.analysis.perform_cloning') as mock_clone:
         mock_clone.return_value = "/test/path/org-name_repo.test"
@@ -1475,10 +1463,10 @@ def test_clone_repository_with_special_characters():
 
 def test_clone_repository_real_workflow(cleanup_test_repos):
     """
-    Integration test: Full clone workflow with real file system operations.
+    Test di integrazione: Flusso di lavoro completo di clonazione con vere operazioni sul file system.
 
-    This test performs actual cloning operations (mocked Git, but real filesystem)
-    and verifies the entire workflow end-to-end.
+    Questo test esegue operazioni di clonazione reali (mockate Git, ma reale file system)
+    e verifica l'intero flusso di lavoro end-to-end.
     """
     owner = "integration_clone"
     repo = "clone_test"
@@ -1508,10 +1496,9 @@ def test_clone_repository_real_workflow(cleanup_test_repos):
 
 def test_suggest_license_integration_success():
     """
-    Integration test: Suggest license based on requirements.
+    Test di integrazione: Suggerisci licenza basata sui requisiti.
 
-    Verifies that the suggest-license endpoint correctly processes
-    user requirements and returns appropriate license suggestions.
+    Verifica che l'endpoint suggest-license elabori correttamente i requisiti dell'utente e restituisca suggerimenti di licenza appropriati.
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         mock_suggest.return_value = {
@@ -1549,10 +1536,10 @@ def test_suggest_license_integration_success():
 
 def test_suggest_license_with_detected_licenses_integration():
     """
-    Integration test: Suggest license with detected licenses from analysis.
+    Test di integrazione: Suggerisci licenza con licenze rilevate dall'analisi.
 
-    Verifies that detected licenses are passed to the recommendation engine
-    and considered in the suggestion.
+    Verifica che le licenze rilevate vengano passate al motore di raccomandazione
+    e considerate nel suggerimento.
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         mock_suggest.return_value = {
@@ -1588,10 +1575,10 @@ def test_suggest_license_with_detected_licenses_integration():
 
 def test_suggest_license_gpl_incompatibility_detection():
     """
-    Integration test: Verify GPL incompatibility is detected with permissive licenses.
+    Test di integrazione: Verifica che l'incompatibilità GPL venga rilevata con licenze permissive.
 
-    When detected licenses include Apache-2.0, suggesting GPL should be avoided
-    due to incompatibility.
+    Quando le licenze rilevate includono Apache-2.0, suggerire GPL dovrebbe essere evitato
+    a causa dell'incompatibilità.
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         # Mock should avoid GPL when Apache-2.0 is detected
@@ -1620,10 +1607,10 @@ def test_suggest_license_gpl_incompatibility_detection():
 
 def test_suggest_license_with_multiple_detected_licenses():
     """
-    Integration test: Handle multiple detected licenses correctly.
+    Test di integrazione: Gestisci correttamente più licenze rilevate.
 
-    Verifies that the system can handle projects with multiple licenses
-    and suggest a compatible one.
+    Verifica che il sistema possa gestire progetti con più licenze
+    e suggerire una compatibile.
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         mock_suggest.return_value = {
@@ -1653,9 +1640,9 @@ def test_suggest_license_with_multiple_detected_licenses():
 
 def test_suggest_license_minimal_requirements():
     """
-    Integration test: Suggest license with only required fields.
+    Test di integrazione: Suggerisci licenza con solo i campi richiesti.
 
-    Verifies that the endpoint works with minimal requirements (only owner and repo).
+    Verifica che l'endpoint funzioni con requisiti minimi (solo owner e repo).
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         mock_suggest.return_value = {
@@ -1679,9 +1666,9 @@ def test_suggest_license_minimal_requirements():
 
 def test_suggest_license_copyleft_requirements():
     """
-    Integration test: Suggest license for copyleft requirements.
+    Test di integrazione: Suggerisci licenza per requisiti di copyleft.
 
-    Verifies that strong copyleft requirements result in GPL-like suggestions.
+    Verifica che requisiti di copyleft forti portino a suggerimenti simili a GPL.
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         mock_suggest.return_value = {
@@ -1708,9 +1695,9 @@ def test_suggest_license_copyleft_requirements():
 
 def test_suggest_license_weak_copyleft():
     """
-    Integration test: Suggest license for weak copyleft requirements.
+    Test di integrazione: Suggerisci licenza per requisiti di copyleft debole.
 
-    Verifies that weak copyleft typically suggests LGPL-style licenses.
+    Verifica che copyleft debole suggerisca tipicamente licenze in stile LGPL.
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         mock_suggest.return_value = {
@@ -1735,9 +1722,9 @@ def test_suggest_license_weak_copyleft():
 
 def test_suggest_license_missing_required_fields():
     """
-    Integration test: Suggest license endpoint validates required fields.
+    Test di integrazione: L'endpoint suggerisci licenza convalida i campi richiesti.
 
-    Verifies that missing owner or repo returns a 422 validation error.
+    Verifica che la mancanza di owner o repo restituisca un errore di convalida 422.
     """
     response1 = client.post("/api/suggest-license", json={"owner": "testowner"})
     assert response1.status_code == 422
@@ -1751,10 +1738,10 @@ def test_suggest_license_missing_required_fields():
 
 def test_suggest_license_service_exception():
     """
-    Integration test: Suggest license handles service errors.
+    Test di integrazione: Suggerisci licenza gestisce gli errori del servizio.
 
-    Verifies that when the AI service fails, a 500 error is returned
-    with an appropriate error message.
+    Verifica che quando il servizio AI fallisce, venga restituito un errore 500
+    con un messaggio di errore appropriato.
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         mock_suggest.side_effect = Exception("AI service temporarily unavailable")
@@ -1773,9 +1760,9 @@ def test_suggest_license_service_exception():
 
 def test_suggest_license_all_boolean_options():
     """
-    Integration test: Suggest license with all boolean options set.
+    Test di integrazione: Suggerisci licenza con tutte le opzioni booleane impostate.
 
-    Verifies that complex requirement combinations are processed correctly.
+    Verifica che combinazioni di requisiti complessi siano elaborate correttamente.
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         mock_suggest.return_value = {
@@ -1806,9 +1793,9 @@ def test_suggest_license_all_boolean_options():
 
 def test_suggest_license_response_schema_validation():
     """
-    Integration test: Validate response schema for suggest-license.
+    Test di integrazione: Valida lo schema di risposta per suggest-license.
 
-    Ensures that the response conforms to LicenseSuggestionResponse schema.
+    Garantisce che la risposta sia conforme allo schema LicenseSuggestionResponse.
     """
     with patch('app.controllers.analysis.suggest_license_based_on_requirements') as mock_suggest:
         mock_suggest.return_value = {
@@ -1844,10 +1831,10 @@ def test_suggest_license_response_schema_validation():
 
 def test_suggest_license_with_analyze_workflow(sample_zip_file, cleanup_test_repos):
     """
-    Integration test: Complete workflow - upload, analyze, get suggestion.
+    Test di integrazione: Flusso di lavoro completo - caricamento, analisi, ottenimento suggerimento.
 
-    This test verifies that after analyzing a repository with UNKNOWN license,
-    the suggest-license endpoint can provide appropriate recommendations.
+    Questo test verifica che dopo aver analizzato un repository con licenza UNKNOWN,
+    l'endpoint suggest-license possa fornire raccomandazioni appropriate.
     """
     owner = "suggest_test"
     repo = "test_repo"
@@ -1864,12 +1851,12 @@ def test_suggest_license_with_analyze_workflow(sample_zip_file, cleanup_test_rep
 
     # Step 2: Mock analysis that returns UNKNOWN license
     with patch('app.services.analysis_workflow.run_scancode') as mock_scan, \
-         patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
-         patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
-         patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
-         patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
-         patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich, \
-         patch('app.services.analysis_workflow.needs_license_suggestion') as mock_needs:
+            patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
+            patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
+            patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
+            patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
+            patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich, \
+            patch('app.services.analysis_workflow.needs_license_suggestion') as mock_needs:
 
         mock_scan.return_value = {"files": []}
         mock_detect.return_value = "UNKNOWN"
@@ -1912,13 +1899,13 @@ def test_suggest_license_with_analyze_workflow(sample_zip_file, cleanup_test_rep
 
 def test_complete_workflow_with_detected_licenses(sample_zip_file, cleanup_test_repos):
     """
-    Integration test: Complete workflow with detected licenses extraction.
+    Test di integrazione: Flusso di lavoro completo con estrazione delle licenze rilevate.
 
-    This test verifies the full workflow:
-    1. Upload/Clone repository
-    2. Analyze and detect existing licenses
-    3. Pass detected licenses to suggestion endpoint
-    4. Receive compatible license recommendation
+    Questo test verifica l'intero flusso di lavoro:
+    1. Caricamento/Clonazione del repository
+    2. Analisi e rilevamento delle licenze esistenti
+    3. Passaggio delle licenze rilevate all'endpoint di suggerimento
+    4. Ricezione della raccomandazione di licenza compatibile
     """
     owner = "workflow_test"
     repo = "multi_license_repo"
@@ -1933,13 +1920,13 @@ def test_complete_workflow_with_detected_licenses(sample_zip_file, cleanup_test_
     assert upload_resp.status_code == 200
 
     # Step 2: Mock analysis with multiple detected licenses
-    with patch('app.services.analysis_workflow.run_scancode') as mock_scan, \
-         patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
-         patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
-         patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
-         patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
-         patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich, \
-         patch('app.services.analysis_workflow.needs_license_suggestion') as mock_needs:
+    with patch('app.services.analysis_workflow.run_scancode') as mock_scancode, \
+            patch('app.services.analysis_workflow.detect_main_license_scancode') as mock_detect, \
+            patch('app.services.analysis_workflow.filter_licenses') as mock_filter, \
+            patch('app.services.analysis_workflow.extract_file_licenses') as mock_extract, \
+            patch('app.services.analysis_workflow.check_compatibility') as mock_compat, \
+            patch('app.services.analysis_workflow.enrich_with_llm_suggestions') as mock_enrich, \
+            patch('app.services.analysis_workflow.needs_license_suggestion') as mock_needs:
 
         # Mock files with different licenses
         issues_list = [
@@ -1947,7 +1934,7 @@ def test_complete_workflow_with_detected_licenses(sample_zip_file, cleanup_test_
             {"file_path": "file2.py", "detected_license": "Apache-2.0", "compatible": True, "reason": None}
         ]
 
-        mock_scan.return_value = {"files": [
+        mock_scancode.return_value = {"files": [
             {"path": "file1.py", "licenses": [{"key": "mit"}]},
             {"path": "file2.py", "licenses": [{"key": "apache-2.0"}]}
         ]}

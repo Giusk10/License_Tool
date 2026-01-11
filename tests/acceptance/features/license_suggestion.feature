@@ -1,10 +1,11 @@
+# Questo file .feature definisce uno scenario di test Behave per la richiesta di suggerimento licenza AI su un progetto senza licenza tramite l'interfaccia License Checker.
 Feature: AI License Suggestion
   As a user
   I want to get a license recommendation for an unlicensed project
   So that I know which license suits my needs
 
   Scenario: Analyze unlicensed repo and get suggestion
-    # Reach the report (Reused steps)
+    # Raggiungi la pagina del report (step riutilizzati)
     Given I am on the License Checker home page
     When I enter "antgaldo" in the Owner field
     And I enter "checkers" in the Repository field
@@ -14,22 +15,22 @@ Feature: AI License Suggestion
     When I click on the button containing "Analyze Repository"
     Then I should wait to see "Analysis Report"
 
-    # Verify that the project is indeed unlicensed (appears as UNLICENSE in UI)
+    # Verifica che il progetto sia effettivamente senza licenza (deve apparire come UNLICENSE nell'interfaccia)
     And I should see "UNLICENSE"
 
-    # Click on 'Get Suggestion' button in the report page
+    # Clicca sul pulsante 'Get Suggestion' nella pagina del report
     When I click on the button containing "Get Suggestion"
 
-    # Verify that the modal has opened
+    # Verifica che la modale sia stata aperta
     Then I should see "License Recommendation"
     And I should see "Permissions & Requirements"
 
-    # Interact with the form: change a preference (e.g. toggle 'Commercial use')
+    # Interagisci con il form: cambia una preferenza (ad esempio attiva/disattiva 'Commercial use')
     When I toggle the "Commercial use allowed" checkbox
 
-    # Submit the request (use a specific step to avoid confusion with the opening button)
+    # Invia la richiesta (usa uno step specifico per evitare ambiguità con il pulsante di apertura)
     And I click the suggestion submit button
 
-    # Wait for AI response
+    # Attendi la risposta dell'AI
     Then I should wait to see "Recommended License"
     And I should see "Explanation"

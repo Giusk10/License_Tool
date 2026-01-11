@@ -1,15 +1,17 @@
 """
 License Detection Service Unit Test Module.
 
-This module contains unit tests for the scanning and detection logic in
-`app.services.scanner.detection`. It validates the integration with ScanCode
-Toolkit, including process execution, output parsing, and the extraction
-of primary and secondary licenses.
+Questo modulo contiene test unitari per le funzioni di rilevamento licenze in
+`app.services.scanner.detection`. Si concentra sulla validazione della logica di parsing,
+sull'estrazione delle licenze dai file, sulla gestione di edge case e sulla robustezza
+contro input malformati o casi limite.
 
-The suite is organized into three main categories:
-1. ScanCode Execution: Managing subprocesses, exit codes, and ignore patterns.
-2. Main License Detection: Identifying the primary project license.
-3. File License Extraction: Aggregating detected licenses into SPDX expressions.
+La suite copre:
+1. Parsing dei risultati di ScanCode: Verifica la corretta estrazione delle licenze dai risultati JSON.
+2. Gestione di file senza licenza: Assicura che i file privi di licenza siano gestiti correttamente.
+3. Edge case: Testa la robustezza contro input nulli, stringhe vuote, file non standard.
+4. Parsing di espressioni SPDX complesse: Valida la corretta interpretazione di espressioni booleane.
+5. Integrazione con la pipeline di analisi: Verifica che i risultati siano compatibili con il resto del sistema.
 """
 
 import os
@@ -29,21 +31,21 @@ from app.services.scanner.detection import (
 
 class TestRunScancode:
     """
-    Test suite for the 'run_scancode' function.
+    Test suite per la funzione 'run_scancode'.
 
-    Verifies subprocess execution, file I/O, ignore pattern loading,
-    and error handling for various ScanCode exit codes.
+    Verifica l'esecuzione dei subprocess, il codice di uscita, il caricamento dei modelli di ignoramento,
+    e la gestione degli errori per vari codici di uscita di ScanCode.
     """
 
     def test_run_scancode_success_with_patterns(self, tmp_path):
         """
-        Tests successful ScanCode execution with ignore patterns loaded.
+        Testa l'esecuzione riuscita di ScanCode con i modelli di ignoramento caricati.
 
-        Validates that:
-        - Ignore patterns are correctly loaded from patterns_to_ignore.json
-        - ScanCode command is built with correct parameters
-        - Output JSON is processed and optimized (license_detections removed)
-        - Function returns parsed JSON data
+        Valida che:
+        - I modelli di ignoramento siano caricati correttamente dal file patterns_to_ignore.json
+        - Il comando ScanCode sia costruito con i parametri corretti
+        - L'output JSON venga elaborato e ottimizzato (rimozione delle license_detections)
+        - La funzione restituisca i dati JSON analizzati
         """
         # Setup
         repo_path = str(tmp_path / "test_repo")
@@ -52,13 +54,13 @@ class TestRunScancode:
         output_dir = str(tmp_path / "output")
         os.makedirs(output_dir, exist_ok=True)
 
-        # Mock ignore patterns file
+        # Mock del file dei modelli di ignoramento
         patterns_data = {"ignored_patterns": ["*.pyc", "node_modules", "__pycache__"]}
 
-        # Mock ScanCode output
+        # Mock dell'output di ScanCode
         mock_scancode_output = {
             "headers": [{"tool_name": "scancode"}],
-            "license_detections": [{"id": "detection1"}],  # Should be removed
+            "license_detections": [{"id": "detection1"}],  # Dovrebbe essere rimossa
             "files": [
                 {
                     "path": "LICENSE",
@@ -77,14 +79,14 @@ class TestRunScancode:
              patch("json.load") as mock_json_load, \
              patch("json.dump") as mock_json_dump:
 
-            # Setup mocks
+            # Configurazione dei mock
             mock_process = MagicMock()
             mock_process.wait.return_value = 0
             mock_process.__enter__ = MagicMock(return_value=mock_process)
             mock_process.__exit__ = MagicMock(return_value=False)
             mock_popen.return_value = mock_process
 
-            # Mock file existence checks
+            # Mock per i controlli dell'esistenza dei file
             def exists_side_effect(path):
                 if "patterns_to_ignore.json" in path:
                     return True
@@ -93,13 +95,13 @@ class TestRunScancode:
                 return False
             mock_exists.side_effect = exists_side_effect
 
-            # Mock JSON load/dump
+            # Mock per il caricamento/salvataggio dei JSON
             mock_json_load.return_value = mock_scancode_output.copy()
 
-            # Execute
+            # Esecuzione
             result = run_scancode(repo_path)
 
-            # Verify subprocess was called with correct parameters
+            # Verifica che il subprocess sia stato chiamato con i parametri corretti
             assert mock_popen.called
             cmd_args = mock_popen.call_args[0][0]
             assert "scancode" in cmd_args
@@ -107,7 +109,7 @@ class TestRunScancode:
             assert "--json-pp" in cmd_args
             assert repo_path in cmd_args
 
-            # Verify JSON was processed (license_detections removed)
+            # Verifica che il JSON sia stato elaborato correttamente (license_detections rimossa)
             assert mock_json_dump.called
             saved_data = mock_json_dump.call_args[0][0]
             assert "license_detections" not in saved_data
@@ -115,9 +117,9 @@ class TestRunScancode:
 
     def test_run_scancode_with_exit_code_1(self, tmp_path):
         """
-        Tests ScanCode execution with exit code 1 (non-fatal warnings).
+        Testa l'esecuzione di ScanCode con codice di uscita 1 (avvisi non fatali).
 
-        Verifies that the function logs a warning but continues processing.
+        Verifica che la funzione registri un avviso ma continui l'elaborazione.
         """
         repo_path = str(tmp_path / "test_repo")
         os.makedirs(repo_path, exist_ok=True)
@@ -138,21 +140,21 @@ class TestRunScancode:
              patch("json.dump"):
 
             mock_process = MagicMock()
-            mock_process.wait.return_value = 1  # Non-fatal error
+            mock_process.wait.return_value = 1  # Errore non fatale
             mock_process.__enter__ = MagicMock(return_value=mock_process)
             mock_process.__exit__ = MagicMock(return_value=False)
             mock_popen.return_value = mock_process
 
-            # Should not raise exception
+            # Non dovrebbe sollevare eccezioni
             result = run_scancode(repo_path)
             assert result is not None
             assert "files" in result
 
     def test_run_scancode_critical_error(self, tmp_path):
         """
-        Tests ScanCode execution with exit code > 1 (critical error).
+        Testa l'esecuzione di ScanCode con codice di uscita > 1 (errore critico).
 
-        Verifies that a RuntimeError is raised with appropriate message.
+        Verifica che venga sollevata una RuntimeError con il messaggio appropriato.
         """
         repo_path = str(tmp_path / "test_repo")
         os.makedirs(repo_path, exist_ok=True)
@@ -165,7 +167,7 @@ class TestRunScancode:
              patch("os.path.exists", return_value=False):
 
             mock_process = MagicMock()
-            mock_process.wait.return_value = 2  # Critical error
+            mock_process.wait.return_value = 2  # Errore critico
             mock_process.__enter__ = MagicMock(return_value=mock_process)
             mock_process.__exit__ = MagicMock(return_value=False)
             mock_popen.return_value = mock_process
@@ -178,10 +180,10 @@ class TestRunScancode:
 
     def test_run_scancode_output_file_not_found(self, tmp_path):
         """
-        Tests error handling when ScanCode doesn't generate output file.
+        Testa la gestione degli errori quando ScanCode non genera il file di output.
 
-        Verifies that a RuntimeError is raised when the expected JSON file
-        is missing after ScanCode execution.
+        Verifica che venga sollevata una RuntimeError quando il file JSON atteso
+        è mancante dopo l'esecuzione di ScanCode.
         """
         repo_path = str(tmp_path / "test_repo")
         os.makedirs(repo_path, exist_ok=True)
@@ -206,8 +208,8 @@ class TestRunScancode:
 
     def test_run_scancode_fallback_to_license_rules(self, tmp_path):
         """
-        Tests fallback mechanism to license_rules.json when patterns_to_ignore.json
-        is not available.
+        Testa il meccanismo di fallback a license_rules.json quando patterns_to_ignore.json
+        non è disponibile.
         """
         repo_path = str(tmp_path / "test_repo")
         os.makedirs(repo_path, exist_ok=True)
@@ -246,9 +248,9 @@ class TestRunScancode:
 
     def test_run_scancode_invalid_json_in_patterns(self, tmp_path):
         """
-        Tests handling of invalid JSON in ignore patterns file.
+        Testa la gestione di JSON non valido nel file dei modelli di ignoramento.
 
-        Verifies that the function continues without patterns if JSON is malformed.
+        Verifica che la funzione continui senza modelli se il JSON è malformato.
         """
         repo_path = str(tmp_path / "test_repo")
         os.makedirs(repo_path, exist_ok=True)
@@ -272,8 +274,8 @@ class TestRunScancode:
             mock_process.__exit__ = MagicMock(return_value=False)
             mock_popen.return_value = mock_process
 
-            # First call to json.load raises JSONDecodeError for patterns file
-            # Second call returns valid scancode output
+            # Prima chiamata a json.load solleva JSONDecodeError per il file dei modelli
+            # Seconda chiamata restituisce un valido output di scancode
             mock_json_load.side_effect = [
                 json.JSONDecodeError("Invalid", "", 0),
                 mock_scancode_output
@@ -287,15 +289,15 @@ class TestRunScancode:
                 return False
             mock_exists.side_effect = exists_side_effect
 
-            # Should not raise exception, just log warning
+            # Non dovrebbe sollevare eccezioni, solo registrare un avviso
             result = run_scancode(repo_path)
             assert result is not None
 
     def test_run_scancode_processing_error(self, tmp_path):
         """
-        Tests error handling during JSON processing phase.
+        Testa la gestione degli errori durante la fase di elaborazione del JSON.
 
-        Verifies that processing errors are caught and re-raised as RuntimeError.
+        Verifica che gli errori di elaborazione vengano catturati e rilanciati come RuntimeError.
         """
         repo_path = str(tmp_path / "test_repo")
         os.makedirs(repo_path, exist_ok=True)
@@ -319,7 +321,7 @@ class TestRunScancode:
                 return False
             mock_exists.side_effect = exists_side_effect
 
-            # Simulate error during file reading
+            # Simula un errore durante la lettura del file
             with patch("builtins.open", side_effect=IOError("Disk error")):
                 with pytest.raises(RuntimeError) as exc_info:
                     run_scancode(repo_path)
@@ -328,16 +330,16 @@ class TestRunScancode:
 
     def test_run_scancode_auto_ignore_large_files_and_oserror(self, tmp_path):
         """
-        Tests the auto-ignore logic for large files and error handling during file scan.
+        Testa la logica di auto-ignoramento per file di grandi dimensioni e la gestione degli errori durante la scansione dei file.
 
-        Covers:
-        - The 'if os.path.getsize > limit_bytes' block.
-        - The 'except OSError: pass' block.
+        Copre:
+        - Il blocco 'if os.path.getsize > limit_bytes'.
+        - Il blocco 'except OSError: pass'.
         """
         repo_path = str(tmp_path / "test_repo")
         os.makedirs(repo_path, exist_ok=True)
 
-        # Create dummy files
+        # Crea file di prova
         (tmp_path / "test_repo" / "normal.py").touch()
         (tmp_path / "test_repo" / "large.bin").touch()
         (tmp_path / "test_repo" / "locked.bin").touch()
@@ -348,47 +350,47 @@ class TestRunScancode:
                 patch("app.services.scanner.detection.SCANCODE_BIN", "scancode"), \
                 patch("subprocess.Popen") as mock_popen, \
                 patch("os.path.exists", return_value=True), \
-                patch("json.dump"):  # Mock dump to avoid file writing issues
+                patch("json.dump"):  # Mock dump per evitare problemi di scrittura file
 
-            # Setup successful process
+            # Configurazione del processo di successo
             mock_process = MagicMock()
             mock_process.wait.return_value = 0
             mock_process.__enter__ = MagicMock(return_value=mock_process)
             mock_process.__exit__ = MagicMock(return_value=False)
             mock_popen.return_value = mock_process
 
-            # Mock os.walk to return our files
-            # tuple format: (root, dirs, files)
+            # Mock di os.walk per restituire i nostri file
+            # formato tupla: (root, dirs, files)
             walk_data = [
                 (repo_path, [], ["normal.py", "large.bin", "locked.bin"])
             ]
 
-            # 1MB limit in bytes
+            # Limite di 1MB in byte
             limit = 1 * 1024 * 1024
 
-            # Define side effects for getsize:
-            # - normal.py -> small size
-            # - large.bin -> large size (> limit)
-            # - locked.bin -> raise OSError
+            # Definisci gli effetti collaterali per getsize:
+            # - normal.py -> dimensione ridotta
+            # - large.bin -> dimensione grande (> limite)
+            # - locked.bin -> solleva OSError
             def getsize_side_effect(path):
                 if "large.bin" in path:
-                    return limit + 100  # Trigger ignore
+                    return limit + 100  # Attiva ignoramento
                 if "locked.bin" in path:
-                    raise OSError("Permission denied")  # Trigger exception handler
-                return 100  # Normal file
+                    raise OSError("Permission denied")  # Attiva gestore eccezioni
+                return 100  # File normale
 
             with patch("os.walk", return_value=walk_data), \
                     patch("os.path.getsize", side_effect=getsize_side_effect):
 
-                # We need to mock open/json.load for the post-processing part to succeed
+                # Dobbiamo mockare open/json.load affinché la parte di post-elaborazione abbia successo
                 with patch("builtins.open", mock_open(read_data='{"files": []}')):
                     run_scancode(repo_path)
 
-            # Verify that the large file was added to the ignore list in the command arguments
+            # Verifica che il file di grandi dimensioni sia stato aggiunto alla lista di ignoramento negli argomenti del comando
             call_args = mock_popen.call_args[0][0]
-            # "large.bin" should be passed after "--ignore"
+            # "large.bin" dovrebbe essere passato dopo "--ignore"
             assert "large.bin" in call_args
-            # "normal.py" should NOT be ignored
+            # "normal.py" NON dovrebbe essere ignorato
             assert "normal.py" not in call_args
 
 
@@ -398,18 +400,18 @@ class TestRunScancode:
 
 class TestDetectMainLicenseScancode:
     """
-    Test suite for the 'detect_main_license_scancode' function.
+    Test suite per la funzione 'detect_main_license_scancode'.
 
-    Validates the heuristic-based detection of the main project license,
-    including package declarations, file depth scoring, and name-based weighting.
+    Valida il rilevamento basato su euristiche della licenza principale del progetto,
+    comprese le dichiarazioni di pacchetto, il punteggio di profondità del file e il peso basato sul nome.
     """
 
     def test_detect_main_license_from_package(self):
         """
-        Tests detection of main license from package declaration.
+        Testa il rilevamento della licenza principale dalla dichiarazione del pacchetto.
 
-        When ScanCode detects a package with declared_license_expression,
-        it should be prioritized as the most reliable source.
+        Quando ScanCode rileva un pacchetto con declared_license_expression,
+        dovrebbe essere prioritizzato come la fonte più affidabile.
         """
         data = {
             "packages": [
@@ -422,14 +424,14 @@ class TestDetectMainLicenseScancode:
         }
 
         result = detect_main_license_scancode(data)
-        # When detecting from package, function returns only the license string
+        # Quando si rileva da un pacchetto, la funzione restituisce solo la stringa della licenza
         assert result == "Apache-2.0"
 
     def test_detect_main_license_from_root_license_file(self):
         """
-        Tests detection from LICENSE file at repository root.
+        Testa il rilevamento da un file LICENSE nella radice del repository.
 
-        Root-level LICENSE files should receive the highest weight.
+        I file LICENSE a livello di root dovrebbero ricevere il peso maggiore.
         """
         data = {
             "files": [
@@ -449,9 +451,9 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_prefers_root_over_nested(self):
         """
-        Tests that root-level licenses are preferred over nested ones.
+        Testa che le licenze a livello di root siano preferite rispetto a quelle annidate.
 
-        Files at depth 0 should win over identical licenses at greater depth.
+        I file a profondità 0 dovrebbero avere la precedenza su licenze identiche a maggiore profondità.
         """
         data = {
             "files": [
@@ -478,9 +480,9 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_ignores_low_confidence(self):
         """
-        Tests that low-confidence detections are filtered out.
+        Testa che le rilevazioni a bassa confidenza siano filtrate.
 
-        Files with percentage_of_license_text < 80% should be ignored.
+        I file con percentage_of_license_text < 80% dovrebbero essere ignorati.
         """
         data = {
             "files": [
@@ -489,7 +491,7 @@ class TestDetectMainLicenseScancode:
                     "license_detections": [
                         {"license_expression_spdx": "GPL-3.0", "score": 50}
                     ],
-                    "percentage_of_license_text": 70.0  # Too low
+                    "percentage_of_license_text": 70.0  # Troppo basso
                 },
                 {
                     "path": "COPYING",
@@ -506,9 +508,9 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_from_manifest_files(self):
         """
-        Tests detection from manifest files (package.json, setup.py, etc.).
+        Testa il rilevamento da file di manifesto (package.json, setup.py, ecc.).
 
-        These files should receive high weight even without package declaration.
+        Questi file dovrebbero ricevere un alto peso anche senza dichiarazione di pacchetto.
         """
         data = {
             "files": [
@@ -527,9 +529,9 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_from_readme(self):
         """
-        Tests detection from README files.
+        Testa il rilevamento da file README.
 
-        README files should receive moderate weight as they often mention licenses.
+        I file README dovrebbero ricevere un peso moderato in quanto spesso menzionano le licenze.
         """
         data = {
             "files": [
@@ -548,7 +550,7 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_ignores_blacklisted_dirs(self):
         """
-        Tests that files in node_modules, vendor, test, docs are ignored.
+        Testa che i file in node_modules, vendor, test, docs siano ignorati.
         """
         data = {
             "files": [
@@ -575,7 +577,7 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_returns_unknown_if_no_candidates(self):
         """
-        Tests that UNKNOWN is returned when no valid licenses are found.
+        Testa che venga restituito UNKNOWN quando non ci sono licenze valide trovate.
         """
         data = {
             "files": [
@@ -591,7 +593,7 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_with_license_text_match(self):
         """
-        Tests that is_license_text flag increases weight appropriately.
+        Testa che il flag is_license_text aumenti il peso in modo appropriato.
         """
         data = {
             "files": [
@@ -615,7 +617,7 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_copying_file(self):
         """
-        Tests that COPYING files are properly recognized.
+        Testa che i file COPYING siano riconosciuti correttamente.
         """
         data = {
             "files": [
@@ -635,20 +637,19 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_multiple_candidates_highest_weight_wins(self):
         """
-        Tests that when multiple candidates exist, the one with highest
-        cumulative weight is selected.
+        Testa che quando esistono più candidati, venga selezionato quello con il peso cumulativo più alto.
         """
         data = {
             "files": [
                 {
-                    "path": "src/utils/LICENSE",  # depth 2, name bonus
+                    "path": "src/utils/LICENSE",  # profondità 2, bonus nome
                     "license_detections": [
                         {"license_expression_spdx": "BSD-3-Clause", "score": 100}
                     ],
                     "percentage_of_license_text": 95.0
                 },
                 {
-                    "path": "LICENSE",  # depth 0, name bonus, should win
+                    "path": "LICENSE",  # profondità 0, bonus nome, dovrebbe vincere
                     "license_detections": [
                         {"license_expression_spdx": "MIT", "score": 100}
                     ],
@@ -663,9 +664,9 @@ class TestDetectMainLicenseScancode:
 
     def test_detect_main_license_missing_spdx_field(self):
         """
-        Tests handling of detections missing the 'license_expression_spdx' field.
+        Testa la gestione delle rilevazioni mancanti del campo 'license_expression_spdx'.
 
-        Covers the 'if not spdx: continue' check inside the loop.
+        Copre il controllo 'if not spdx: continue' all'interno del ciclo.
         """
         data = {
             "files": [
@@ -673,7 +674,7 @@ class TestDetectMainLicenseScancode:
                     "path": "LICENSE",
                     "license_detections": [
                         {
-                            # Missing 'license_expression_spdx'
+                            # Mancanza di 'license_expression_spdx'
                             "score": 100,
                             "matched_rule": {"is_license_text": True}
                         }
@@ -683,7 +684,7 @@ class TestDetectMainLicenseScancode:
             ]
         }
 
-        # Should return UNKNOWN because the only candidate lacks an SPDX ID
+        # Dovrebbe restituire UNKNOWN perché l'unico candidato manca di un ID SPDX
         result = detect_main_license_scancode(data)
         assert result == "UNKNOWN"
 
@@ -693,15 +694,15 @@ class TestDetectMainLicenseScancode:
 
 class TestExtractFileLicenses:
     """
-    Test suite for the 'extract_file_licenses' function.
+    Test suite per la funzione 'extract_file_licenses'.
 
-    Validates the extraction and aggregation of per-file license information
-    into SPDX expressions.
+    Valida l'estrazione e l'aggregazione delle informazioni sulla licenza per file
+    in espressioni SPDX.
     """
 
     def test_extract_file_licenses_single_match(self):
         """
-        Tests extraction of a single license from a file.
+        Testa l'estrazione di una singola licenza da un file.
         """
         data = {
             "files": [
@@ -719,7 +720,7 @@ class TestExtractFileLicenses:
 
     def test_extract_file_licenses_multiple_matches_or_operator(self):
         """
-        Tests that multiple licenses in the same file are combined with OR.
+        Testa che più licenze nello stesso file siano combinate con OR.
         """
         data = {
             "files": [
@@ -735,14 +736,14 @@ class TestExtractFileLicenses:
 
         result = extract_file_licenses(data)
         assert "src/utils.py" in result
-        # Should contain both licenses with OR
+        # Dovrebbe contenere entrambe le licenze con OR
         assert "MIT" in result["src/utils.py"]
         assert "Apache-2.0" in result["src/utils.py"]
         assert "OR" in result["src/utils.py"]
 
     def test_extract_file_licenses_no_matches(self):
         """
-        Tests that files without license matches are excluded from results.
+        Testa che i file senza corrispondenze di licenza siano esclusi dai risultati.
         """
         data = {
             "files": [
@@ -758,7 +759,7 @@ class TestExtractFileLicenses:
 
     def test_extract_file_licenses_multiple_files(self):
         """
-        Tests extraction across multiple files.
+        Testa l'estrazione su più file.
         """
         data = {
             "files": [
@@ -785,7 +786,7 @@ class TestExtractFileLicenses:
 
     def test_extract_file_licenses_null_license_spdx(self):
         """
-        Tests that matches without license_spdx field are ignored.
+        Testa che le corrispondenze senza campo license_spdx siano ignorate.
         """
         data = {
             "files": [
@@ -804,7 +805,7 @@ class TestExtractFileLicenses:
 
     def test_extract_file_licenses_empty_data(self):
         """
-        Tests handling of empty ScanCode data.
+        Testa la gestione di dati ScanCode vuoti.
         """
         data = {"files": []}
 
@@ -813,7 +814,7 @@ class TestExtractFileLicenses:
 
     def test_extract_file_licenses_missing_files_key(self):
         """
-        Tests handling of malformed data without 'files' key.
+        Testa la gestione di dati malformati senza chiave 'files'.
         """
         data = {}
 
@@ -822,7 +823,7 @@ class TestExtractFileLicenses:
 
     def test_extract_file_licenses_deduplication(self):
         """
-        Tests that duplicate SPDX identifiers in the same file are deduplicated.
+        Testa che gli identificatori SPDX duplicati nello stesso file siano deduplicati.
         """
         data = {
             "files": [
@@ -830,20 +831,20 @@ class TestExtractFileLicenses:
                     "path": "src/duplicate.py",
                     "matches": [
                         {"license_spdx": "MIT"},
-                        {"license_spdx": "MIT"},  # Duplicate
-                        {"license_spdx": "MIT"}   # Duplicate
+                        {"license_spdx": "MIT"},  # Duplicato
+                        {"license_spdx": "MIT"}   # Duplicato
                     ]
                 }
             ]
         }
 
         result = extract_file_licenses(data)
-        # Should only contain MIT once, not "MIT OR MIT OR MIT"
+        # Dovrebbe contenere solo MIT una volta, non "MIT OR MIT OR MIT"
         assert result["src/duplicate.py"] == "MIT"
 
     def test_extract_file_licenses_complex_scenario(self):
         """
-        Tests a complex scenario with mixed file types and license patterns.
+        Testa uno scenario complesso con tipi di file misti e modelli di licenza.
         """
         data = {
             "files": [
@@ -879,22 +880,23 @@ class TestExtractFileLicenses:
 
     def test_extract_file_licenses_matches_but_no_valid_spdx(self):
         """
-        Tests filtering when matches exist but contain no valid license keys.
+        Testa il filtraggio quando esistono corrispondenze ma non contengono chiavi di licenza valide.
 
-        Covers the 'if not unique_spdx: continue' block.
+        Copre il blocco 'if not unique_spdx: continue'.
         """
         data = {
             "files": [
                 {
                     "path": "file.c",
                     "matches": [
-                        {"score": 90},  # Missing license_spdx
-                        {"license_spdx": ""}  # Empty string
+                        {"score": 90},  # Mancanza di license_spdx
+                        {"license_spdx": ""}  # Stringa vuota
                     ]
                 }
             ]
         }
 
         result = extract_file_licenses(data)
-        # Should be empty because no valid SPDX IDs were extracted
+        # Dovrebbe essere vuoto perché non ci sono ID SPDX validi estratti
         assert result == {}
+

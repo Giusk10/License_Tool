@@ -1,10 +1,10 @@
 """
 test: services/scanner/test_main_spdx_utilities_unit.py
 
-Unit tests for the SPDX utility functions used in the scanner service.
-These tests verify the logic for extracting and prioritizing valid SPDX license expressions
-from ScanCode output structures, handling edge cases like missing paths, invalid values,
-and directory depth prioritization.
+Test unitari per le funzioni di utilità SPDX usate nel servizio di scanner.
+Questi test verificano la logica di estrazione e prioritizzazione delle espressioni di licenza SPDX valide
+all'interno delle strutture di output di ScanCode, gestendo casi limite come path mancanti, valori non validi
+e la priorità in base alla profondità della directory.
 """
 
 import pytest
@@ -14,8 +14,8 @@ from app.services.compatibility import parser_spdx as ps
 
 def test_extract_skips_invalid_spdx_values_before_falling_back():
     """
-    Verify that _extract_first_valid_spdx skips invalid values (like 'UNKNOWN' or empty strings)
-    in priority fields and correctly falls back to subsequent fields (e.g., license_detections).
+    Verifica che _extract_first_valid_spdx salti i valori non validi (come 'UNKNOWN' o stringhe vuote)
+    nei campi prioritari e vada correttamente in fallback sui campi successivi (es. license_detections).
     """
     entry = {
         "path": "dist/LICENSE",
@@ -32,7 +32,7 @@ def test_extract_skips_invalid_spdx_values_before_falling_back():
 
 def test_pick_best_returns_none_for_empty_entries():
     """
-    Verify that _pick_best_spdx returns None when the input list is empty or None.
+    Verifica che _pick_best_spdx restituisca None quando l'elenco di input è vuoto o None.
     """
     assert util._pick_best_spdx([]) is None
     assert util._pick_best_spdx(None) is None
@@ -40,8 +40,8 @@ def test_pick_best_returns_none_for_empty_entries():
 
 def test_pick_best_skips_non_mapping_entries():
     """
-    Verify that _pick_best_spdx ignores entries that are not dictionaries (e.g., None, strings)
-    and successfully picks a valid license from the remaining valid entries.
+    Verifica che _pick_best_spdx ignori le voci che non sono dizionari (es. None, stringhe)
+    e scelga correttamente una licenza valida tra le voci rimanenti valide.
     """
     entries = [
         None,
@@ -57,8 +57,8 @@ def test_pick_best_skips_non_mapping_entries():
 
 def test_is_valid_filters_none_empty_unknown():
     """
-    Verify that _is_valid correctly identifies valid SPDX strings.
-    It should reject None, empty strings, and 'UNKNOWN'.
+    Verifica che _is_valid identifichi correttamente le stringhe SPDX valide.
+    Dovrebbe rifiutare None, stringhe vuote e 'UNKNOWN'.
     """
     assert util._is_valid("MIT") is True
     assert util._is_valid("UNKNOWN") is False
@@ -68,8 +68,8 @@ def test_is_valid_filters_none_empty_unknown():
 
 def test_extract_returns_main_expression():
     """
-    Verify that _extract_first_valid_spdx returns the high-priority
-    'detected_license_expression_spdx' if it contains a valid value.
+    Verifica che _extract_first_valid_spdx restituisca l'alta priorità
+    'detected_license_expression_spdx' se contiene un valore valido.
     """
     entry = {
         "path": "LICENSE",
@@ -80,8 +80,8 @@ def test_extract_returns_main_expression():
 
 def test_extract_falls_back_to_license_detections():
     """
-    Verify fallback logic: if the main expression is missing/invalid,
-    check the 'license_detections' list for a valid expression.
+    Verifica la logica di fallback: se l'espressione principale è mancante/non valida,
+    controlla l'elenco 'license_detections' per un'espressione valida.
     """
     entry = {
         "path": "src/module/file.py",
@@ -95,8 +95,8 @@ def test_extract_falls_back_to_license_detections():
 
 def test_extract_uses_license_list_when_needed():
     """
-    Verify deep fallback: if both detected expression and detections list fail,
-    fall back to the raw 'licenses' list (ScanCode standard key).
+    Verifica il fallback profondo: se sia l'espressione rilevata che l'elenco delle rilevazioni falliscono,
+    torna all'elenco 'licenses' raw (chiave standard di ScanCode).
     """
     entry = {
         "path": "docs/NOTICE",
@@ -110,8 +110,8 @@ def test_extract_uses_license_list_when_needed():
 
 def test_extract_returns_none_for_invalid_entry():
     """
-    Verify that _extract_first_valid_spdx returns None if the entry structure
-    is invalid (not a dict) or contains no recognized license fields.
+    Verifica che _extract_first_valid_spdx restituisca None se la struttura dell'entry
+    non è valida (non è un dict) o non contiene campi di licenza riconosciuti.
     """
     assert util._extract_first_valid_spdx("not-a-dict") is None
     assert util._extract_first_valid_spdx({"path": "file"}) is None
@@ -119,8 +119,8 @@ def test_extract_returns_none_for_invalid_entry():
 
 def test_extract_returns_empty_path_when_missing():
     """
-    Verify that if the 'path' key is missing in the entry, the function
-    defaults to an empty string for the path component of the result.
+    Verifica che se la chiave 'path' è mancante nell'entry, la funzione
+    imposti correttamente una stringa vuota per il componente path del risultato.
     """
     entry = {
         "detected_license_expression_spdx": "CC0-1.0"
@@ -130,7 +130,7 @@ def test_extract_returns_empty_path_when_missing():
 
 def test_extract_prefers_detected_expression_over_other_fields():
     """
-    Verify the priority order of extraction:
+    Verifica l'ordine di priorità dell'estrazione:
     1. detected_license_expression_spdx
     2. license_detections
     3. licenses
@@ -146,8 +146,8 @@ def test_extract_prefers_detected_expression_over_other_fields():
 
 def test_pick_best_prefers_shallow_path():
     """
-    Verify that _pick_best_spdx prioritizes files closer to the root (shallower depth).
-    'LICENSE' (depth 0) should beat 'nested/dir/COMPONENT' (depth 2).
+    Verifica che _pick_best_spdx dia priorità ai file più vicini alla radice (profondità minore).
+    'LICENSE' (profondità 0) dovrebbe avere la precedenza su 'nested/dir/COMPONENT' (profondità 2).
     """
     entries = [
         {
@@ -164,8 +164,8 @@ def test_pick_best_prefers_shallow_path():
 
 def test_pick_best_returns_none_when_no_valid_spdx():
     """
-    Verify that _pick_best_spdx returns None if none of the provided entries
-    contain a valid SPDX expression.
+    Verifica che _pick_best_spdx restituisca None se nessuna delle voci fornite
+    contiene un'espressione SPDX valida.
     """
     entries = [
         {"path": "file1", "detected_license_expression_spdx": None},
@@ -176,8 +176,8 @@ def test_pick_best_returns_none_when_no_valid_spdx():
 
 def test_pick_best_handles_missing_path_values():
     """
-    Verify how _pick_best_spdx handles entries where 'path' is None.
-    It should handle them gracefully without crashing, potentially treating them as high priority (depth -1 or 0 equivalent).
+    Verifica come _pick_best_spdx gestisce le voci in cui 'path' è None.
+    Dovrebbe gestirle in modo elegante senza arrestarsi, trattandole potenzialmente come alta priorità (profondità -1 o equivalente a 0).
     """
     entries = [
         {
@@ -194,8 +194,8 @@ def test_pick_best_handles_missing_path_values():
 
 def test_pick_best_keeps_order_for_same_depth():
     """
-    Verify that for entries at the same directory depth, the original order is preserved
-    (stable selection strategy).
+    Verifica che per le voci alla stessa profondità della directory, l'ordine originale venga preservato
+    (strategia di selezione stabile).
     """
     entries = [
         {"path": "A", "detected_license_expression_spdx": "EPL-2.0"},
@@ -206,8 +206,8 @@ def test_pick_best_keeps_order_for_same_depth():
 
 def test_node_repr_methods(monkeypatch):
     """
-    Verifies the __repr__ methods of the AST nodes (Leaf, And, Or).
-    This covers the string representation logic which is useful for debugging.
+    Verifica i metodi __repr__ dei nodi AST (Leaf, And, Or).
+    Questo copre la logica di rappresentazione delle stringhe utile per il debug.
     """
     # Mock normalize_symbol to return value as-is for predictable repr
     monkeypatch.setattr(ps, "normalize_symbol", lambda s: s)
@@ -227,12 +227,12 @@ def test_node_repr_methods(monkeypatch):
 
 def test_parse_primary_implicit_none(monkeypatch):
     """
-    Forces the 'parse_primary' function to hit its final 'return None' statement.
+    Forza la funzione 'parse_primary' a colpire la sua ultima dichiarazione 'return None'.
 
-    In normal operation, '_tokenize' never produces empty strings, so 'consume()'
-    always returns a truthy value or None (caught by 'peek').
-    We mock '_tokenize' to return an empty string to simulate a falsy token
-    that bypasses the 'if val:' check.
+    Nel funzionamento normale, '_tokenize' non produce mai stringhe vuote, quindi 'consume()'
+    restituisce sempre un valore veritiero o None (catturato da 'peek').
+    Mockiamo '_tokenize' per restituire una stringa vuota per simulare un token falsy
+    che bypassa il controllo 'if val:'.
     """
     # Mock tokenize to return a list containing an empty string
     monkeypatch.setattr(ps, "_tokenize", lambda s: [""])
@@ -242,3 +242,4 @@ def test_parse_primary_implicit_none(monkeypatch):
     result = ps.parse_spdx("dummy_input")
 
     assert result is None
+

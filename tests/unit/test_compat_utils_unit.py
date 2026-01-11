@@ -1,36 +1,36 @@
 """
 Compatibility Utilities Unit Test Module.
 
-This module provides unit tests for `app.services.compatibility.compat_utils`.
-It focuses on validating the normalization of SPDX-like license strings and
-the reliable extraction of license symbols from complex boolean expressions.
+Questo modulo fornisce test unitari per `app.services.compatibility.compat_utils`.
+Si concentra sulla validazione della normalizzazione delle stringhe di licenza in stile SPDX e
+sull'estrazione affidabile dei simboli di licenza da espressioni booleane complesse.
 
-The suite covers:
-1. Symbol Normalization: Handling of case variants, 'WITH' keywords, and '+' suffixes.
-2. Symbol Extraction: Parsing tokens from simple and complex (nested) expressions.
-3. Edge Case Handling: Resilience against null inputs, empty strings, and malformed expressions.
+La suite copre:
+1. Normalizzazione dei simboli: Gestione di varianti di maiuscole/minuscole, keyword 'WITH' e suffissi '+'.
+2. Estrazione dei simboli: Parsing di token da espressioni semplici e complesse (annidate).
+3. Gestione dei casi limite: Robustezza contro input nulli, stringhe vuote ed espressioni malformate.
 """
 
 import pytest
 from app.services.compatibility import compat_utils as cu
 
 # ==================================================================================
-#                                     FIXTURES
+#                                     FIXTURE
 # ==================================================================================
 
-# Note: These tests are pure unit tests for utility functions and do not
-# require external state or complex fixtures from conftest.py.
+# Nota: Questi sono test puramente unitari per funzioni di utility e non richiedono
+# stato esterno o fixture complesse da conftest.py.
 
 # ==================================================================================
-#                           TESTS: SYMBOL NORMALIZATION
+#                           TEST: NORMALIZZAZIONE DEI SIMBOLI
 # ==================================================================================
 
 def test_normalize_none_and_empty():
     """
-    Validates handling of null and empty inputs.
+    Valida la gestione degli input nulli e vuoti.
 
-    Ensures that None is preserved to avoid type errors and that empty
-    strings remain empty after normalization.
+    Garantisce che None venga preservato per evitare errori di tipo e che le stringhe vuote
+    rimangano vuote dopo la normalizzazione.
     """
     assert cu.normalize_symbol(None) is None
     assert cu.normalize_symbol("") == ""
@@ -38,23 +38,23 @@ def test_normalize_none_and_empty():
 
 def test_normalize_trim_and_with_variants():
     """
-    Tests keyword normalization and whitespace cleanup.
+    Testa la normalizzazione delle keyword e la pulizia degli spazi.
 
-    Verifies that various case-variants of the 'with' keyword (e.g., 'With', 'with')
-    are standardized to ' WITH ' and that surrounding whitespace is stripped.
+    Verifica che varie varianti di maiuscole/minuscole della keyword 'with' (ad es., 'With', 'with')
+    siano standardizzate in ' WITH ' e che gli spazi circostanti vengano rimossi.
     """
     assert cu.normalize_symbol(" mit with exception ") == "mit WITH exception"
     assert cu.normalize_symbol("MIT With Exception") == "MIT WITH Exception"
-    # case with 'with' without leading space
+    # caso con 'with' senza spazio iniziale
     assert cu.normalize_symbol("MIT with") == "MIT WITH"
 
 
 def test_normalize_plus_to_or_later_and_synonyms():
     """
-    Verifies the conversion of the '+' suffix to the standard '-or-later' format.
+    Verifica la conversione del suffisso '+' nel formato standard '-or-later'.
 
-    Ensures that strings like 'GPL-3.0+' are correctly transformed to
-    conform to modern SPDX naming conventions.
+    Garantisce che stringhe come 'GPL-3.0+' vengano correttamente trasformate per
+    conformarsi alle moderne convenzioni di denominazione SPDX.
     """
     assert cu.normalize_symbol("GPL-3.0+") == "GPL-3.0-or-later"
     assert cu.normalize_symbol("GPL-3.0-or-later") == "GPL-3.0-or-later"
@@ -62,25 +62,25 @@ def test_normalize_plus_to_or_later_and_synonyms():
 
 def test_normalize_preserves_unknown_strings():
     """
-    Ensures that standard or unrecognized strings are preserved.
+    Garantisce che stringhe standard o non riconosciute vengano preservate.
 
-    Validates that normalization only modifies specific patterns, leaving
-    standard license names like 'Apache-2.0' untouched (except for trimming).
+    Valida che la normalizzazione modifichi solo schemi specifici, lasciando
+    nomi di licenze standard come 'Apache-2.0' intatti (eccetto per il ritaglio).
     """
     assert cu.normalize_symbol("  Apache-2.0  ") == "Apache-2.0"
     assert cu.normalize_symbol("BSD-3-Clause") == "BSD-3-Clause"
 
 # ==================================================================================
-#                           TESTS: SYMBOL EXTRACTION
+#                           TEST: ESTRAZIONE DEI SIMBOLI
 # ==================================================================================
 
 def test_extract_symbols_simple_and_complex():
     """
-    Verifies token extraction from SPDX expressions.
+    Verifica l'estrazione dei token dalle espressioni SPDX.
 
-    Ensures that the service can extract individual license IDs from both
-    simple strings and boolean expressions (OR/AND), using sets for
-    order-independent comparison.
+    Garantisce che il servizio possa estrarre singoli ID di licenza sia da
+    stringhe semplici che da espressioni booleane (OR/AND), utilizzando insiemi per
+    un confronto indipendente dall'ordine.
     """
     assert cu.extract_symbols("") == []
 
@@ -88,57 +88,57 @@ def test_extract_symbols_simple_and_complex():
     assert set(s) == {"MIT"}
 
     s2 = cu.extract_symbols("MIT OR Apache-2.0")
-    # can return ['MIT','Apache-2.0'] in any order
+    # può restituire ['MIT','Apache-2.0'] in qualsiasi ordine
     assert set(s2) >= {"MIT", "Apache-2.0"}
 
 
 def test_extract_symbols_invalid_expression_returns_empty():
     """
-    Tests error resilience for malformed or invalid SPDX expressions.
+    Testa la resilienza agli errori per espressioni SPDX malformate o non valide.
 
-    Ensures that when the extraction utility encounters a string that
-    cannot be parsed as a valid license expression (e.g., containing
-    invalid characters or syntax), it returns an empty list instead of
-    raising an unhandled exception.
+    Garantisce che quando l'utility di estrazione incontra una stringa che
+    non può essere analizzata come un'espressione di licenza valida (ad es., contenente
+    caratteri o sintassi non validi), restituisce un elenco vuoto invece di
+    sollevare un'eccezione non gestita.
     """
     assert cu.extract_symbols("not-a-license !!! !!!") == []
 
 
 def test_normalize_with_and_plus_combination():
     """
-    Tests error handling for malformed SPDX expressions.
+    Testa la gestione degli errori per espressioni SPDX malformate.
 
-    Ensures that if the parser encounters an invalid expression, it
-    returns an empty list instead of crashing the analysis workflow.
+    Garantisce che se il parser incontra un'espressione non valida, restituisca
+    un elenco vuoto invece di arrestare il flusso di lavoro dell'analisi.
     """
     inp = "GPL-2.0+ WITH Autoconf-exception"
-    # + must become -or-later, and WITH must be normalized
+    # + deve diventare -or-later, e WITH deve essere normalizzato
     out = cu.normalize_symbol(inp)
     assert "-or-later" in out
     assert "WITH" in out
 
 def test_normalize_multiple_plus_and_with():
     """
-    Validates resilience against redundant or repeated symbols.
+    Valida la resilienza contro simboli ridondanti o ripetuti.
 
-    Checks how the normalizer handles strings with multiple '+' signs or
-    repeated 'WITH' keywords, ensuring the output is stabilized and
-    conforms to the expected '-or-later' and 'WITH' formatting.
+    Controlla come il normalizzatore gestisce stringhe con più segni '+' o
+    parole chiave 'WITH' ripetute, garantendo che l'output sia stabilizzato e
+    conforme al formato previsto '-or-later' e 'WITH'.
     """
     inp = "GPL-2.0+ + + WITH Extra WITH Another"
     out = cu.normalize_symbol(inp)
-    # Ensures that '+' is converted and 'WITH' is standardized despite repetitions
+    # Garantisce che '+' venga convertito e 'WITH' venga standardizzato nonostante le ripetizioni
     assert "-or-later" in out
     assert "WITH" in out
 
 
 def test_normalize_case_insensitive_synonyms():
     """
-    Ensures normalization is case-insensitive for license tokens.
+    Garantisce che la normalizzazione sia insensibile alle maiuscole per i token di licenza.
 
-    Verifies that lowercase or mixed-case variants of licenses with a '+'
-    suffix (e.g., 'gpl-3.0+') are correctly identified and converted
-    to the standard '-or-later' form.
+    Verifica che le varianti in minuscolo o maiuscole miste delle licenze con un '+'
+    suffisso (ad es., 'gpl-3.0+') siano correttamente identificate e convertite
+    nella forma standard '-or-later'.
     """
     assert cu.normalize_symbol("gpl-3.0+") == "gpl-3.0-or-later"
     assert cu.normalize_symbol("GPl-3.0+") == "GPl-3.0-or-later"
@@ -146,18 +146,18 @@ def test_normalize_case_insensitive_synonyms():
 
 def test_extract_symbols_with_parenthesis_and_with():
     """
-    Validates extraction logic for complex nested SPDX expressions.
+    Valida la logica di estrazione per espressioni SPDX annidate complesse.
 
-    Ensures that symbols are correctly parsed even when the expression
-    contains logical operators (AND/OR), parentheses, and exception
-    clauses (WITH).
+    Garantisce che i simboli siano correttamente analizzati anche quando l'espressione
+    contiene operatori logici (AND/OR), parentesi e clausole di eccezione
+    (WITH).
     """
     expr = "(MIT OR GPL-2.0 WITH Exception) AND Apache-2.0"
     syms = cu.extract_symbols(expr)
     assert any("WITH" in s for s in syms) or any("GPL-2.0" in s for s in syms)
 
 # ==================================================================================
-#                        TESTS: PARAMETRIZED VALIDATION
+#                        TEST: VALIDAZIONE PARAMETRIZZATA
 # ==================================================================================
 
 @pytest.mark.parametrize("inp,expected", [
@@ -171,16 +171,16 @@ def test_extract_symbols_with_parenthesis_and_with():
 ])
 def test_normalize_parametrized(inp, expected):
     """
-    Performs bulk validation of normalization rules using parametrization.
+    Esegue la validazione in blocco delle regole di normalizzazione utilizzando la parametrizzazione.
 
-    This ensures that multiple input/output pairs are consistently
-    validated across the normalization logic.
+    Questo garantisce che più coppie di input/output siano costantemente
+    validate attraverso la logica di normalizzazione.
     """
     assert cu.normalize_symbol(inp) == expected
 
 
 # ==================================================================================
-#                        TESTS: SYNONYMS DICTIONARY
+#                        TEST: DIZIONARIO DEI SINONIMI
 # ==================================================================================
 
 @pytest.mark.parametrize("inp,expected", [
@@ -199,20 +199,20 @@ def test_normalize_parametrized(inp, expected):
 ])
 def test_normalize_all_synonyms(inp, expected):
     """
-    Validates that all entries in the _SYNONYMS dictionary are correctly resolved.
+    Valida che tutte le voci nel dizionario _SYNONYMS siano correttamente risolte.
 
-    Ensures that common license aliases with '+' suffix are converted to
-    their '-or-later' canonical form.
+    Garantisce che gli alias di licenza comuni con suffisso '+' siano convertiti nella
+    loro forma canonica '-or-later'.
     """
     assert cu.normalize_symbol(inp) == expected
 
 
 def test_normalize_unknown_license_preserved():
     """
-    Ensures that unknown license strings not in _SYNONYMS are preserved.
+    Garantisce che stringhe di licenza sconosciute non presenti in _SYNONYMS siano preservate.
 
-    Validates that the normalizer only modifies known patterns and does not
-    alter unrecognized license identifiers (except for trimming).
+    Valida che il normalizzatore modifichi solo schemi noti e non alteri
+    identificatori di licenza non riconosciuti (eccetto per il ritaglio).
     """
     assert cu.normalize_symbol("CustomLicense-1.0") == "CustomLicense-1.0"
     assert cu.normalize_symbol("Proprietary") == "Proprietary"
@@ -221,23 +221,23 @@ def test_normalize_unknown_license_preserved():
 
 def test_extract_symbols_nested_or_and():
     """
-    Validates extraction logic for nested OR and AND expressions.
+    Valida la logica di estrazione per espressioni annidate OR e AND.
 
-    Ensures that symbols are correctly parsed from deeply nested boolean
-    expressions with mixed operators.
+    Garantisce che i simboli siano correttamente analizzati da espressioni booleane
+    profondamente annidate con operatori misti.
     """
     expr = "MIT AND (Apache-2.0 OR GPL-2.0)"
     syms = cu.extract_symbols(expr)
     assert "MIT" in syms
-    # Order may vary, check presence
+    # L'ordine può variare, controlla la presenza
     assert any(s in ["Apache-2.0", "GPL-2.0"] for s in syms)
 
 
 def test_extract_symbols_single_with_exception():
     """
-    Validates extraction of license with exception clause.
+    Valida l'estrazione di una licenza con clausola di eccezione.
 
-    Ensures that licenses with WITH exceptions are correctly identified.
+    Garantisce che le licenze con eccezioni WITH siano correttamente identificate.
     """
     expr = "GPL-2.0-only WITH Classpath-exception-2.0"
     syms = cu.extract_symbols(expr)
@@ -246,9 +246,9 @@ def test_extract_symbols_single_with_exception():
 
 def test_normalize_with_lowercase_variants():
     """
-    Tests normalization of 'with' keyword in various positions.
+    Testa la normalizzazione della keyword 'with' in varie posizioni.
 
-    Ensures that all lowercase variants of 'with' are normalized to 'WITH'.
+    Garantisce che tutte le varianti in minuscolo della keyword 'with' siano normalizzate in 'WITH'.
     """
     assert cu.normalize_symbol("GPL-2.0 with linking-exception") == "GPL-2.0 WITH linking-exception"
     assert cu.normalize_symbol("MIT with") == "MIT WITH"
@@ -256,10 +256,9 @@ def test_normalize_with_lowercase_variants():
 
 def test_extract_symbols_complex_expression():
     """
-    Validates extraction from a complex real-world SPDX expression.
+    Valida l'estrazione da un'espressione SPDX complessa e reale.
     """
     expr = "(MIT OR Apache-2.0) AND (BSD-2-Clause OR BSD-3-Clause)"
     syms = cu.extract_symbols(expr)
     expected = {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause"}
     assert expected.issubset(set(syms))
-

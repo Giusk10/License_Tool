@@ -1,3 +1,4 @@
+# Questo file .feature definisce uno scenario di test Behave per la clonazione e l'analisi di un repository GitHub tramite License Checker, con verifica della visualizzazione del report di compatibilità delle licenze.
 Feature: GitHub Repository Analysis
   As a user
   I want to clone and analyze a GitHub repository
@@ -9,13 +10,13 @@ Feature: GitHub Repository Analysis
     And I enter "requests" in the Repository field
     And I click on the Clone Repository button
 
-    # Waiting for the cloning process to complete
+    # Attesa che il processo di clonazione sia completato
     Then I should wait to see "Repository Cloned Successfully"
 
-    # Analyzing the cloned repository
+    # Analisi del repository clonato
     When I click on the button containing "Analyze Repository"
 
-    # Waiting for the analysis to complete
+    # Attesa che l'analisi sia completata
     Then I should wait to see "Analysis Report"
     And I should see "Main License"
     And I should see "License Issues & Compatibility"

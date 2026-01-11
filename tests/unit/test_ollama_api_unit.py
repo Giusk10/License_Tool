@@ -1,9 +1,9 @@
 """
-Unit tests for the Ollama API integration module.
-These tests verify the low-level helper functions for managing the Ollama service
-lifecycle, checking model installation, and executing prompts against specific models.
-It mocks external dependencies (requests, subprocess, file system) to ensure
-isolated and fast execution.
+Test unitari per il modulo di integrazione con l'API Ollama.
+Questi test verificano le funzioni di basso livello per la gestione del ciclo di vita del servizio Ollama,
+controllo dell'installazione dei modelli ed esecuzione dei prompt su modelli specifici.
+Le dipendenze esterne (requests, subprocess, file system) sono mockate per garantire
+esecuzione isolata e veloce.
 """
 
 import unittest
@@ -25,8 +25,8 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api.requests.get')
     def test_is_ollama_running_true(self, mock_get):
         """
-        Verify that `_is_ollama_running` returns True if the service endpoint
-        responds with a success status code.
+        Verifica che `_is_ollama_running` restituisca True se l'endpoint del servizio
+        risponde con uno status di successo.
         """
         mock_get.return_value.status_code = 200
         self.assertTrue(ollama_api._is_ollama_running())
@@ -34,19 +34,19 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api.requests.get')
     def test_is_ollama_running_false(self, mock_get):
         """
-        Verify that `_is_ollama_running` returns False if the request raises
-        an exception (indicating the service is down or unreachable).
+        Verifica che `_is_ollama_running` restituisca False se la richiesta solleva
+        un'eccezione (servizio non attivo o non raggiungibile).
         """
         mock_get.side_effect = requests.RequestException
         self.assertFalse(ollama_api._is_ollama_running())
 
     @patch('app.services.llm.ollama_api.subprocess.Popen')
     @patch('app.services.llm.ollama_api._is_ollama_running')
-    @patch('app.services.llm.ollama_api.time.sleep')  # Mock sleep to speed up tests
+    @patch('app.services.llm.ollama_api.time.sleep')  # Mock sleep per velocizzare i test
     def test_start_ollama_success(self, mock_sleep, mock_is_running, mock_popen):
         """
-        Verify that `_start_ollama` successfully spawns the process and waits
-        until the service becomes responsive (simulated by _is_ollama_running returning True).
+        Verifica che `_start_ollama` avvii correttamente il processo e attenda
+        che il servizio diventi responsivo (simulato da _is_ollama_running che restituisce True).
         """
         # Scenario: first check returns False (not ready), second returns True (ready)
         mock_is_running.side_effect = [False, True]
@@ -60,8 +60,8 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api.time.sleep')
     def test_start_ollama_timeout(self, mock_sleep, mock_is_running, mock_popen):
         """
-        Verify that `_start_ollama` returns False if the service does not become
-        responsive within the specified timeout period.
+        Verifica che `_start_ollama` restituisca False se il servizio non diventa
+        responsivo entro il timeout specificato.
         """
         mock_is_running.return_value = False
         result = ollama_api._start_ollama(wait_seconds=0.1)
@@ -70,22 +70,22 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api.subprocess.Popen')
     def test_start_ollama_popen_error(self, mock_popen):
         """
-        Verify that `_start_ollama` returns False and handles the exception
-        if the subprocess fails to spawn (e.g., executable not found).
+        Verifica che `_start_ollama` restituisca False e gestisca l'eccezione
+        se il sottoprocesso fallisce ad avviarsi (es. eseguibile non trovato).
         """
         mock_popen.side_effect = OSError("Error spawning")
         result = ollama_api._start_ollama()
         self.assertFalse(result)
 
-    # ==============================================================================
-    # TESTS FOR MODEL MANAGEMENT (Check & Pull)
-    # ==============================================================================
+    # ===============================================================================
+    # TEST SULLA GESTIONE DEI MODELLI (Check & Pull)
+    # ===============================================================================
 
     @patch('app.services.llm.ollama_api.requests.get')
     def test_is_model_installed_found(self, mock_get):
         """
-        Verify that `_is_model_installed` returns True when the requested model
-        name is present in the JSON list returned by the API.
+        Verifica che `_is_model_installed` restituisca True quando il nome del modello
+        richiesto è presente nella lista JSON restituita dall'API.
         """
         mock_response = {"models": [{"name": "qwen2.5-coder"}, {"name": "other"}]}
         mock_get.return_value.json.return_value = mock_response
@@ -94,8 +94,8 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api.requests.get')
     def test_is_model_installed_not_found(self, mock_get):
         """
-        Verify that `_is_model_installed` returns False when the requested model
-        name is missing from the API response.
+        Verifica che `_is_model_installed` restituisca False quando il modello richiesto
+        non è presente nella risposta dell'API.
         """
         mock_response = {"models": [{"name": "other"}]}
         mock_get.return_value.json.return_value = mock_response
@@ -104,7 +104,7 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api.requests.get')
     def test_is_model_installed_error(self, mock_get):
         """
-        Verify that `_is_model_installed` returns False gracefully if the API call fails.
+        Verifica che `_is_model_installed` restituisca False in modo sicuro se la chiamata API fallisce.
         """
         mock_get.side_effect = requests.RequestException
         self.assertFalse(ollama_api._is_model_installed("any"))
@@ -112,7 +112,7 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api.subprocess.run')
     def test_pull_model_success(self, mock_run):
         """
-        Verify that `_pull_model` calls the subprocess with the correct arguments.
+        Verifica che `_pull_model` chiami il sottoprocesso con gli argomenti corretti.
         """
         ollama_api._pull_model("model-name")
         mock_run.assert_called_once()
@@ -120,16 +120,16 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api.subprocess.run')
     def test_pull_model_error(self, mock_run):
         """
-        Verify that `_pull_model` catches subprocess errors and logs them
-        without crashing the application.
+        Verifica che `_pull_model` intercetti errori del sottoprocesso e li logghi
+        senza far crashare l'applicazione.
         """
         mock_run.side_effect = subprocess.SubprocessError
         # Should not raise exception
         ollama_api._pull_model("model-name")
 
-    # ==============================================================================
-    # TESTS FOR ORCHESTRATION (Ensure Ready)
-    # ==============================================================================
+    # ===============================================================================
+    # TEST DI ORCHESTRAZIONE (Ensure Ready)
+    # ===============================================================================
 
     @patch('app.services.llm.ollama_api._is_ollama_running')
     @patch('app.services.llm.ollama_api._start_ollama')
@@ -137,8 +137,8 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api._pull_model')
     def test_ensure_ollama_ready_start_and_pull(self, mock_pull, mock_installed, mock_start, mock_running):
         """
-        Verify that `ensure_ollama_ready` attempts to start the service and
-        pull the model if they are missing/not running.
+        Verifica che `ensure_ollama_ready` tenti di avviare il servizio e
+        scaricare il modello se non sono attivi/presenti.
         """
         # Scenario: Service down, Model missing -> Start True, Pull triggered
         mock_running.return_value = False
@@ -154,8 +154,8 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api._start_ollama')
     def test_ensure_ollama_ready_fail_start(self, mock_start, mock_running):
         """
-        Verify that `ensure_ollama_ready` raises RuntimeError if the service
-        cannot be started.
+        Verifica che `ensure_ollama_ready` sollevi RuntimeError se il servizio
+        non può essere avviato.
         """
         mock_running.return_value = False
         mock_start.return_value = False
@@ -167,8 +167,8 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('app.services.llm.ollama_api._is_model_installed')
     def test_ensure_ollama_ready_fail_pull_check(self, mock_installed, mock_running):
         """
-        Verify that `ensure_ollama_ready` raises RuntimeError if the model is
-        missing and `pull_if_needed` is set to False.
+        Verifica che `ensure_ollama_ready` sollevi RuntimeError se il modello è
+        mancante e `pull_if_needed` è impostato a False.
         """
         mock_running.return_value = True
         mock_installed.return_value = False
@@ -176,18 +176,18 @@ class TestOllamaApiUnit(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             ollama_api.ensure_ollama_ready("test-model", pull_if_needed=False)
 
-    # ==============================================================================
-    # TESTS FOR API EXECUTION (DeepSeek & Qwen)
-    # ==============================================================================
+    # ===============================================================================
+    # TEST SULL'ESECUZIONE API (DeepSeek & Qwen)
+    # ===============================================================================
 
     @patch('app.services.llm.ollama_api.ensure_ollama_ready')
     @patch('app.services.llm.ollama_api.requests.post')
-    @patch('app.services.llm.ollama_api.os.makedirs')  # Prevent directory creation
+    @patch('app.services.llm.ollama_api.os.makedirs')  # Previene la creazione di directory
     @patch('builtins.open', new_callable=mock_open)
     def test_call_ollama_qwen3_coder_success(self, mock_file, mock_makedirs, mock_post, mock_ensure):
         """
-        Verify that `call_ollama_qwen3_coder` sends the correct payload, saves
-        debug output to a file, and returns the response string.
+        Verifica che `call_ollama_qwen3_coder` invii il payload corretto, salvi
+        l'output di debug su file e restituisca la stringa di risposta.
         """
         mock_post.return_value.json.return_value = {"response": "print('code')"}
         mock_post.return_value.status_code = 200
@@ -205,8 +205,8 @@ class TestOllamaApiUnit(unittest.TestCase):
     @patch('builtins.open', new_callable=mock_open)
     def test_call_ollama_deepseek_clean_markdown(self, mock_file, mock_makedirs, mock_post, mock_ensure):
         """
-        Verify that `call_ollama_deepseek` correctly strips Markdown code fences
-        (e.g., ```json ... ```) from the response string.
+        Verifica che `call_ollama_deepseek` rimuova correttamente i blocchi Markdown
+        (ad es. ```json ... ```) dalla stringa di risposta.
         """
         # Simulate response with markdown blocks
         raw_response = "```json\n{\"key\": \"val\"}\n```"

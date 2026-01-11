@@ -1,22 +1,23 @@
+# Questo file contiene gli step Behave per l'interazione con la modale di suggerimento licenza AI e la gestione delle checkbox delle preferenze.
 # pylint: disable=not-callable
 from behave import when
 from selenium.webdriver.common.by import By
 
-# Step to click checkboxes based on the text next to them (e.g., "Commercial use allowed")
+# Step per cliccare sulle checkbox in base al testo accanto (es. "Commercial use allowed")
 @when('I toggle the "{label_text}" checkbox')
 def step_toggle_checkbox(context, label_text):
-    # The HTML is structured as <label> <input> <span>Text</span> </label>
-    # Clicking on the label automatically toggles the checkbox in Selenium
+    # L'HTML è strutturato come <label> <input> <span>Testo</span> </label>
+    # Cliccando sull'etichetta si attiva/disattiva la checkbox in Selenium
     xpath = f"//label[contains(., '{label_text}')]"
     element = context.browser.find_element(By.XPATH, xpath)
     element.click()
 
-# Specific step for the button inside the modal
+# Step specifico per il pulsante all'interno della modale
 @when('I click the suggestion submit button')
 def step_submit_suggestion(context):
-    # Ambiguity: there are two buttons with text "Get Suggestion" on the page
-    # (one below in the report, one in the modal).
-    # To ensure we click the right one (the submit one), we use a precise CSS selector.
-    # We look for a button of type 'submit' inside a 'form' tag.
+    # Ambiguità: ci sono due pulsanti con il testo "Get Suggestion" nella pagina
+    # (uno sotto nel report, uno nella modale).
+    # Per essere sicuri di cliccare quello giusto (quello di submit), usiamo un selettore CSS preciso.
+    # Cerchiamo un pulsante di tipo 'submit' all'interno di un tag 'form'.
     submit_btn = context.browser.find_element(By.CSS_SELECTOR, "form button[type='submit']")
     submit_btn.click()
