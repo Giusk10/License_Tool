@@ -339,3 +339,4 @@ def filter_contained_licenses(spdx_items: list[dict]) -> list[dict]:
                     break
 
     return [item for k, item in enumerate(spdx_items) if k not in to_remove]
+
