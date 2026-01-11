@@ -1,10 +1,10 @@
 """
-License Ranking Module.
+Modulo di classificazione delle licenze.
 
-This module provides functionality to select the most permissive license
-from a set of licenses detected in a file, based on a predefined ranking configuration.
-It helps in resolving multi-license scenarios (e.g., OR clauses) by defaulting to
-the option that offers the most freedom.
+Questo modulo fornisce funzionalità per selezionare la licenza più permissiva
+da un insieme di licenze rilevate in un file, in base a una configurazione di classificazione predefinita.
+Aiuta a risolvere scenari multi-licenza (ad esempio, clausole OR) scegliendo per impostazione predefinita
+l'opzione che offre la maggiore libertà.
 """
 
 import json
