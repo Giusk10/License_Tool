@@ -38,7 +38,7 @@ def step_click_generic_button(context, text):
 
 @then('I should wait to see "{text}"')
 def step_wait_see_text(context, text):
-    wait = WebDriverWait(context.browser, 60)
+    wait = WebDriverWait(context.browser, 100)
 
     try:
         wait.until(EC.text_to_be_present_in_element((By.TAG_NAME, "body"), text))

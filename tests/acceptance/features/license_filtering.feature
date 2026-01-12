@@ -6,10 +6,10 @@ Feature: Analysis Result Filtering
   Scenario: Filter issues by compatibility
     # Initial setup: Reach the report page
     Given I am on the License Checker home page
-    When I enter "psf" in the Owner field
-    And I enter "requests" in the Repository field
-    And I click on the Clone Repository button
-    Then I should wait to see "Repository Cloned Successfully"
+    When I enter "local-user" in the Owner field
+    And I enter "my-zip-project" in the Repository field
+    And I upload the file "tests/acceptance/features/fixtures/test_repo.zip"
+    Then I should wait to see "Repository Uploaded Successfully"
     When I click on the button containing "Analyze Repository"
     Then I should wait to see "Analysis Report"
 

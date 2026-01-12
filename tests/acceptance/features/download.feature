@@ -7,8 +7,8 @@ Feature: Report Download
     Given I am on the License Checker home page
 
     # Use a small repo for speed (e.g., antgaldo/checkers or psf/requests)
-    When I enter "psf" in the Owner field
-    And I enter "requests" in the Repository field
+    When I enter "octocat" in the Owner field
+    And I enter "Hello-World" in the Repository field
     And I click on the Clone Repository button
     Then I should wait to see "Repository Cloned Successfully"
 
@@ -20,4 +20,4 @@ Feature: Report Download
 
     # Check if the file actually appears in our folder
     # The filename format from Callback.jsx is: {owner}_{repo}.zip
-    Then I should have a downloaded file named "psf_requests.zip"
+    Then I should have a downloaded file named "octocat_Hello-World.zip"

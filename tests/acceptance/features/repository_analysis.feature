@@ -5,8 +5,8 @@ Feature: GitHub Repository Analysis
 
   Scenario: Complete analysis flow (Clone -> Analyze -> Report)
     Given I am on the License Checker home page
-    When I enter "psf" in the Owner field
-    And I enter "requests" in the Repository field
+    When I enter "octocat" in the Owner field
+    And I enter "Hello-World" in the Repository field
     And I click on the Clone Repository button
 
     # Waiting for the cloning process to complete
