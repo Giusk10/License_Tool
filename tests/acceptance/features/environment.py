@@ -23,7 +23,7 @@ def before_all(context):
             if os.path.isfile(file_path):
                 os.unlink(file_path)
         except Exception as e:
-            print(f"Errore durante la pulizia della cartella download: {e}")
+            print(f"Error cleaning download dir: {e}")
 
     options = webdriver.ChromeOptions()
 

@@ -7,9 +7,9 @@ Feature: Report Download
   Scenario: Download report after analysis
     Given I am on the License Checker home page
 
-    # Usa un repository piccolo per velocizzare il test (es. antgaldo/checkers o psf/requests)
-    When I enter "psf" in the Owner field
-    And I enter "requests" in the Repository field
+     # Usa un repository piccolo per velocizzare il test (es. antgaldo/checkers o psf/requests)
+    When I enter "octocat" in the Owner field
+    And I enter "Hello-World" in the Repository field
     And I click on the Clone Repository button
     Then I should wait to see "Repository Cloned Successfully"
 
@@ -21,4 +21,4 @@ Feature: Report Download
 
     # Controlla se il file appare effettivamente nella nostra cartella di download
     # Il formato del nome file da Callback.jsx è: {owner}_{repo}.zip
-    Then I should have a downloaded file named "psf_requests.zip"
+    Then I should have a downloaded file named "octocat_Hello-World.zip"

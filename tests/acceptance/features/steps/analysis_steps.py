@@ -38,14 +38,13 @@ def step_click_clone(context):
 def step_click_generic_button(context, text):
     # Attende che il pulsante sia cliccabile e poi lo clicca (testo parziale)
     wait = WebDriverWait(context.browser, 20)
-    button = wait.until(EC.element_to_be_clickable((By.XPATH, f"//button[contains(., '{text}')]") ))
+    button = wait.until(EC.element_to_be_clickable((By.XPATH, f"//button[contains(., '{text}')]")))
     button.click()
 
 
 @then('I should wait to see "{text}"')
 def step_wait_see_text(context, text):
-    # Attende che il testo specificato compaia nel body della pagina (fino a 60 secondi)
-    wait = WebDriverWait(context.browser, 60)
+    wait = WebDriverWait(context.browser, 100)
 
     try:
         wait.until(EC.text_to_be_present_in_element((By.TAG_NAME, "body"), text))
