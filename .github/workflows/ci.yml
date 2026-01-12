@@ -7,14 +7,15 @@ name: Python CI
 # Qui viene lanciato su qualsiasi push (qualsiasi branch) e su PR verso main.
 on:
   push:
-    branches: [ "**" ]      # ogni branch: utile per testare rapidamente le modifiche
+    branches: [ "**" ]
   pull_request:
-    branches: [ "main" ]    # PR verso main attivano la pipeline completa
+    branches: [ "main" ]
 
 jobs:
   # ==============================================================================
   # STAGE 1: FAST FEEDBACK (Parallel Execution)
-  # Run Unit Tests, Security Tests, Static Analysis, and Builds simultaneously.
+  # Controlli standard eseguiti su ogni commit.
+  # Esegui test unitari, test di sicurezza, analisi statiche e build contemporaneamente.
   # ==============================================================================
 
   test-backend:
@@ -23,7 +24,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        # Recupera il codice del repository nella runner VM.
+      # Recupera il codice del repository nella runner VM.
 
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
@@ -40,8 +41,8 @@ jobs:
         # definiti in setup/pyproject per sviluppatori (test, lint, etc.).
 
       - name: Run Unit and Integration Tests
-        # Excludes security and acceptance tests (run in separate jobs)
-        run: pytest --ignore=tests/security --ignore=tests/acceptance
+        # Enforces 75% code coverage; excludes slow/security tests
+        run: pytest --ignore=tests/security --ignore=tests/acceptance --cov-fail-under=75
         # Lancia pytest per i test veloci; esclude la cartella dei test di
         # sicurezza e dei test end-to-end perché risorse lente o interattive.
 
@@ -49,8 +50,8 @@ jobs:
     name: Security Tests
     runs-on: ubuntu-latest
     env:
-      # Disables interactive Git prompts to prevent timeouts
-      # during negative testing (e.g., accessing private/non-existent repos)
+      # Disabilita i prompt Git interattivi per evitare timeout
+      # durante i test negativi (ad esempio, l'accesso a repository privati/inesistenti)
       GIT_TERMINAL_PROMPT: 0
     steps:
       - name: Checkout code
@@ -111,20 +112,20 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-        # Configura Node e cache npm basata su package-lock.json.
+        # Configura Node e cache npm basata su package-lock.json
 
       - name: Install Dependencies
         run: npm ci
         # npm ci installa in modo deterministico usando il lockfile.
 
       - name: Build Frontend
-        # CRITICAL FIX: Forces the frontend to point to the LOCAL backend (CI)
-        # instead of the remote Hugging Face instance defined in the code.
+        # CORREZIONE CRITICA: forza il frontend a puntare al backend LOCALE (CI)
+        # invece dell'istanza remota di Hugging Face definita nel codice.
         env:
           VITE_API_URL: "http://localhost:8000"
         run: npm run build
 
-      # Uploads the compiled frontend artifact for use in Acceptance Tests
+      # Carica l'artefatto frontend compilato per l'uso nei test di accettazione
       - name: Upload Frontend Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -132,26 +133,28 @@ jobs:
           path: frontend/dist
 
   # ==============================================================================
-  # STAGE 2: ACCEPTANCE TESTS (Slow Feedback)
-  # Runs End-to-End tests only if all Stage 1 jobs succeed.
+  # STAGE 2: TEST DI ACCETTAZIONE (Esecuzione condizionale)
+  # - Spinte di branch: esecuzione locale (veloce)
+  # - Principale/PR: eseguito tramite Docker (parità di produzione)
   # ==============================================================================
 
-  acceptance-tests:
-    name: E2E Acceptance Tests
+  acceptance-local:
+    name: E2E Acceptance Tests (Local Fast)
     runs-on: ubuntu-latest
     needs: [test-backend, security-tests, static-analysis, build-frontend]
     # "needs" definisce le dipendenze: questo job parte solo se i jobs
     # elencati sono completati con successo. Puoi rimuovere 'security-tests'
     # da qui se vuoi evitare che i test di sicurezza blocchino gli E2E.
 
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/Docker' && github.ref != 'refs/heads/Docker-Windows' && github.ref != 'refs/heads/test_refactoring'
     env:
-      HEADLESS: "true"                        # indica ai test di usare modalità headless
-      FRONTEND_URL: "http://localhost:5173"   # dove verrà servito il frontend in questo job
-      # Ollama Configuration (Backend)
+      HEADLESS: "true"                          # indica ai test di usare modalità headless
+      FRONTEND_URL: "http://localhost:5173"     # dove verrà servito il frontend in questo job
+      # Local Ollama Configuration (Backend)
       OLLAMA_URL: "http://localhost:11434/api/generate"
       OLLAMA_HOST_VERSION: "http://localhost:11434/api/version"
       OLLAMA_HOST_TAGS: "http://localhost:11434/api/tags"
-      # Use the lightest model possible to save resources and time
+      # Utilizzare il modello più leggero possibile per risparmiare risorse e tempo
       OLLAMA_CODING_MODEL: "qwen2.5-coder:0.5b"
       OLLAMA_GENERAL_MODEL: "qwen2.5-coder:0.5b"
       # ScanCode Configuration
@@ -172,25 +175,25 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
-          # ScanCode Toolkit is required for actual analysis execution
+      # ScanCode Toolkit è necessario per l'esecuzione effettiva dell'analisi
           pip install scancode-toolkit
 
-      # 2. Setup Node.js (Required to serve static files)
+      # 2. Setup Node.js (Necessario per servire file statici)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 3. Retrieve Compiled Frontend
+      # 3. Recupera Frontend compilato
       - name: Download Frontend Artifact
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist
-        # Scarica la build frontend dalla fase precedente.
+          # Scarica la build frontend dalla fase precedente.
 
       # 4. Install and Start Ollama
-      - name: Install Ollama
+      - name: Install and Start Ollama
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
           ollama serve &
@@ -202,12 +205,12 @@ jobs:
       # 5. Start Services (Backend & Frontend)
       - name: Start Services
         run: |
-          # Start Backend on port 8000 in background
+        # Start Backend on port 8000 in background
           uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-          
+               
           # Serve Frontend on port 5173 
           npx serve -s frontend/dist -l 5173 &
-          
+               
           # Wait for services to initialize
           sleep 10
 
@@ -216,3 +219,137 @@ jobs:
         run: behave tests/acceptance/features
         # Esegue i test end-to-end con Behave; questi test usano il
         # frontend e backend avviati sopra e possono essere lenti.
+
+  acceptance-docker:
+    name: E2E Acceptance Tests (Docker Production)
+    runs-on: ubuntu-latest
+    needs: [test-backend, security-tests, static-analysis, build-frontend]
+      # Questo job dipende dal completamento con successo di:
+      # - test-backend (test unitari/integrativi)
+      # - security-tests
+      # - static-analysis
+    # - build-frontend
+    # Garantisce che i test di accettazione partano solo su codice validato.
+
+    # Execute only on specific branches
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Docker' || github.ref == 'refs/heads/Docker-Windows' || github.ref == 'refs/heads/test_refactoring'
+    # Questo job viene eseguito solo sui branch principali o dedicati a Docker,
+    # per garantire test E2E in un ambiente il più vicino possibile alla produzione.
+
+    env:
+      HEADLESS: "true"
+      FRONTEND_URL: "http://localhost:5173"
+      # Variabili di ambiente condivise dai test di accettazione:
+      # - HEADLESS abilita l’esecuzione senza UI (browser headless)
+      # - FRONTEND_URL indica l’URL del frontend servito sull’host CI
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # Recupera il codice sorgente necessario per build Docker e test.
+
+      # ----------------------------------------------------------------------------
+      # 1. Build & Start Docker Container
+      # ----------------------------------------------------------------------------
+      # Costruisce e avvia il backend tramite Docker per testare
+      # esattamente lo stesso artefatto che verrebbe usato in produzione.
+      - name: Build and Start Backend Container
+        run: |
+          docker build -t license-tool-backend .
+        # Build dell'immagine Docker del backend a partire dal Dockerfile
+
+          docker run -d \
+            --name backend \
+            -p 8000:8000 \
+            -e SCANCODE_BIN=scancode \
+            -e PYTHONDONTWRITEBYTECODE=1 \
+            -e CLONE_BASE_DIR=/app/data \
+            -e OUTPUT_BASE_DIR=/app/data/json \
+            -e MINIMAL_JSON_BASE_DIR=/app/data/json/Minimal \
+            -e OLLAMA_CODING_MODEL="qwen2.5-coder:0.5b" \
+            -e OLLAMA_GENERAL_MODEL="qwen2.5-coder:0.5b" \
+            -e OLLAMA_URL="http://127.0.0.1:11434/api/generate" \
+            -e OLLAMA_HOST_VERSION="http://127.0.0.1:11434/api/version" \
+            -e OLLAMA_HOST_TAGS="http://127.0.0.1:11434/api/tags" \
+            license-tool-backend
+          # Avvia il container backend in background (-d), esponendo la porta 8000
+          # e configurando tutte le variabili di ambiente necessarie
+          # (ScanCode, directory dati, modelli Ollama, endpoint API).
+               
+          echo "Waiting for container initialization..."
+          sleep 5
+          # Attesa iniziale per consentire l’avvio del container
+
+      # ----------------------------------------------------------------------------
+      # 2. Setup Ollama (Inside Docker)
+      # ----------------------------------------------------------------------------
+      # I modelli Ollama vengono scaricati a runtime per:
+      # - ridurre la dimensione dell'immagine Docker
+      # - mantenere flessibilità nella scelta dei modelli
+      - name: Pull Ollama Model inside Container
+        run: |
+          docker exec backend ollama pull qwen2.5-coder:0.5b
+        # Scarica il modello LLM all’interno del container backend
+
+          # Wait for backend readiness
+          timeout 60s bash -c 'until curl -s http://localhost:8000/docs > /dev/null; do sleep 2; done'
+          # Attende che l’API FastAPI sia effettivamente disponibile prima
+          # di procedere con i test (health check implicito).
+
+      # ----------------------------------------------------------------------------
+      # 3. Setup Test Runner Environment (Host)
+      # ----------------------------------------------------------------------------
+      # I test di accettazione vengono eseguiti sull’host CI,
+      # mentre il backend gira nel container Docker.
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: 'pip'
+          # Configura Python sull’host per eseguire Behave e i test E2E.
+
+      - name: Install Test Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+        # Installa le dipendenze necessarie all’esecuzione dei test di accettazione.
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+        # Node.js è necessario per servire il frontend compilato.
+
+      # ----------------------------------------------------------------------------
+      # 4. Start Frontend (Host)
+      # ----------------------------------------------------------------------------
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      # Recupera la build frontend prodotta nello stage precedente.
+
+      - name: Start Frontend
+        run: |
+          npx serve -s frontend/dist -l 5173 &
+          sleep 5
+        # Avvia il frontend statico sull’host CI.
+        # I test E2E lo useranno tramite FRONTEND_URL.
+
+      # ----------------------------------------------------------------------------
+      # 5. Run Acceptance Tests
+      # ----------------------------------------------------------------------------
+      - name: Run Acceptance Tests
+        run: behave tests/acceptance/features
+        # Esegue i test di accettazione end-to-end con Behave.
+        # I test interagiscono con il backend in esecuzione nel container Docker
+        # e con il frontend servito sull’host CI, validando il comportamento
+        # complessivo del sistema in uno scenario simile alla produzione.
+
+
+      - name: Dump Docker Logs on Failure
+        if: failure()
+        run: docker logs backend
+        # In caso di fallimento dei test, stampa i log del container backend
+        # per facilitare l’analisi degli errori e il debugging in CI.
