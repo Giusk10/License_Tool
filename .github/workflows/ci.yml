@@ -172,10 +172,10 @@ jobs:
           cache: 'pip'
 
       - name: Install Backend Dependencies
+        # ScanCode Toolkit è necessario per l'esecuzione effettiva dell'analisi
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
-      # ScanCode Toolkit è necessario per l'esecuzione effettiva dell'analisi
           pip install scancode-toolkit
 
       # 2. Setup Node.js (Necessario per servire file statici)
@@ -254,10 +254,10 @@ jobs:
       # Costruisce e avvia il backend tramite Docker per testare
       # esattamente lo stesso artefatto che verrebbe usato in produzione.
       - name: Build and Start Backend Container
+        # Build dell'immagine Docker del backend a partire dal Dockerfile
         run: |
           docker build -t license-tool-backend .
-        # Build dell'immagine Docker del backend a partire dal Dockerfile
-
+        
           docker run -d \
             --name backend \
             -p 8000:8000 \
@@ -287,10 +287,10 @@ jobs:
       # - ridurre la dimensione dell'immagine Docker
       # - mantenere flessibilità nella scelta dei modelli
       - name: Pull Ollama Model inside Container
+        # Scarica il modello LLM all’interno del container backend
         run: |
           docker exec backend ollama pull qwen2.5-coder:0.5b
-        # Scarica il modello LLM all’interno del container backend
-
+       
           # Wait for backend readiness
           timeout 60s bash -c 'until curl -s http://localhost:8000/docs > /dev/null; do sleep 2; done'
           # Attende che l’API FastAPI sia effettivamente disponibile prima
