@@ -161,6 +161,9 @@ jobs:
           npx serve -s frontend/dist -l 5173 &
           sleep 10
 
+      - name: API Availability Check
+        run: python tests/api_availability_check.py
+
       - name: Run Acceptance Tests
         run: behave tests/acceptance/features
 
@@ -237,6 +240,9 @@ jobs:
           sleep 5
 
       # 5. Execute Tests
+      - name: API Availability Check
+        run: python tests/api_availability_check.py
+
       - name: Run Acceptance Tests
         run: behave tests/acceptance/features
 
