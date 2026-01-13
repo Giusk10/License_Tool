@@ -243,3 +243,30 @@ jobs:
       - name: Dump Docker Logs on Failure
         if: failure()
         run: docker logs backend
+
+  # ==============================================================================
+  # STAGE 3: CONTINUOUS DEPLOYMENT
+  # Sync to Hugging Face Space ONLY if everything else passed and branch is main.
+  # ==============================================================================
+
+  sync-to-hub:
+    name: Deploy to Hugging Face
+    runs-on: ubuntu-latest
+    # Corretto: Dipende solo dai test Docker perché su 'main' i test locali vengono saltati
+    needs: [acceptance-docker]
+    # Corretto: Esegue solo su push diretti al main
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: LicenseChecker
+          SPACE_NAME: License_Checker_Tool
+        run: |
+          git push --force https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$SPACE_NAME main
