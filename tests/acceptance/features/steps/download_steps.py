@@ -26,3 +26,8 @@ def step_impl(context, filename):
     # Optional: Check if file size is greater than 0 to ensure it's not empty
     file_size = os.path.getsize(file_path)
     assert file_size > 0, f"File '{filename}' was found but is empty (0 bytes)."
+
+    try:
+        os.remove(file_path)
+    except OSError as e:
+        print(f"Error deleting file {file_path}: {e}")
