@@ -229,10 +229,15 @@ jobs:
           # Attende 10 secondi per permettere ai servizi di inizializzarsi completamente
           sleep 10
 
-      # Step 8: Esecuzione dei test di accettazione con Behave (BDD framework)
+      # Step 8: Esecuzione test blackbox
+      - name: API Availability Check
+        run: python tests/api_availability_check.py
+
+      # Step 9: Esecuzione dei test di accettazione con Behave (BDD framework)
       # I test interagiscono con il frontend (Selenium) che a sua volta comunica con il backend
       - name: Run Acceptance Tests
         run: behave tests/acceptance/features
+
 
   # Job: acceptance-docker
   # Questo job esegue i test di accettazione end-to-end (E2E) utilizzando Docker per replicare l'ambiente di produzione.
