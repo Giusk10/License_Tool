@@ -3,7 +3,7 @@ test: services/compatibility/evaluator.py
 
 Questo modulo contiene test unitari per il motore di valutazione della compatibilità delle licenze.
 Verifica la logica per determinare la compatibilità tra espressioni di licenza
-(inclusi stringhe SPDX complesse con operatori AND/OR e eccezioni WITH)
+(inclusi stringhe SPDX complesse con operatori AND/OR ed eccezioni WITH)
 rispetto alla licenza principale di un progetto.
 
 - Il modulo `evaluator` viene testato in isolamento tramite il mocking delle dipendenze esterne
@@ -49,7 +49,7 @@ def test_eval_node_none():
     assert status == "unknown"
     assert "Missing expression or not recognized" in trace[0]
 
-def test_eval_leaf_simple(MockLeaf):
+def test_eval_leaf_simple(MockLeaf):  #BLACKBOX
     """
     Testa la valutazione di un nodo Leaf semplice (singola licenza).
     Scenario: Controllo di 'Apache-2.0' contro 'MIT'.

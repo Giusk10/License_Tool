@@ -46,13 +46,13 @@ PREREQUISITI:
 
 ESECUZIONE:
 -----------
-python blackbox_tester.py
+python api_availability_check.py
 
 oppure con pytest:
-pytest blackbox_tester.py -v
+pytest api_availability_check.py -v
 
 oppure con coverage:
-coverage run -m pytest blackbox_tester.py -v
+coverage run -m pytest api_availability_check.py -v
 coverage report
 """
 
