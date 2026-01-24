@@ -11,6 +11,7 @@ WORKDIR /app
 # 1. Dipendenze di sistema (AGGIUNTE: pkg-config e libicu-dev per PyICU)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    zstd \
     git \
     curl \
     wget \
