@@ -123,6 +123,15 @@ Using this tool involves interaction with the following services, governed by th
 
 * **GitHub API:** Download of repositories is subject to GitHub's *Terms of Service* and *API Terms of Use*. It is recommended to strictly adhere to rate limits.
 * **Ollama API:** Interaction with local AI models is subject to Ollama's MIT license.
+  
+### AI Models & Inference Notice
+
+This tool leverages external Large Language Models (LLMs) to perform code analysis and reasoning. Specifically, it is configured to utilize:
+
+* DeepSeek-V3 (by DeepSeek-AI) - Licensed under MIT License.
+* Qwen-Coder (by Alibaba Cloud) - Licensed under Apache 2.0 License.
+
+**Data Privacy Warning:** Usage of "Cloud" versions of these models implies that code snippets and analysis data are transmitted to remote inference endpoints. Users are responsible for verifying that their code can be securely transmitted to third-party inference providers in compliance with their own data privacy policies.
 
 ### 🛑 Disclaimer: Code Regeneration
 
@@ -134,3 +143,4 @@ The tool includes experimental features for **automatic regeneration or modifica
 3.  **User Responsibility:** The author of this tool declines any responsibility for misuse, copyright violations, or legal incompatibilities arising from the use of the generated code.
 
 **The user is solely responsible for verifying final legal compliance.**
+
