@@ -1,4 +1,6 @@
 # ⚖️ License Checker
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FGiusk10%2FLicense_Tool.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FGiusk10%2FLicense_Tool?ref=badge_shield)
+
 
 **License Checker** is an advanced platform for software license compliance checking. The system allows developers to analyze entire repositories or upload archives locally to identify legal conflicts between the project's main license and the licenses of individual files. It also offers the possibility of receiving suggestions on which license to use within one's project if it is missing one.
 
@@ -96,6 +98,9 @@ The web interface will be accessible at **https://license-tool-nine.vercel.app/*
 
 This section provides clarity on the licenses governing this tool and its components.
 
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FGiusk10%2FLicense_Tool.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FGiusk10%2FLicense_Tool?ref=badge_large)
+
 ### 1. Tool License (AGPL-3.0)
 The source code of this project is released under the **AGPL v3.0 License**.
 See the [LICENSE](LICENSE) file for the full text.
@@ -143,4 +148,3 @@ The tool includes experimental features for **automatic regeneration or modifica
 3.  **User Responsibility:** The author of this tool declines any responsibility for misuse, copyright violations, or legal incompatibilities arising from the use of the generated code.
 
 **The user is solely responsible for verifying final legal compliance.**
-
